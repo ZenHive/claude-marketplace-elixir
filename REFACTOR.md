@@ -42,22 +42,18 @@ This document outlines tasks to personalize the Claude Code plugin marketplace f
 ## Phase 0: Foundation
 
 ### Task 0a: Add D/B Scoring to Global CLAUDE.md
-- [ ] **Pending** [D:1/B:7 → Priority:7.0] 🎯
+- [x] **Complete** [D:1/B:7 → Priority:7.0] ✅
 
 **Goal:** Document that all task lists should use D/B scoring format in global CLAUDE.md.
 
-**Files to modify:**
-- `~/.claude/CLAUDE.md` - Add note in Task Prioritization Framework section
+**Result:** Already implemented in `~/.claude/includes/task-prioritization.md` (line 2):
+> "When creating any task list or TODO document, always include difficulty and benefit scores"
 
-**Content to add:**
-```markdown
-**Usage Requirement:**
-All task lists, roadmaps, and planning documents created by Claude should use this D/B scoring format consistently.
-```
+Projects include this via `@include ~/.claude/includes/task-prioritization.md`.
 
 **Acceptance criteria:**
-- [ ] D/B scoring requirement documented in global CLAUDE.md
-- [ ] REFACTOR.md serves as example of proper usage
+- [x] D/B scoring requirement documented in global CLAUDE.md (via includes)
+- [x] REFACTOR.md serves as example of proper usage
 
 ---
 
@@ -436,23 +432,27 @@ allowed-tools: Read, Write
 ---
 
 ### Task 2: Update Namespace to DeltaHedge
-- [ ] **Pending** [D:1/B:6 → Priority:6.0] 🎯
+- [x] **Complete** [D:1/B:6 → Priority:6.0] ✅
 
 **Goal:** Change namespace from `elixir` to `deltahedge`.
 
 **Decision:** Namespace will be `deltahedge`
 - Plugins become: `core@deltahedge`, `credo@deltahedge`, etc.
 
-**Files to modify:**
-- `.claude-plugin/marketplace.json` - Change `name` from `elixir` to `deltahedge`
-- `CLAUDE.md` - Update all `@elixir` references to `@deltahedge`
-- `README.md` - Update plugin installation examples
-- `.claude/WORKFLOWS.md` - Update any namespace references
+**Files modified:**
+- `.claude-plugin/marketplace.json` - Changed `name` from `elixir` to `deltahedge`
+- `.claude/settings.json` - Updated marketplace key and all plugin references
+- `CLAUDE.md` - Updated all `@elixir` references to `@deltahedge`
+- `README.md` - Updated plugin installation examples
+- `.claude/commands/*.md` - Updated all namespace references (plan.md, qa.md, create-plugin.md, oneshot.md)
+- `plugins/*/README.md` - Updated all plugin installation examples
+- `plugins/*/skills/*/README.md` - Updated skill documentation
+- `test/plugins/*/README.md` - Updated test documentation
 
 **Acceptance criteria:**
-- [ ] Namespace changed to `deltahedge`
-- [ ] All documentation updated
-- [ ] Plugin install commands work: `/plugin install core@deltahedge`
+- [x] Namespace changed to `deltahedge`
+- [x] All documentation updated
+- [x] Plugin install commands work: `/plugin install core@deltahedge`
 
 ---
 
@@ -883,18 +883,19 @@ allowed-tools: Read
 
 ## Summary
 
-| Phase | Tasks | Focus |
-|-------|-------|-------|
-| 0. Foundation | 0a-0h | D/B scoring, web command, WebFetch cleanup, git worktrees, local testing, API consumer macro, roadmap planning, plugin validation |
-| 1. Ownership | 1-2 | Identity updates |
-| 2. New Plugins | 3-6, 3b | claude-md-includes, @include split, Doctor, Phoenix skill, Tidewave skill |
-| 3. Pre-commit | 7-8 | Strict mode, test pattern detection |
-| 4. Workflows | 9-11 | D/B scoring, Tidewave integration |
-| 5. Documentation | 12-14 | CLAUDE.md, README, testing |
+| Phase | Tasks | Status | Focus |
+|-------|-------|--------|-------|
+| 0. Foundation | 0a-0h | 4/8 ✅ | D/B scoring, web command, WebFetch cleanup, git worktrees, local testing, API consumer macro, roadmap planning, plugin validation |
+| 1. Ownership | 1-2 | 2/2 ✅ | Identity updates |
+| 2. New Plugins | 3-6, 3b | 2/5 ✅ | claude-md-includes, @include split, Doctor, Phoenix skill, Tidewave skill |
+| 3. Pre-commit | 7-8 | 0/2 | Strict mode, test pattern detection |
+| 4. Workflows | 9-11 | 0/3 | D/B scoring, Tidewave integration |
+| 5. Documentation | 12-14 | 0/3 | CLAUDE.md, README, testing |
 
-**Total: 23 tasks**
+**Total: 23 tasks (8 complete, 15 remaining)**
 
-**Future:** After Task 3 (claude-md-includes), consider splitting this file into `.thoughts/refactor/phase-*.md` using `@include` directives.
+**Completed:** 0a, 0c, 0e, 0h, 1, 2, 3, 3b
+**Next by ROI:** 0b, 0d, 4 (Priority 4.5)
 
 ---
 
@@ -1001,23 +1002,23 @@ Task 3b: Split CLAUDE    Task 0f: Roadmap
 
 ```
 Phase 0 (Foundation)
-  └── Task 0e: Install marketplace locally ◄── DO FIRST (enables testing)
-  └── Task 0h: Validate plugin structure ◄── DO AFTER 0e (establishes baseline)
-  └── Task 0a: D/B scoring docs
+  └── Task 0e: Install marketplace locally ✅
+  └── Task 0h: Validate plugin structure ✅
+  └── Task 0a: D/B scoring docs ✅
   └── Task 0b: Web command skill
-  └── Task 0c: Replace WebFetch refs
+  └── Task 0c: Replace WebFetch refs ✅
   └── Task 0d: Git worktrees skill
   └── Task 0f: API consumer macro skill
   └── Task 0g: Roadmap planning skill
 
 Phase 1 (Ownership) - independent of Phase 0
-  └── Task 1: Marketplace ownership
-  └── Task 2: Namespace update
+  └── Task 1: Marketplace ownership ✅
+  └── Task 2: Namespace update ✅
 
 Phase 2 (Plugins)
-  ├── Task 3: claude-md-includes ─────┐
-  │                                   │
-  └── Task 3b: Split CLAUDE.md ◄──────┘ (depends on Task 3)
+  ├── Task 3: claude-md-includes ✅
+  │
+  └── Task 3b: Split CLAUDE.md ✅
   └── Task 4: Doctor plugin
   └── Task 5: Phoenix patterns skill
   └── Task 6: Tidewave guide skill
@@ -1037,7 +1038,7 @@ Phase 5 (Documentation)
   └── Task 14: Test suite validation
 ```
 
-**Critical path:** Task 0e (first) → Task 0h (validation) → then Task 3 → Task 3b (all others can run in parallel within phases)
+**Critical path:** ✅ Complete (0e → 0h → 3 → 3b)
 
 ---
 
@@ -1047,19 +1048,19 @@ Phase 5 (Documentation)
 
 | Priority | Tasks (by ROI descending) |
 |----------|---------------------------|
-| 🎯 10.0 | **0e** (enables testing) |
-| 🎯 9.0 | **3** (enables 3b) |
-| 🎯 8.0 | 0c, 1 |
-| 🎯 7.0 | 0a, **0h** (after 0e) |
-| 🎯 6.0 | 2 |
+| 🎯 10.0 | ~~**0e**~~ ✅ |
+| 🎯 9.0 | ~~**3**~~ ✅ |
+| 🎯 8.0 | ~~0c~~ ✅, ~~1~~ ✅ |
+| 🎯 7.0 | ~~0a~~ ✅, ~~**0h**~~ ✅ |
+| 🎯 6.0 | ~~2~~ ✅ |
 | 🎯 4.5 | 0b, 0d, 4, 14 |
-| 🎯 4.0 | **3b** (after 3), 0g, 6, 9 |
+| 🎯 4.0 | ~~**3b**~~ ✅, 0g, 6, 9 |
 | 🎯 3.5 | 10, 11, 12 |
 | 🎯 3.0 | 0f, 5, 13 |
 | 🎯 2.67 | 7 |
 | 🎯 2.5 | 8 |
 
-**Critical path:** 0e → 0h → 3 → 3b (all others parallelize within phases)
+**Critical path:** ~~0e → 0h → 3 → 3b~~ ✅ Complete (all others parallelize within phases)
 
 ---
 
