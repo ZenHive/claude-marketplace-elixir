@@ -176,6 +176,22 @@
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
+    },
+    {
+      "name": "doctor",
+      "source": "./plugins/doctor",
+      "description": "Mix Doctor documentation quality validation for Elixir projects",
+      "keywords": [
+        "elixir",
+        "doctor",
+        "documentation",
+        "validation",
+        "pre-commit",
+        "coverage"
+      ],
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+      "license": "MIT",
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     }
   ]
 }

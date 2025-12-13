@@ -1,0 +1,12 @@
+{
+  "name": "doctor",
+  "version": "1.0.0",
+  "description": "Mix Doctor documentation quality validation for Elixir projects",
+  "author": {
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive"
+  },
+  "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+  "license": "MIT",
+  "keywords": ["elixir", "doctor", "documentation", "validation", "pre-commit"]
+}

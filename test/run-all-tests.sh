@@ -52,6 +52,7 @@ run_test_suite "Sobelow Plugin Tests" "$SCRIPT_DIR/plugins/sobelow/test-sobelow-
 run_test_suite "mix_audit Plugin Tests" "$SCRIPT_DIR/plugins/mix_audit/test-mix-audit-hooks.sh" || true
 run_test_suite "ExDoc Plugin Tests" "$SCRIPT_DIR/plugins/ex_doc/test-ex-doc-hooks.sh" || true
 run_test_suite "Precommit Plugin Tests" "$SCRIPT_DIR/plugins/precommit/test-precommit-hooks.sh" || true
+run_test_suite "Doctor Plugin Tests" "$SCRIPT_DIR/plugins/doctor/test-doctor-hooks.sh" || true
 
 echo ""
 echo -e "${BLUE}================================${NC}"
