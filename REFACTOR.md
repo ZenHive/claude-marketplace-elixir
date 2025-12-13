@@ -103,7 +103,7 @@ allowed-tools: Bash, Read
 ---
 
 ### Task 0c: Replace WebFetch References with Web Command
-- [ ] **Pending** [D:1/B:8 → Priority:8.0] 🎯
+- [x] **Complete** [D:1/B:8 → Priority:8.0] ✅
 
 **Goal:** Audit and replace all "WebFetch" or "fetch" web browsing references with `web` command.
 
@@ -112,18 +112,24 @@ allowed-tools: Bash, Read
 - `web.*fetch` - any fetch-related web patterns
 - Review skills that mention web browsing
 
-**Files to audit:**
-- All skill SKILL.md files
-- All command .md files
-- README.md files
-- `plugins/core/skills/hex-docs-search/SKILL.md` (existing)
-- `plugins/core/skills/usage-rules/SKILL.md` (existing)
-- `plugins/meta/skills/workflow-generator/SKILL.md` (existing)
+**Files audited:**
+- All skill SKILL.md files (3 files)
+- All command .md files (7 files)
+- All README.md files (14 files)
+- `plugins/core/skills/hex-docs-search/SKILL.md`
+- `plugins/core/skills/usage-rules/SKILL.md`
+- `plugins/meta/skills/workflow-generator/SKILL.md`
+- Project CLAUDE.md
+- All `.claude/` directory files
+
+**Result:** Codebase is clean - no WebFetch references found. Skills appropriately use:
+- `WebSearch` tool for search operations (not browser-based fetching)
+- `Bash` with `curl` for API calls (appropriate for REST endpoints)
 
 **Acceptance criteria:**
-- [ ] No WebFetch references remain (except "never use WebFetch" warnings)
-- [ ] All web browsing examples use `web` command
-- [ ] Consistent messaging: "`web` is the default, WebFetch is forbidden"
+- [x] No WebFetch references remain (except "never use WebFetch" warnings)
+- [x] All web browsing examples use `web` command (N/A - no browser-based examples existed)
+- [x] Consistent messaging: "`web` is the default, WebFetch is forbidden" (N/A - no web browsing instructions to update)
 
 ---
 
@@ -362,48 +368,48 @@ allowed-tools: Read, Write
 ---
 
 ### Task 0h: Validate Existing Plugin Structure
-- [ ] **Pending** [D:1/B:7 → Priority:7.0] 🎯
+- [x] **Complete** [D:1/B:7 → Priority:7.0] ✅
 
 **Goal:** Before modifying plugins, verify current state matches CLAUDE.md assumptions.
 
-**Validation checks:**
-1. Verify all plugins listed in `marketplace.json` exist in `plugins/`
-2. Verify all plugin directories have valid `plugin.json`
-3. Verify existing skills have proper SKILL.md frontmatter
-4. Verify hook scripts exist and are executable
-5. Run existing test suite to establish baseline
+**Validation Results:**
 
-**Commands:**
-```bash
-# List all plugins
-ls plugins/
+| Check | Result |
+|-------|--------|
+| Plugins in marketplace.json exist | ✅ 12/12 plugins found |
+| All plugin.json valid JSON | ✅ 12/12 valid |
+| Skills have proper frontmatter | ✅ 3/3 valid (`name`, `description`, `allowed-tools`) |
+| Hook scripts executable | ✅ 17/17 executable |
+| Hooks.json files valid | ✅ 10/10 valid |
+| Test suite baseline | ✅ **86/86 tests pass** |
 
-# Validate marketplace.json
-cat .claude-plugin/marketplace.json | jq '.plugins[]'
+**Plugin Structure:**
 
-# Check each plugin has plugin.json
-for dir in plugins/*/; do
-  [ -f "$dir/.claude-plugin/plugin.json" ] && echo "✓ $dir" || echo "✗ $dir missing plugin.json"
-done
+| Plugin | hooks | scripts | skills | commands |
+|--------|-------|---------|--------|----------|
+| core | ✅ | 5 | 2 | - |
+| credo | ✅ | 2 | - | - |
+| ash | ✅ | 2 | - | - |
+| dialyzer | ✅ | 1 | - | - |
+| sobelow | ✅ | 2 | - | - |
+| ex_doc | ✅ | 1 | - | - |
+| ex_unit | ✅ | 1 | - | - |
+| mix_audit | ✅ | 1 | - | - |
+| precommit | ✅ | 1 | - | - |
+| claude-md-includes | ✅ | 1 | - | - |
+| git | - | - | - | ✅ |
+| meta | - | - | 1 | ✅ |
 
-# Run existing tests
-./test/run-all-tests.sh
-```
-
-**Files to verify:**
-- `.claude-plugin/marketplace.json`
-- `plugins/*/.claude-plugin/plugin.json`
-- `plugins/*/skills/*/SKILL.md`
-- `plugins/*/hooks/hooks.json`
+**Notes:**
+- `git` and `meta` plugins are command/skill-only (no hooks) - valid design
+- All existing skills have proper YAML frontmatter with required fields
 
 **Acceptance criteria:**
-- [ ] All plugins listed in marketplace exist
-- [ ] All plugin.json files are valid JSON
-- [ ] All existing skills have valid frontmatter
-- [ ] All hook scripts are executable
-- [ ] Existing test suite passes (baseline established)
-
-**Note:** Run this AFTER Task 0e (marketplace install) to validate structure before modifications.
+- [x] All plugins listed in marketplace exist (12/12)
+- [x] All plugin.json files are valid JSON (12/12)
+- [x] All existing skills have valid frontmatter (3/3)
+- [x] All hook scripts are executable (17/17)
+- [x] Existing test suite passes (baseline: 86 tests, 0 failures)
 
 ---
 
