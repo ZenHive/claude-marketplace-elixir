@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+@include ~/.claude/includes/critical-rules.md
+
+@include ~/.claude/includes/task-prioritization.md
+
+@include ~/.claude/includes/web-command.md
+
 ## Repository Purpose
 
 This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem development. It provides automated development workflows through hooks that trigger on file edits and git operations.
@@ -403,5 +409,3 @@ This validates:
 Start with imperative verb: Add, Update, Fix, Remove, etc.
 
 
-
-@include ~/.claude/includes/test.md

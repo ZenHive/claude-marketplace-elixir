@@ -509,43 +509,41 @@ plugins/claude-md-includes/
 ---
 
 ### Task 3b: Split Global CLAUDE.md with @include
-- [ ] **Pending** [D:2/B:8 → Priority:4.0] 🎯
+- [x] **Complete** [D:2/B:8 → Priority:4.0] ✅
 
 **Goal:** Modularize the 1000+ line global CLAUDE.md into composable includes.
 
 **Depends on:** Task 3 (claude-md-includes plugin)
 
-**Proposed structure:**
+**Design Decision:** The claude-md-includes plugin only processes PROJECT CLAUDE.md files, not the global ~/.claude/CLAUDE.md. Therefore:
+- Global CLAUDE.md serves as a **reference menu** explaining available includes
+- Users add `@include` directives to their **project's** CLAUDE.md at `/init`
+- Includes are organized by language: Universal (any language) vs Elixir/Phoenix
+
+**Final structure:**
 ```
 ~/.claude/
-├── CLAUDE.md                              # Main file with @include directives
+├── CLAUDE.md                              # Reference menu with templates
 └── includes/
-    ├── critical-rules.md                  # Phoenix server, tests, test failures, minimalism
+    ├── critical-rules.md                  # Tests, test failures, minimalism, shell safety
     ├── task-prioritization.md             # D/B scoring framework
     ├── web-command.md                     # `web` command documentation
-    ├── phoenix-patterns.md                # Phoenix 1.8 patterns
-    ├── elixir-patterns.md                 # Runtime errors, performance patterns
-    ├── testing-philosophy.md              # TDD, never hide failures, Tidewave exploration
     ├── code-style.md                      # Style guidelines, KPIs
-    ├── library-design.md                  # Library vs application patterns
-    └── slash-commands.md                  # Global slash command reference
+    ├── development-philosophy.md          # Simplicity, TODO comments, magic numbers
+    ├── documentation-guidelines.md        # When to create docs, reminders
+    ├── development-commands.md            # mix commands, test output (Elixir)
+    ├── slash-commands.md                  # Global slash commands (Elixir)
+    ├── phoenix-setup.md                   # Auth flags, deps, Tidewave (Phoenix)
+    ├── phoenix-patterns.md                # Forms, streams, routing (Phoenix)
+    ├── elixir-patterns.md                 # Runtime errors, Ecto security (Elixir)
+    └── library-design.md                  # Config, credentials, APIs (Elixir libs)
 ```
 
-**Files to create:**
-- `~/.claude/includes/*.md` - Individual include files
-- Update `~/.claude/CLAUDE.md` - Replace content with @include directives
-
-**Benefits:**
-- Easier maintenance of individual sections
-- Can share specific includes across projects
-- Reduces cognitive load when editing
-- Each section can be versioned independently
-
 **Acceptance criteria:**
-- [ ] All sections extracted to include files
-- [ ] Main CLAUDE.md uses @include for all content
-- [ ] Circular dependency check passes
-- [ ] Claude Code loads successfully with includes
+- [x] All sections extracted to 12 include files
+- [x] Global CLAUDE.md serves as reference menu with project templates
+- [x] Includes organized: 6 universal + 6 Elixir/Phoenix specific
+- [x] Plugin processes project CLAUDE.md @include directives correctly
 
 ---
 
