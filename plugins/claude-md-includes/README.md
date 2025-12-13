@@ -18,13 +18,13 @@ This plugin runs at session start and:
 ## Installation
 
 ```bash
-/plugin install claude-md-includes@elixir
+/plugin install claude-md-includes@deltahedge
 ```
 
 Or from the marketplace:
 ```bash
 /plugin marketplace add github:ZenHive/claude-marketplace-elixir
-/plugin install claude-md-includes@elixir
+/plugin install claude-md-includes@deltahedge
 ```
 
 ## Usage

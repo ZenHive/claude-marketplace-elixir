@@ -10,7 +10,7 @@ This plugin integrates ExDoc's documentation validation into your development wo
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install ex_doc@elixir
+/plugin install ex_doc@deltahedge
 ```
 
 ## Features
@@ -154,7 +154,7 @@ If you need to commit without documentation validation temporarily:
 
 ```bash
 # Uninstall the plugin
-/plugin uninstall ex_doc@elixir
+/plugin uninstall ex_doc@deltahedge
 
 # Or use git commit --no-verify (bypasses all pre-commit hooks)
 git commit --no-verify -m "WIP: Fix coming in next commit"

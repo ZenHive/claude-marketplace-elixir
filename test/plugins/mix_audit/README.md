@@ -1,8 +1,8 @@
 # mix_audit Plugin Test Suite
 
-This test suite validates the mix_audit@elixir plugin for dependency security auditing.
+This test suite validates the mix_audit@deltahedge plugin for dependency security auditing.
 
-**Prerequisite**: The mix_audit@elixir plugin must be installed before running this test.
+**Prerequisite**: The mix_audit@deltahedge plugin must be installed before running this test.
 
 ## Test Structure
 
@@ -296,8 +296,8 @@ Failed: 1
 **Solution**:
 1. Reload marketplace: `/plugin marketplace reload`
 2. Verify installation: `/plugin list`
-3. Check settings.json has `"mix_audit@elixir": true`
-4. Reinstall if needed: `/plugin uninstall mix_audit@elixir && /plugin install mix_audit@elixir`
+3. Check settings.json has `"mix_audit@deltahedge": true`
+4. Reinstall if needed: `/plugin uninstall mix_audit@deltahedge && /plugin install mix_audit@deltahedge`
 
 ## Maintenance
 

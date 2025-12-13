@@ -98,7 +98,7 @@ status: draft
 
 ### Plugin Structure (for new plugins)
 - Plugin name: `[name]`
-- Namespace: `[name]@elixir`
+- Namespace: `[name]@deltahedge`
 - Hook types: [PostToolUse/PreToolUse]
 - Blocking behavior: [Yes/No and why]
 

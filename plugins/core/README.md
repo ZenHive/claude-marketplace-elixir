@@ -6,7 +6,7 @@ Essential Elixir development support plugin for Claude Code.
 
 ```bash
 claude
-/plugin install core@elixir
+/plugin install core@deltahedge
 ```
 
 ## Requirements

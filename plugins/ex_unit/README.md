@@ -10,7 +10,7 @@ This plugin automatically runs ExUnit tests before git commits, preventing broke
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install ex_unit@elixir
+/plugin install ex_unit@deltahedge
 ```
 
 ## Features
@@ -145,7 +145,7 @@ This shouldn't happen, but if it does:
 
 The plugin blocks commits with failing tests intentionally. Options:
 1. Fix the failing tests (recommended)
-2. Temporarily disable plugin: `/plugin uninstall ex_unit@elixir`
+2. Temporarily disable plugin: `/plugin uninstall ex_unit@deltahedge`
 3. Use `--no-verify` flag: Not recommended, bypasses all hooks
 
 ## Examples
@@ -220,9 +220,9 @@ It doesn't:
 
 ## Related Plugins
 
-- **core@elixir**: Auto-formatting and compilation checks
-- **credo@elixir**: Code quality analysis
-- **dialyzer@elixir**: Type checking
+- **core@deltahedge**: Auto-formatting and compilation checks
+- **credo@deltahedge**: Code quality analysis
+- **dialyzer@deltahedge**: Type checking
 
 Together, these create a comprehensive pre-commit validation suite.
 

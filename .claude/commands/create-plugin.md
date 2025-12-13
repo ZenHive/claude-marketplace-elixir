@@ -301,7 +301,7 @@ TODO: Add plugin description
 
 \`\`\`bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install <plugin-name>@elixir
+/plugin install <plugin-name>@deltahedge
 \`\`\`
 
 ## Features
@@ -324,9 +324,9 @@ Create `test/plugins/<plugin-name>/README.md`:
 ```markdown
 # <plugin-name> Test Suite
 
-This test suite validates the <plugin-name>@elixir plugin.
+This test suite validates the <plugin-name>@deltahedge plugin.
 
-**Prerequisite**: The <plugin-name>@elixir plugin must be installed before running this test.
+**Prerequisite**: The <plugin-name>@deltahedge plugin must be installed before running this test.
 
 ## Test 1: TODO
 
@@ -469,7 +469,7 @@ Once implemented:
 
 # Test it
 /plugin marketplace reload
-/plugin install <plugin-name>@elixir
+/plugin install <plugin-name>@deltahedge
 /qa test <plugin-name>
 ```
 

@@ -8,14 +8,14 @@ Automated code generation validation for Ash Framework projects. This plugin ens
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install ash@elixir
+/plugin install ash@deltahedge
 ```
 
 ### Local Development
 
 ```bash
 /plugin marketplace add /path/to/claude-marketplace-elixir
-/plugin install ash@elixir
+/plugin install ash@deltahedge
 ```
 
 ## Features
@@ -75,7 +75,7 @@ This plugin specifically validates **Ash code generation**, which is distinct fr
 - Syntax errors in resources
 - General Elixir compilation issues
 
-Use the `core@elixir` plugin alongside this plugin for comprehensive validation (formatting, compilation, and Ash codegen).
+Use the `core@deltahedge` plugin alongside this plugin for comprehensive validation (formatting, compilation, and Ash codegen).
 
 ## Requirements
 

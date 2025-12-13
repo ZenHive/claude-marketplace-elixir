@@ -44,7 +44,7 @@ mix deps.get
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install mix_audit@elixir
+/plugin install mix_audit@deltahedge
 ```
 
 ## How It Works
@@ -120,9 +120,9 @@ The pre-commit hook has a 30-second timeout (configurable in `hooks/hooks.json`)
 
 Consider installing these related security plugins:
 
-- **sobelow@elixir**: Scans Phoenix and Elixir code for security vulnerabilities
-- **dialyzer@elixir**: Static type analysis to catch type errors
-- **credo@elixir**: Code quality and consistency analysis
+- **sobelow@deltahedge**: Scans Phoenix and Elixir code for security vulnerabilities
+- **dialyzer@deltahedge**: Static type analysis to catch type errors
+- **credo@deltahedge**: Code quality and consistency analysis
 
 Together, these provide comprehensive security and quality coverage.
 

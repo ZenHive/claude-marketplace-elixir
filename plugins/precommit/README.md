@@ -16,7 +16,7 @@ This plugin detects and runs that alias before commits.
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install precommit@elixir
+/plugin install precommit@deltahedge
 ```
 
 ## How It Works

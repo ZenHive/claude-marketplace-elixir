@@ -119,5 +119,5 @@ cd test/plugins/core/precommit-test && mix deps.get
 The core plugin must also be installed in Claude Code:
 ```
 /plugin marketplace add /path/to/marketplace
-/plugin install core@elixir
+/plugin install core@deltahedge
 ```

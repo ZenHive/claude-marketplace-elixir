@@ -1,8 +1,8 @@
 # Sobelow Plugin Test Suite
 
-This test suite validates the sobelow@elixir plugin hooks and scripts.
+This test suite validates the sobelow@deltahedge plugin hooks and scripts.
 
-**Prerequisite**: The sobelow@elixir plugin must be installed before running this test.
+**Prerequisite**: The sobelow@deltahedge plugin must be installed before running this test.
 
 ## Test Structure
 

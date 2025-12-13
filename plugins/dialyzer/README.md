@@ -6,7 +6,7 @@ Dialyzer static type analysis plugin for Claude Code.
 
 ```bash
 claude
-/plugin install dialyzer@elixir
+/plugin install dialyzer@deltahedge
 ```
 
 ## Requirements

@@ -77,7 +77,7 @@ test/plugins/
 
 ### Key Concepts
 
-**Marketplace (`marketplace.json`)**: Top-level descriptor that defines the marketplace namespace ("elixir"), version, and lists available plugins. The `pluginRoot` points to the plugins directory.
+**Marketplace (`marketplace.json`)**: Top-level descriptor that defines the marketplace namespace ("deltahedge"), version, and lists available plugins. The `pluginRoot` points to the plugins directory.
 
 **Plugin (`plugin.json`)**: Each plugin has metadata (name, version, description, author) and a `hooks` field pointing to its hook definitions.
 
@@ -112,13 +112,13 @@ Hooks use `jq` to extract tool parameters and bash conditionals to match file pa
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
 **Core plugin** - Research and best practices skills:
-1. **hex-docs-search** (core@elixir): Searches Hex package documentation with progressive fetch strategy
+1. **hex-docs-search** (core@deltahedge): Searches Hex package documentation with progressive fetch strategy
    - Searches local deps → fetched cache → fetches if needed → HexDocs API → web search
    - Stores fetched docs in `.hex-docs/` and source in `.hex-packages/`
    - Provides API documentation, function signatures, and usage examples
    - See `plugins/core/skills/hex-docs-search/SKILL.md`
 
-2. **usage-rules** (core@elixir): Searches package-specific usage rules and best practices
+2. **usage-rules** (core@deltahedge): Searches package-specific usage rules and best practices
    - Searches local deps → fetched cache → fetches if needed
    - Stores fetched rules in `.usage-rules/<package>-<version>/`
    - Provides coding conventions, patterns, and good/bad examples
@@ -126,7 +126,7 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
    - See `plugins/core/skills/usage-rules/SKILL.md`
 
 **Meta plugin** - Workflow generation skill:
-1. **workflow-generator** (meta@elixir): Generates project-specific workflow commands
+1. **workflow-generator** (meta@deltahedge): Generates project-specific workflow commands
    - Creates customized research, plan, implement, and QA commands
    - Asks questions about project structure and preferences
    - Outputs slash commands tailored to project needs
@@ -146,7 +146,7 @@ Skills are designed to be **single-purpose** and **composed by agents/commands**
 ```bash
 # From Claude Code
 /plugin marketplace add /Users/bradleygolden/Development/bradleygolden/claude
-/plugin install core@elixir
+/plugin install core@deltahedge
 ```
 
 ### Testing from GitHub
@@ -154,7 +154,7 @@ Skills are designed to be **single-purpose** and **composed by agents/commands**
 ```bash
 # From Claude Code
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install core@elixir
+/plugin install core@deltahedge
 ```
 
 ### Validation
@@ -209,7 +209,7 @@ See `test/README.md` for detailed documentation.
 
 ### Marketplace Namespace
 
-The marketplace uses the namespace `elixir` (defined in `marketplace.json`). Plugins are referenced as `<plugin-name>@elixir` (e.g., `core@elixir`).
+The marketplace uses the namespace `deltahedge` (defined in `marketplace.json`). Plugins are referenced as `<plugin-name>@deltahedge` (e.g., `core@deltahedge`).
 
 ### Hook Matcher Patterns
 

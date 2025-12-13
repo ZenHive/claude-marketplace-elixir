@@ -1,6 +1,6 @@
 # ex_unit Test Suite
 
-This test suite validates the ex_unit@elixir plugin hooks.
+This test suite validates the ex_unit@deltahedge plugin hooks.
 
 ## Test Structure
 

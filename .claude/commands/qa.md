@@ -146,24 +146,24 @@ Read and parse settings.json to get enabled plugins:
 jq -r '.enabledPlugins | keys[]' .claude/settings.json 2>/dev/null || echo "{}"
 ```
 
-Extract plugin names (e.g., core@elixir, credo@elixir).
+Extract plugin names (e.g., core@deltahedge, credo@deltahedge).
 
 #### 0.3 Compare and Identify Missing Plugins
 
 For each plugin in marketplace.json:
-- Check if `<plugin-name>@elixir` exists in settings.json enabledPlugins
+- Check if `<plugin-name>@deltahedge` exists in settings.json enabledPlugins
 - If missing, add to missing plugins list
 
 #### 0.4 Report and Fix
 
 **If missing plugins found**:
 
-Generate list of missing plugins with proper format (e.g., `ash@elixir`, `dialyzer@elixir`).
+Generate list of missing plugins with proper format (e.g., `ash@deltahedge`, `dialyzer@deltahedge`).
 
 Update settings.json to add missing plugins:
 ```bash
 # For each missing plugin, add it to enabledPlugins
-jq '.enabledPlugins["<plugin-name>@elixir"] = true' .claude/settings.json
+jq '.enabledPlugins["<plugin-name>@deltahedge"] = true' .claude/settings.json
 ```
 
 Use Edit tool to update `.claude/settings.json` to add all missing plugins at once.
@@ -173,8 +173,8 @@ Use Edit tool to update `.claude/settings.json` to add all missing plugins at on
 ⚠️ Settings Configuration Updated
 
 Added missing plugins to .claude/settings.json:
-- <plugin-name>@elixir
-- <plugin-name>@elixir
+- <plugin-name>@deltahedge
+- <plugin-name>@deltahedge
 
 All marketplace plugins are now enabled in settings.
 ```
@@ -477,8 +477,8 @@ Quick Stats:
 - Missing plugins: X (added automatically)
 
 **Plugins Added** (if any):
-- <plugin-name>@elixir
-- <plugin-name>@elixir
+- <plugin-name>@deltahedge
+- <plugin-name>@deltahedge
 
 **Result**: All marketplace plugins are now enabled in `.claude/settings.json`
 
@@ -917,7 +917,7 @@ Consider these improvements: [list]
 
 [IF ✅ READY]
 1. Test it: /qa test $2
-2. Install it: /plugin marketplace reload && /plugin install $2@elixir
+2. Install it: /plugin marketplace reload && /plugin install $2@deltahedge
 ```
 
 ### Present Report

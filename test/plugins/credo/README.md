@@ -92,5 +92,5 @@ cd test/plugins/credo/precommit-test && mix deps.get
 The credo plugin must also be installed in Claude Code:
 ```
 /plugin marketplace add /path/to/marketplace
-/plugin install credo@elixir
+/plugin install credo@deltahedge
 ```

@@ -1,6 +1,6 @@
 {
   "extraKnownMarketplaces": {
-    "elixir": {
+    "deltahedge": {
       "source": {
         "source": "directory",
         "path": ".claude-plugin"
@@ -8,15 +8,15 @@
     }
   },
   "enabledPlugins": {
-    "core@elixir": true,
-    "credo@elixir": true,
-    "ash@elixir": true,
-    "dialyzer@elixir": true,
-    "sobelow@elixir": true,
-    "ex_doc@elixir": true,
-    "mix_audit@elixir": true,
-    "ex_unit@elixir": true,
-    "meta@elixir": true,
-    "git@elixir": true
+    "core@deltahedge": true,
+    "credo@deltahedge": true,
+    "ash@deltahedge": true,
+    "dialyzer@deltahedge": true,
+    "sobelow@deltahedge": true,
+    "ex_doc@deltahedge": true,
+    "mix_audit@deltahedge": true,
+    "ex_unit@deltahedge": true,
+    "meta@deltahedge": true,
+    "git@deltahedge": true
   }
 }

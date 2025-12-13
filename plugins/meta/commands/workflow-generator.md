@@ -21,7 +21,7 @@ Generates four workflow commands tailored to your project:
 Invoke the workflow-generator skill from the meta plugin:
 
 ```
-Execute the workflow-generator@elixir skill, which will:
+Execute the workflow-generator@deltahedge skill, which will:
 
 1. Discover project context (tech stack, build tools, structure)
 2. Ask customization questions about your project

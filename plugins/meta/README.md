@@ -24,7 +24,7 @@ Instead of creating workflow commands manually for each Elixir project, the meta
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install meta@elixir
+/plugin install meta@deltahedge
 ```
 
 ## Usage
@@ -139,7 +139,7 @@ Validate implementation quality:
 
 ```bash
 # Install meta plugin
-/plugin install meta@elixir
+/plugin install meta@deltahedge
 
 # Generate workflow commands
 /workflow-generator
@@ -221,7 +221,7 @@ Then reference it in your customized commands.
 The workflow-generator skill is discovered automatically by Claude Code:
 - Location: `plugins/meta/skills/workflow-generator/SKILL.md`
 - No JSON registration required
-- Available as `workflow-generator@elixir`
+- Available as `workflow-generator@deltahedge`
 
 ### Generic Core + Project Specifics
 

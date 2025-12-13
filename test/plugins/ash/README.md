@@ -83,7 +83,7 @@ Before running tests, ensure:
 
 ```
 /plugin marketplace add /path/to/marketplace
-/plugin install ash@elixir
+/plugin install ash@deltahedge
 ```
 
 ## Test Projects Structure

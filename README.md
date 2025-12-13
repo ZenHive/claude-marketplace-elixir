@@ -20,16 +20,16 @@ claude
 ### Install Plugins
 
 ```bash
-/plugin install core@elixir
-/plugin install ash@elixir
-/plugin install credo@elixir
-/plugin install dialyzer@elixir
-/plugin install ex_doc@elixir
-/plugin install ex_unit@elixir
-/plugin install meta@elixir
-/plugin install mix_audit@elixir
-/plugin install precommit@elixir
-/plugin install sobelow@elixir
+/plugin install core@deltahedge
+/plugin install ash@deltahedge
+/plugin install credo@deltahedge
+/plugin install dialyzer@deltahedge
+/plugin install ex_doc@deltahedge
+/plugin install ex_unit@deltahedge
+/plugin install meta@deltahedge
+/plugin install mix_audit@deltahedge
+/plugin install precommit@deltahedge
+/plugin install sobelow@deltahedge
 ```
 ## Available Plugins
 

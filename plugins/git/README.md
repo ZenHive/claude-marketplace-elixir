@@ -17,14 +17,14 @@ Intelligent git commit workflow automation for Claude Code marketplace.
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install git@elixir
+/plugin install git@deltahedge
 ```
 
 ### From Local Directory (development)
 
 ```bash
 /plugin marketplace add /path/to/claude-marketplace-elixir
-/plugin install git@elixir
+/plugin install git@deltahedge
 ```
 
 ## Usage

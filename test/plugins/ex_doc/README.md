@@ -1,11 +1,11 @@
 # ExDoc Plugin Test Suite
 
-This test suite validates the ex_doc@elixir plugin for documentation validation.
+This test suite validates the ex_doc@deltahedge plugin for documentation validation.
 
 ## Prerequisites
 
 Before running these tests:
-- The ex_doc@elixir plugin must be installed
+- The ex_doc@deltahedge plugin must be installed
 - Mix and Elixir must be available in PATH
 - Git must be available for commit testing
 - Test project dependencies must be installed: `cd test/plugins/ex_doc/precommit-test && mix deps.get`

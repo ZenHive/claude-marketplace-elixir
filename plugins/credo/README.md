@@ -6,7 +6,7 @@ Credo static code analysis plugin for Claude Code.
 
 ```bash
 claude
-/plugin install credo@elixir
+/plugin install credo@deltahedge
 ```
 
 ## Requirements

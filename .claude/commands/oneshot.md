@@ -309,7 +309,7 @@ Your implementation is ready! Next steps:
 1. **Test in Claude Code**:
    ```bash
    /plugin marketplace reload
-   /plugin install [plugin-name]@elixir
+   /plugin install [plugin-name]@deltahedge
    ```
 
 2. **Create a commit**:

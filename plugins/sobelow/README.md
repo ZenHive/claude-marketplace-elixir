@@ -19,7 +19,7 @@ This plugin integrates Sobelow security scanning into your Claude Code workflow,
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install sobelow@elixir
+/plugin install sobelow@deltahedge
 ```
 
 ## Requirements
