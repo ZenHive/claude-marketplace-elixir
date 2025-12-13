@@ -457,7 +457,7 @@ done
 ## Phase 2: New Plugins
 
 ### Task 3: Integrate claude-md-includes Plugin
-- [ ] **Pending** [D:1/B:9 → Priority:9.0] 🎯
+- [x] **Complete** [D:1/B:9 → Priority:9.0] ✅
 
 **Goal:** Port the production-ready claude-md-includes plugin from PR #13621 to this marketplace.
 
@@ -495,10 +495,10 @@ plugins/claude-md-includes/
 - `.claude-plugin/marketplace.json` - Add plugin entry
 
 **Acceptance criteria:**
-- [ ] Plugin copied from PR (all files)
-- [ ] Test suite created: `test/plugins/claude-md-includes/test-includes-hooks.sh`
-- [ ] Added to marketplace.json
-- [ ] Repository URLs updated to ZenHive
+- [x] Plugin copied from PR (all files)
+- [x] Test suite created: `test/plugins/claude-md-includes/test-includes-hooks.sh`
+- [x] Added to marketplace.json
+- [x] Repository URLs updated to ZenHive
 
 ---
 
