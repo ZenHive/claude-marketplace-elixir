@@ -116,11 +116,294 @@ allowed-tools: Bash, Read
 - All skill SKILL.md files
 - All command .md files
 - README.md files
+- `plugins/core/skills/hex-docs-search/SKILL.md` (existing)
+- `plugins/core/skills/usage-rules/SKILL.md` (existing)
+- `plugins/meta/skills/workflow-generator/SKILL.md` (existing)
 
 **Acceptance criteria:**
 - [ ] No WebFetch references remain (except "never use WebFetch" warnings)
 - [ ] All web browsing examples use `web` command
 - [ ] Consistent messaging: "`web` is the default, WebFetch is forbidden"
+
+---
+
+### Task 0d: Create Git Worktrees Skill
+- [ ] **Pending** [D:2/B:9 → Priority:4.5] 🎯
+
+**Goal:** Create an on-demand skill for running parallel Claude Code sessions with git worktrees.
+
+**Sources:**
+- https://incident.io/blog/shipping-faster-with-claude-code-and-git-worktrees
+- https://www.anthropic.com/engineering/claude-code-best-practices
+- https://code.claude.com/docs/en/common-workflows
+
+**Skill location:** `plugins/core/skills/git-worktrees/`
+
+**Content sections:**
+1. What are git worktrees (isolated directories, same repo)
+2. Why use with Claude Code (parallel sessions, no conflicts)
+3. Basic commands (`git worktree add/list/remove`)
+4. Workflow patterns (feature branches, parallel phases, task isolation)
+5. Cleanup after merge (`git worktree remove`)
+6. When to use vs single session
+7. Example: parallel refactor phases
+
+**SKILL.md frontmatter:**
+```yaml
+---
+name: git-worktrees
+description: Run multiple Claude Code sessions in parallel using git worktrees. Use when working on multiple features/tasks simultaneously, running parallel refactors, or isolating experimental work. Prevents Claude sessions from conflicting.
+allowed-tools: Bash, Read
+---
+```
+
+**Files to create:**
+- `plugins/core/skills/git-worktrees/SKILL.md`
+
+**Acceptance criteria:**
+- [ ] All git worktree commands documented
+- [ ] Claude Code parallel workflow patterns explained
+- [ ] Cleanup instructions included
+- [ ] SKILL.md has proper frontmatter with `allowed-tools`
+
+---
+
+### Task 0e: Install Marketplace Locally for Testing
+- [x] **Complete** [D:1/B:10 → Priority:10.0] ✅
+
+**Goal:** Add this marketplace to the current Claude Code session so we can test plugins as we develop them.
+
+**Command to run:**
+```bash
+# From Claude Code
+/plugin marketplace add /Users/efries/_DATA/code/claude-marketplace-elixir
+```
+
+**Why first:**
+- Enables testing skills/hooks immediately after creation
+- Catches issues early in development
+- Validates plugin structure before committing
+
+**Acceptance criteria:**
+- [x] Marketplace added successfully
+- [ ] Can install plugins: `/plugin install core@deltahedge` (after namespace change)
+- [ ] Skills are discoverable and invocable
+- [ ] Hooks trigger on file edits
+
+**Note:** Run this task BEFORE starting other tasks to enable continuous testing.
+
+---
+
+### Task 0f: Create API Consumer Macro Skill
+- [ ] **Pending** [D:3/B:9 → Priority:3.0] 🎯
+
+**Goal:** Create an on-demand skill for macro-based API client generation with tooling.
+
+**Sources:**
+- `crypto_bridge` - Declarative macro pattern (primary)
+- `zen_cex` - OpenAPI generation pattern (optional enhancement)
+
+**Pattern Decision: Declarative Macro (Primary)**
+
+| Aspect | Declarative Macro | OpenAPI Generation |
+|--------|-------------------|-------------------|
+| Control | Full - you define methods | Partial - spec defines methods |
+| Dependencies | None | YAML parser, network fetch |
+| API requirement | Any API | Must have OpenAPI spec |
+| Maintenance | Manual but predictable | Auto but brittle |
+| Stability | Your code, your control | Breaks when spec changes |
+| Complexity | 1 file | 4+ files |
+
+**Recommendation:** Declarative macro as primary (works for any API), OpenAPI as optional discovery tool.
+
+**Skill location:** `plugins/core/skills/api-consumer/`
+
+**Content sections:**
+
+**Part 0: Layered Abstraction Pattern**
+0. When NOT to build your own API client
+   - If a battle-tested library exists (CCXT, Stripe SDK, etc.), wrap it declaratively
+   - Let specialized libraries handle the chaos (auth schemes, rate limits, error codes)
+   - Your code stays clean and declarative
+   - Example: crypto_bridge architecture
+     ```
+     Your App (Elixir)
+         ↓ calls
+     @ccxt_methods (declarative Elixir macros)
+         ↓ generates calls to
+     Node.js Bridge (TS macros)
+         ↓ calls
+     CCXT Library (handles 100+ exchange quirks)
+         ↓ calls
+     Exchange APIs
+     ```
+   - Key insight: Macros work at every layer (TS bridge has macros too)
+   - Only build raw API client when no library exists
+
+**Part 1: Declarative Macro Pattern (Primary)**
+1. When to use macros for API clients (10+ similar endpoints, no existing library)
+2. Declarative method definition format
+   ```elixir
+   @api_methods [
+     {:fetch_ticker, :get, "/ticker/:symbol", [:symbol], [], :ticker},
+     {:create_order, :post, "/orders", [], [:symbol, :type, :side, :amount], :order},
+   ]
+   ```
+3. Generated function features (typespecs, docs, path interpolation)
+4. HTTP client patterns with Req
+5. Explicit credentials (no env fallback in library code)
+6. Source: `crypto_bridge/lib/crypto_bridge/bridge/ccxt.ex`
+
+**Part 2: Sync Checking & Fixtures**
+6. Mix task for API sync checking
+   - Compare defined methods vs actual API
+   - Identify missing/extra/deprecated methods
+   - Cross-language script coordination (Node.js for JS APIs)
+   - Source: `crypto_bridge/lib/mix/tasks/ccxt.check_methods.ex`
+7. Fixture generation from real API responses
+   - Fetch real data for correct structure
+   - Fixed timestamps for reproducibility
+   - Auto-generate Elixir test module
+   - Source: `crypto_bridge/bridge/scripts/generate-fixtures.cjs`
+
+**Part 3: OpenAPI Enhancement (Optional)**
+8. When to use OpenAPI generation
+   - Exchange publishes reliable OpenAPI spec
+   - 100+ endpoints with good schema definitions
+   - Want auto-generated typespecs
+9. OpenAPI → Elixir generation mix task
+   - Source: `zen_cex/lib/mix/tasks/zen_cex.generate_endpoints.ex`
+10. Compile-time endpoint loading macro
+    - Source: `zen_cex/lib/zen_cex/adapters/base_endpoint_loader.ex`
+11. TypeGenerator for OpenAPI → Elixir typespecs
+    - Source: `zen_cex/lib/mix/tasks/helpers/type_generator.ex`
+12. Parser macros for safe response handling
+    - `safe_decimal_field`, `extract_field`, `normalize_keys`
+    - Source: `zen_cex/lib/zen_cex/parser_macros.ex`
+
+**Part 4: Extensions**
+13. WebSocket extension pattern (same macro approach)
+14. Hybrid approach: OpenAPI as discovery, macro as source of truth
+
+**SKILL.md frontmatter:**
+```yaml
+---
+name: api-consumer
+description: Macro-based API client generation for Elixir. Use when building clients for REST APIs with 10+ similar endpoints. Primary pattern: declarative method definitions with auto-generated functions. Optional: OpenAPI spec generation for discovery. Covers mix tasks for API sync checking and test fixture generation.
+allowed-tools: Read, Bash
+---
+```
+
+**Files to create:**
+- `plugins/core/skills/api-consumer/SKILL.md`
+
+**Acceptance criteria:**
+- [ ] Layered abstraction pattern: wrap existing libraries, don't reimplement
+- [ ] Declarative macro pattern documented as primary approach
+- [ ] OpenAPI generation documented as optional enhancement
+- [ ] Comparison table: when to use which pattern
+- [ ] Mix task pattern for API sync checking
+- [ ] Fixture generation workflow documented
+- [ ] Explicit credentials pattern emphasized
+- [ ] crypto_bridge examples for primary pattern (including TS bridge macros)
+- [ ] zen_cex examples for OpenAPI pattern
+- [ ] SKILL.md has proper frontmatter
+
+---
+
+### Task 0g: Create Roadmap/Planning Skill
+- [ ] **Pending** [D:2/B:8 → Priority:4.0] 🎯
+
+**Goal:** Create an on-demand skill for creating prioritized task lists and roadmaps with D/B scoring.
+
+**Skill location:** `plugins/core/skills/roadmap-planning/`
+
+**Content sections:**
+1. D/B Scoring Format
+   - Format: `[D:X/B:Y → Priority:Z]` where Priority = B/D
+   - Difficulty scale (1-10): effort, complexity, risk
+   - Benefit scale (1-10): impact, value, urgency
+2. Priority Indicators
+   - Priority > 2.0: 🎯 Exceptional ROI - do immediately
+   - Priority 1.5-2.0: 🚀 High ROI - do soon
+   - Priority 1.0-1.5: 📋 Good ROI - plan carefully
+   - Priority < 1.0: ⚠️ Poor ROI - reconsider or defer
+3. Task Structure Patterns
+   - Phases for logical grouping
+   - Dependency graphs
+   - Acceptance criteria
+   - Files to create/modify lists
+4. What NOT to Score
+   - 🐛 Critical bugs - always highest priority
+   - 🔒 Security issues - always highest priority
+   - 📝 Documentation of completed work - just do it
+   - ✅ Tasks already in progress - finish them first
+5. Example Roadmap Template
+
+**SKILL.md frontmatter:**
+```yaml
+---
+name: roadmap-planning
+description: Create prioritized task lists and roadmaps with D/B (Difficulty/Benefit) scoring. Use when planning features, refactors, or any multi-task work. Provides ROI-based prioritization, phase organization, and dependency tracking.
+allowed-tools: Read, Write
+---
+```
+
+**Files to create:**
+- `plugins/core/skills/roadmap-planning/SKILL.md`
+
+**Acceptance criteria:**
+- [ ] D/B scoring format fully documented
+- [ ] Priority indicators explained with examples
+- [ ] Task structure patterns included
+- [ ] Example roadmap template provided
+- [ ] SKILL.md has proper frontmatter
+
+---
+
+### Task 0h: Validate Existing Plugin Structure
+- [ ] **Pending** [D:1/B:7 → Priority:7.0] 🎯
+
+**Goal:** Before modifying plugins, verify current state matches CLAUDE.md assumptions.
+
+**Validation checks:**
+1. Verify all plugins listed in `marketplace.json` exist in `plugins/`
+2. Verify all plugin directories have valid `plugin.json`
+3. Verify existing skills have proper SKILL.md frontmatter
+4. Verify hook scripts exist and are executable
+5. Run existing test suite to establish baseline
+
+**Commands:**
+```bash
+# List all plugins
+ls plugins/
+
+# Validate marketplace.json
+cat .claude-plugin/marketplace.json | jq '.plugins[]'
+
+# Check each plugin has plugin.json
+for dir in plugins/*/; do
+  [ -f "$dir/.claude-plugin/plugin.json" ] && echo "✓ $dir" || echo "✗ $dir missing plugin.json"
+done
+
+# Run existing tests
+./test/run-all-tests.sh
+```
+
+**Files to verify:**
+- `.claude-plugin/marketplace.json`
+- `plugins/*/.claude-plugin/plugin.json`
+- `plugins/*/skills/*/SKILL.md`
+- `plugins/*/hooks/hooks.json`
+
+**Acceptance criteria:**
+- [ ] All plugins listed in marketplace exist
+- [ ] All plugin.json files are valid JSON
+- [ ] All existing skills have valid frontmatter
+- [ ] All hook scripts are executable
+- [ ] Existing test suite passes (baseline established)
+
+**Note:** Run this AFTER Task 0e (marketplace install) to validate structure before modifications.
 
 ---
 
@@ -333,6 +616,8 @@ allowed-tools: Read
 ```
 
 **Note:** Skills are auto-discovered from `skills/` directory - no registration in plugin.json needed.
+
+**Relationship to `/phoenix-patterns` command:** The global slash command `/phoenix-patterns` in `~/.claude/commands/` provides a quick reference. This skill provides the same content in a model-invoked format for automatic discovery when working with Phoenix projects.
 
 **Acceptance criteria:**
 - [ ] Skill provides all Phoenix 1.8 patterns from CLAUDE.md
@@ -600,14 +885,16 @@ allowed-tools: Read
 
 | Phase | Tasks | Focus |
 |-------|-------|-------|
-| 0. Foundation | 0a-0c | D/B scoring docs, web command skill, WebFetch cleanup |
+| 0. Foundation | 0a-0h | D/B scoring, web command, WebFetch cleanup, git worktrees, local testing, API consumer macro, roadmap planning, plugin validation |
 | 1. Ownership | 1-2 | Identity updates |
 | 2. New Plugins | 3-6, 3b | claude-md-includes, @include split, Doctor, Phoenix skill, Tidewave skill |
 | 3. Pre-commit | 7-8 | Strict mode, test pattern detection |
 | 4. Workflows | 9-11 | D/B scoring, Tidewave integration |
 | 5. Documentation | 12-14 | CLAUDE.md, README, testing |
 
-**Total: 18 tasks**
+**Total: 23 tasks**
+
+**Future:** After Task 3 (claude-md-includes), consider splitting this file into `.thoughts/refactor/phase-*.md` using `@include` directives.
 
 ---
 
@@ -633,13 +920,95 @@ allowed-tools: Read
 
 ---
 
+## Parallel Execution with Git Worktrees
+
+**Setup:** Create worktrees for parallel Claude Code sessions.
+
+### Phase 0 + Phase 1 (Independent - run in parallel)
+```bash
+# Main session stays in original directory for Task 0e (marketplace install)
+cd /Users/efries/_DATA/code/claude-marketplace-elixir
+
+# Worktree for Phase 0 tasks (0a-0d, 0f)
+git worktree add ../marketplace-phase-0 -b refactor/phase-0-foundation
+
+# Worktree for Phase 1 tasks (1-2)
+git worktree add ../marketplace-phase-1 -b refactor/phase-1-ownership
+```
+
+### Phase 2 Plugin Tasks (Independent - run in parallel)
+```bash
+# Task 3: claude-md-includes (MUST complete before 3b)
+git worktree add ../marketplace-includes -b refactor/claude-md-includes
+
+# Task 4: Doctor plugin
+git worktree add ../marketplace-doctor -b refactor/doctor-plugin
+
+# Task 5: Phoenix patterns skill
+git worktree add ../marketplace-phoenix -b refactor/phoenix-skill
+
+# Task 6: Tidewave guide skill
+git worktree add ../marketplace-tidewave -b refactor/tidewave-skill
+```
+
+### Phase 3-4 (Can run in parallel after Phase 2)
+```bash
+# Phase 3: Pre-commit strictness
+git worktree add ../marketplace-precommit -b refactor/phase-3-precommit
+
+# Phase 4: Workflow updates
+git worktree add ../marketplace-workflows -b refactor/phase-4-workflows
+```
+
+### Cleanup After Merge
+```bash
+# List all worktrees
+git worktree list
+
+# Remove after PR merged
+git worktree remove ../marketplace-phase-0
+git branch -d refactor/phase-0-foundation
+```
+
+### Parallel Execution Map
+
+```
+Session 1 (main dir)     Session 2              Session 3              Session 4
+──────────────────────   ────────────────────   ────────────────────   ────────────────
+Task 0e: Install mkt     Task 0a: D/B docs      Task 1: Ownership
+     ↓                   Task 0b: Web skill     Task 2: Namespace
+Task 3: includes         Task 0c: WebFetch
+     ↓                   Task 0d: Worktrees
+Task 3b: Split CLAUDE    Task 0f: Roadmap
+                              ↓                      ↓
+                         Task 4: Doctor         Task 5: Phoenix        Task 6: Tidewave
+                              ↓                      ↓                      ↓
+                         ─────────────── MERGE ALL TO MAIN ───────────────
+                              ↓
+                         Task 7: Precommit      Task 9: D/B /plan
+                         Task 8: Test detect    Task 10: D/B /qa
+                                                Task 11: Tidewave res
+                              ↓                      ↓
+                         ─────────────── MERGE ALL TO MAIN ───────────────
+                              ↓
+                         Task 12: CLAUDE.md     Task 14: Test suite
+                         Task 13: README
+```
+
+---
+
 ## Dependency Graph
 
 ```
 Phase 0 (Foundation)
+  └── Task 0e: Install marketplace locally ◄── DO FIRST (enables testing)
+  └── Task 0h: Validate plugin structure ◄── DO AFTER 0e (establishes baseline)
   └── Task 0a: D/B scoring docs
   └── Task 0b: Web command skill
   └── Task 0c: Replace WebFetch refs
+  └── Task 0d: Git worktrees skill
+  └── Task 0f: API consumer macro skill
+  └── Task 0g: Roadmap planning skill
 
 Phase 1 (Ownership) - independent of Phase 0
   └── Task 1: Marketplace ownership
@@ -668,35 +1037,55 @@ Phase 5 (Documentation)
   └── Task 14: Test suite validation
 ```
 
-**Critical path:** Task 3 → Task 3b (all others can run in parallel within phases)
+**Critical path:** Task 0e (first) → Task 0h (validation) → then Task 3 → Task 3b (all others can run in parallel within phases)
 
 ---
 
-## Priority Order (by ROI)
+## Execution Order (by ROI)
 
-**Tiebreaker logic:** When priorities are equal, prefer:
-1. Tasks that enable other tasks (dependencies)
-2. Tasks with lower difficulty (faster wins)
-3. Tasks earlier in phase order
+**Tiebreaker logic:** When priorities are equal, prefer tasks that enable others → lower difficulty → earlier phase.
 
-1. Task 3: Integrate claude-md-includes Plugin [D:1/B:9 → 9.0] 🎯 **HIGHEST - Enables modular CLAUDE.md**
-2. Task 0c: Replace WebFetch References with Web [D:1/B:8 → 8.0] 🎯
-3. Task 1: Update Marketplace Ownership [D:1/B:8 → 8.0] 🎯
-4. Task 0a: Add D/B Scoring to Global CLAUDE.md [D:1/B:7 → 7.0] 🎯
-5. Task 2: Update Namespace to DeltaHedge [D:1/B:6 → 6.0] 🎯
-6. Task 0b: Create Web Command Skill [D:2/B:9 → 4.5] 🎯
-7. Task 4: Create Doctor Plugin [D:2/B:9 → 4.5] 🎯
-8. Task 14: Run Full Test Suite [D:2/B:9 → 4.5] 🎯
-9. Task 3b: Split Global CLAUDE.md with @include [D:2/B:8 → 4.0] 🎯 **Depends on Task 3**
-10. Task 6: Create Tidewave Usage Skill [D:2/B:8 → 4.0] 🎯
-11. Task 9: Add D/B Scoring to Plan Command [D:2/B:8 → 4.0] 🎯
-12. Task 10: Add D/B Scoring to QA Command [D:2/B:7 → 3.5] 🎯
-13. Task 11: Update Research Command [D:2/B:7 → 3.5] 🎯
-14. Task 12: Update Project CLAUDE.md [D:2/B:7 → 3.5] 🎯
-15. Task 5: Create Phoenix 1.8 Patterns Skill [D:3/B:9 → 3.0] 🎯
-16. Task 13: Update README.md [D:2/B:6 → 3.0] 🎯
-17. Task 7: Update Precommit Plugin [D:3/B:8 → 2.67] 🎯
-18. Task 8: Add Test Failure Pattern Detection [D:4/B:10 → 2.5] 🎯 **Prevents production bugs**
+| Priority | Tasks (by ROI descending) |
+|----------|---------------------------|
+| 🎯 10.0 | **0e** (enables testing) |
+| 🎯 9.0 | **3** (enables 3b) |
+| 🎯 8.0 | 0c, 1 |
+| 🎯 7.0 | 0a, **0h** (after 0e) |
+| 🎯 6.0 | 2 |
+| 🎯 4.5 | 0b, 0d, 4, 14 |
+| 🎯 4.0 | **3b** (after 3), 0g, 6, 9 |
+| 🎯 3.5 | 10, 11, 12 |
+| 🎯 3.0 | 0f, 5, 13 |
+| 🎯 2.67 | 7 |
+| 🎯 2.5 | 8 |
+
+**Critical path:** 0e → 0h → 3 → 3b (all others parallelize within phases)
+
+---
+
+## Non-Goals (Out of Scope)
+
+This refactor intentionally does NOT address:
+
+| Item | Reason |
+|------|--------|
+| CI/CD automation | Manual testing sufficient for marketplace |
+| Plugin versioning automation | Semantic versioning is manual per CLAUDE.md |
+| Removing existing plugins (Ash, Dialyzer) | Working and useful, keep them |
+| Global CLAUDE.md content changes | Only structure (modularization), not rules |
+| New workflow commands | Enhance existing `/plan`, `/qa`, `/research` only |
+
+## Future Scope (Post-Refactor)
+
+Elixir projects often include companion code in other languages:
+
+| Plugin | Examples |
+|--------|----------|
+| TypeScript/JS | Phoenix frontends, LiveView hooks, Node services, API clients |
+| Go | Services, CLI tools, protocol implementations |
+| Rust | NIFs (Rustler), performance-critical modules |
+
+Real examples: `crypto_bridge` (Elixir + TypeScript), `whatsapp_mcp` (Elixir + Go)
 
 ---
 
