@@ -130,7 +130,7 @@ allowed-tools: Bash, Read
 ---
 
 ### Task 0d: Create Git Worktrees Skill
-- [ ] **Pending** [D:2/B:9 → Priority:4.5] 🎯
+- [x] **Complete** [D:2/B:9 → Priority:4.5] ✅
 
 **Goal:** Create an on-demand skill for running parallel Claude Code sessions with git worktrees.
 
@@ -159,14 +159,14 @@ allowed-tools: Bash, Read
 ---
 ```
 
-**Files to create:**
+**Files created:**
 - `plugins/core/skills/git-worktrees/SKILL.md`
 
 **Acceptance criteria:**
-- [ ] All git worktree commands documented
-- [ ] Claude Code parallel workflow patterns explained
-- [ ] Cleanup instructions included
-- [ ] SKILL.md has proper frontmatter with `allowed-tools`
+- [x] All git worktree commands documented
+- [x] Claude Code parallel workflow patterns explained
+- [x] Cleanup instructions included
+- [x] SKILL.md has proper frontmatter with `allowed-tools`
 
 ---
 
@@ -885,17 +885,17 @@ allowed-tools: Read
 
 | Phase | Tasks | Status | Focus |
 |-------|-------|--------|-------|
-| 0. Foundation | 0a-0h | 5/8 ✅ | D/B scoring, web command, WebFetch cleanup, git worktrees, local testing, API consumer macro, roadmap planning, plugin validation |
+| 0. Foundation | 0a-0h | 6/8 ✅ | D/B scoring, web command, WebFetch cleanup, git worktrees, local testing, API consumer macro, roadmap planning, plugin validation |
 | 1. Ownership | 1-2 | 2/2 ✅ | Identity updates |
 | 2. New Plugins | 3-6, 3b | 2/5 ✅ | claude-md-includes, @include split, Doctor, Phoenix skill, Tidewave skill |
 | 3. Pre-commit | 7-8 | 0/2 | Strict mode, test pattern detection |
 | 4. Workflows | 9-11 | 0/3 | D/B scoring, Tidewave integration |
 | 5. Documentation | 12-14 | 0/3 | CLAUDE.md, README, testing |
 
-**Total: 23 tasks (9 complete, 14 remaining)**
+**Total: 23 tasks (10 complete, 13 remaining)**
 
-**Completed:** 0a, 0b, 0c, 0e, 0h, 1, 2, 3, 3b
-**Next by ROI:** 0d, 4, 14 (Priority 4.5)
+**Completed:** 0a, 0b, 0c, 0d, 0e, 0h, 1, 2, 3, 3b
+**Next by ROI:** 4, 14 (Priority 4.5)
 
 ---
 
@@ -1007,7 +1007,7 @@ Phase 0 (Foundation)
   └── Task 0a: D/B scoring docs ✅
   └── Task 0b: Web command skill ✅
   └── Task 0c: Replace WebFetch refs ✅
-  └── Task 0d: Git worktrees skill
+  └── Task 0d: Git worktrees skill ✅
   └── Task 0f: API consumer macro skill
   └── Task 0g: Roadmap planning skill
 
@@ -1053,7 +1053,7 @@ Phase 5 (Documentation)
 | 🎯 8.0 | ~~0c~~ ✅, ~~1~~ ✅ |
 | 🎯 7.0 | ~~0a~~ ✅, ~~**0h**~~ ✅ |
 | 🎯 6.0 | ~~2~~ ✅ |
-| 🎯 4.5 | ~~0b~~ ✅, 0d, 4, 14 |
+| 🎯 4.5 | ~~0b~~ ✅, ~~0d~~ ✅, 4, 14 |
 | 🎯 4.0 | ~~**3b**~~ ✅, 0g, 6, 9 |
 | 🎯 3.5 | 10, 11, 12 |
 | 🎯 3.0 | 0f, 5, 13 |
