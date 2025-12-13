@@ -314,7 +314,7 @@ allowed-tools: Read, Bash
 ---
 
 ### Task 0g: Create Roadmap/Planning Skill
-- [ ] **Pending** [D:2/B:8 → Priority:4.0] 🎯
+- [x] **Complete** [D:2/B:8 → Priority:4.0] ✅
 
 **Goal:** Create an on-demand skill for creating prioritized task lists and roadmaps with D/B scoring.
 
@@ -354,12 +354,15 @@ allowed-tools: Read, Write
 **Files to create:**
 - `plugins/core/skills/roadmap-planning/SKILL.md`
 
+**Files created:**
+- `plugins/core/skills/roadmap-planning/SKILL.md`
+
 **Acceptance criteria:**
-- [ ] D/B scoring format fully documented
-- [ ] Priority indicators explained with examples
-- [ ] Task structure patterns included
-- [ ] Example roadmap template provided
-- [ ] SKILL.md has proper frontmatter
+- [x] D/B scoring format fully documented
+- [x] Priority indicators explained with examples
+- [x] Task structure patterns included
+- [x] Example roadmap template provided
+- [x] SKILL.md has proper frontmatter
 
 ---
 
@@ -891,17 +894,17 @@ allowed-tools: Read
 
 | Phase | Tasks | Status | Focus |
 |-------|-------|--------|-------|
-| 0. Foundation | 0a-0h | 6/8 ✅ | D/B scoring, web command, WebFetch cleanup, git worktrees, local testing, API consumer macro, roadmap planning, plugin validation |
+| 0. Foundation | 0a-0h | 7/8 ✅ | D/B scoring, web command, WebFetch cleanup, git worktrees, local testing, API consumer macro, roadmap planning, plugin validation |
 | 1. Ownership | 1-2 | 2/2 ✅ | Identity updates |
 | 2. New Plugins | 3-6, 3b | 3/5 ✅ | claude-md-includes, @include split, Doctor, Phoenix skill, Tidewave skill |
 | 3. Pre-commit | 7-8 | 0/2 | Strict mode, test pattern detection |
 | 4. Workflows | 9-11 | 0/3 | D/B scoring, Tidewave integration |
 | 5. Documentation | 12-14 | 1/3 ✅ | CLAUDE.md, README, testing |
 
-**Total: 23 tasks (12 complete, 11 remaining)**
+**Total: 23 tasks (13 complete, 10 remaining)**
 
-**Completed:** 0a, 0b, 0c, 0d, 0e, 0h, 1, 2, 3, 3b, 4, 14
-**Next by ROI:** 0g/6/9 (Priority 4.0), 10/11/12 (Priority 3.5)
+**Completed:** 0a, 0b, 0c, 0d, 0e, 0g, 0h, 1, 2, 3, 3b, 4, 14
+**Next by ROI:** 6/9 (Priority 4.0), 10/11/12 (Priority 3.5)
 
 ---
 
@@ -1015,7 +1018,7 @@ Phase 0 (Foundation)
   └── Task 0c: Replace WebFetch refs ✅
   └── Task 0d: Git worktrees skill ✅
   └── Task 0f: API consumer macro skill
-  └── Task 0g: Roadmap planning skill
+  └── Task 0g: Roadmap planning skill ✅
 
 Phase 1 (Ownership) - independent of Phase 0
   └── Task 1: Marketplace ownership ✅
@@ -1060,7 +1063,7 @@ Phase 5 (Documentation)
 | 🎯 7.0 | ~~0a~~ ✅, ~~**0h**~~ ✅ |
 | 🎯 6.0 | ~~2~~ ✅ |
 | 🎯 4.5 | ~~0b~~ ✅, ~~0d~~ ✅, ~~4~~ ✅, ~~14~~ ✅ |
-| 🎯 4.0 | ~~**3b**~~ ✅, 0g, 6, 9 |
+| 🎯 4.0 | ~~**3b**~~ ✅, ~~0g~~ ✅, 6, 9 |
 | 🎯 3.5 | 10, 11, 12 |
 | 🎯 3.0 | 0f, 5, 13 |
 | 🎯 2.67 | 7 |
