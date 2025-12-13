@@ -8,6 +8,6 @@
   },
   "commands": "./commands/commit.md",
   "keywords": ["git", "commit", "workflow", "version-control", "automation"],
-  "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+  "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
   "license": "MIT"
 }

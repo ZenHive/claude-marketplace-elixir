@@ -6,7 +6,7 @@
     "name": "Bradley Golden",
     "url": "https://github.com/bradleygolden"
   },
-  "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+  "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
   "license": "MIT",
   "keywords": ["documentation", "exdoc", "validation", "quality", "pre-commit"]
 }

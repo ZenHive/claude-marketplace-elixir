@@ -1,9 +1,3 @@
-> [!NOTE]
-> This repository has changed significantly and may look quite different from before.
-> With the release of Claude Plugins, the previous implementation is now mostly irrelevant.
-> This new version adapts the earlier approach to align with the latest plugin architecture and conventions.
-> If you're looking for the previous version, please visit see version [v0.5.3](https://github.com/bradleygolden/claude/releases/tag/v0.5.3).
-
 # Claude Code Plugins for Elixir
 
 Unofficial Claude Code plugin marketplace for Elixir and BEAM ecosystem development.
@@ -20,7 +14,7 @@ This is a [**Claude Code plugin marketplace**](https://docs.claude.com/en/docs/c
 
 ```bash
 claude
-/plugin marketplace add bradleygolden/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 ```
 
 ### Install Plugins
@@ -56,9 +50,13 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/bradleygolden/claude-marketplace-elixir/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/bradleygolden/claude-marketplace-elixir/discussions)
+- **Issues**: [GitHub Issues](https://github.com/ZenHive/claude-marketplace-elixir/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ZenHive/claude-marketplace-elixir/discussions)
+
+## Attribution
+
+This project is a fork of [claude-marketplace-elixir](https://github.com/bradleygolden/claude-marketplace-elixir), originally created by [Bradley Golden](https://github.com/bradleygolden).
 
 ---
 
-**Made with ❤️ for the Elixir community**
+**Made with care for the Elixir community**

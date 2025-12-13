@@ -1,7 +1,7 @@
 {
   "name": "elixir",
   "owner": {
-    "name": "Bradley Golden"
+    "name": "DeltaHedge"
   },
   "metadata": {
     "description": "Elixir and BEAM ecosystem development tools for Claude Code",
@@ -14,9 +14,9 @@
       "source": "./plugins/core",
       "description": "Essential Elixir development support with hooks and automation",
       "keywords": ["elixir", "erlang", "beam", "otp", "functional"],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "credo",
@@ -29,27 +29,27 @@
         "code-quality",
         "static-analysis"
       ],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "ash",
       "source": "./plugins/ash",
       "description": "Ash Framework code generation validation and automation",
       "keywords": ["ash", "elixir", "codegen", "framework", "validation"],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "dialyzer",
       "source": "./plugins/dialyzer",
       "description": "Dialyzer static type analysis for Elixir projects",
       "keywords": ["elixir", "dialyzer", "type-checking", "static-analysis"],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "sobelow",
@@ -63,9 +63,9 @@
         "static-analysis",
         "vulnerability-scanning"
       ],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "ex_doc",
@@ -79,9 +79,9 @@
         "quality",
         "pre-commit"
       ],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "mix_audit",
@@ -95,9 +95,9 @@
         "dependencies",
         "vulnerability-scanning"
       ],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "ex_unit",
@@ -111,9 +111,9 @@
         "pre-commit",
         "validation"
       ],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "precommit",
@@ -126,9 +126,9 @@
         "validation",
         "testing"
       ],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "meta",
@@ -148,18 +148,18 @@
         "context-gathering",
         "interactive"
       ],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "git",
       "source": "./plugins/git",
       "description": "Intelligent git commit workflow automation",
       "keywords": ["git", "commit", "workflow", "version-control"],
-      "repository": "https://github.com/bradleygolden/claude-marketplace-elixir",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
-      "homepage": "https://github.com/bradleygolden/claude-marketplace-elixir"
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
       "name": "claude-md-includes",
