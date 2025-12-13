@@ -77,9 +77,9 @@ test/plugins/
 
 ### Key Concepts
 
-**Marketplace (`marketplace.json`)**: Top-level descriptor that defines the marketplace namespace ("deltahedge"), version, and lists available plugins. The `pluginRoot` points to the plugins directory.
+**Marketplace (`marketplace.json`)**: Top-level descriptor that defines the marketplace namespace ("deltahedge"), version, and lists available plugins.
 
-**Plugin (`plugin.json`)**: Each plugin has metadata (name, version, description, author) and a `hooks` field pointing to its hook definitions.
+**Plugin (`plugin.json`)**: Each plugin has metadata (name, version, description, author). The `hooks/hooks.json` file is loaded automatically by convention - do NOT add a `hooks` field to plugin.json unless referencing additional hook files.
 
 **Hooks (`hooks.json`)**: Define automated commands that execute in response to Claude Code events:
 - `PostToolUse`: Runs after Edit/Write tools (e.g., auto-format, compile check)
@@ -206,6 +206,67 @@ The repository includes an automated test suite for plugin hooks:
 See `test/README.md` for detailed documentation.
 
 ## Important Conventions
+
+### Marketplace Path Configuration
+
+**Source paths** in `marketplace.json` must:
+- Start with `./` (required by schema validation)
+- Be relative to the **marketplace root directory** (where `.claude-plugin/` is located)
+
+```json
+{
+  "plugins": [
+    {
+      "name": "core",
+      "source": "./plugins/core"  // Correct: relative to repo root
+    }
+  ]
+}
+```
+
+**Common mistakes**:
+- `"source": "./core"` - Wrong: looks for `/repo-root/core` instead of `/repo-root/plugins/core`
+- `"source": "../plugins/core"` - Wrong: must start with `./`
+- Adding `"hooks": "./hooks/hooks.json"` to plugin.json - Wrong: causes duplicate hook error (hooks.json is loaded automatically)
+
+### Troubleshooting Plugin Errors
+
+**"Plugin 'X' not found in marketplace 'Y'"**
+1. Check that `source` paths in marketplace.json start with `./` and include the full path (e.g., `./plugins/core`)
+2. Remove and re-add the marketplace:
+   ```bash
+   /plugin marketplace remove deltahedge
+   /plugin marketplace add /path/to/claude-marketplace-elixir
+   ```
+3. If error persists, clear the plugin cache and restart Claude Code:
+   ```bash
+   rm -rf ~/.claude/plugins/cache/deltahedge/
+   ```
+
+**"Plugin directory not found at path"**
+- The `source` path resolves from the marketplace root (where `.claude-plugin/` is located)
+- Verify the path exists: `ls -la /path/to/marketplace/<source-path>`
+- `pluginRoot` field is metadata only - it does NOT affect source path resolution
+
+**"Duplicate hooks file detected"**
+- Remove the `hooks` field from plugin.json - `hooks/hooks.json` is loaded automatically
+- Only use the `hooks` field for additional hook files beyond the standard location
+
+**"Invalid schema: source must start with ./"**
+- All source paths must begin with `./` (not `../` or absolute paths)
+- Correct: `"source": "./plugins/core"`
+- Wrong: `"source": "../plugins/core"` or `"source": "/abs/path"`
+
+**Stale plugin references in settings**
+- Check `~/.claude/settings.json` for orphaned `enabledPlugins` entries
+- Remove entries referencing non-existent marketplaces
+- Restart Claude Code after editing settings
+
+**Changes not taking effect**
+1. Clear the cache: `rm -rf ~/.claude/plugins/cache/deltahedge/`
+2. Remove marketplace: `/plugin marketplace remove deltahedge`
+3. Restart Claude Code completely (close and reopen)
+4. Re-add marketplace: `/plugin marketplace add /path/to/marketplace`
 
 ### Marketplace Namespace
 

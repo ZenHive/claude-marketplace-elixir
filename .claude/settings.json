@@ -1,12 +1,4 @@
 {
-  "extraKnownMarketplaces": {
-    "deltahedge": {
-      "source": {
-        "source": "directory",
-        "path": ".claude-plugin"
-      }
-    }
-  },
   "enabledPlugins": {
     "core@deltahedge": true,
     "credo@deltahedge": true,
@@ -18,5 +10,13 @@
     "ex_unit@deltahedge": true,
     "meta@deltahedge": true,
     "git@deltahedge": true
+  },
+  "extraKnownMarketplaces": {
+    "deltahedge": {
+      "source": {
+        "source": "directory",
+        "path": ".claude-plugin"
+      }
+    }
   }
 }
