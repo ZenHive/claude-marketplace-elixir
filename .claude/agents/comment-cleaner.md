@@ -59,7 +59,7 @@ These comments explain **WHY**, not **WHAT**:
 
 6. **Integration points**: How components communicate
    ```bash
-   # Block commit and send output to Claude via stderr (matches core plugin pattern)
+   # Block commit and send output to Claude via stdout JSON permissionDecision (matches core plugin pattern)
    ```
 
 ### ❌ REMOVE - Unnecessary Comments

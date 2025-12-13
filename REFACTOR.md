@@ -860,7 +860,7 @@ allowed-tools: Read
 ---
 
 ### Task 14: Run Full Test Suite & Fix Issues
-- [ ] **Pending** [D:2/B:9 → Priority:4.5] 🎯
+- [x] **Complete** [D:2/B:9 → Priority:4.5] ✅
 
 **Goal:** Verify all changes work together and fix any issues.
 
@@ -870,14 +870,20 @@ allowed-tools: Read
 /qa
 ```
 
-**Files potentially modified:**
-- Any files with failing tests
+**Files modified:**
+- `.claude/settings.json` - Added 3 missing plugins (precommit, claude-md-includes, doctor)
+- `.claude/agents/comment-cleaner.md` - Fixed outdated "stderr" reference to "stdout JSON permissionDecision"
+
+**Results:**
+- Tests: 93/93 passed
+- Plugins validated: 13/13
+- QA report: `.thoughts/2025-12-13-qa-report.md`
 
 **Acceptance criteria:**
-- [ ] All plugin tests pass
-- [ ] JSON validation passes
-- [ ] No broken references
-- [ ] `/qa` reports clean
+- [x] All plugin tests pass (93/93)
+- [x] JSON validation passes (all 13 plugins)
+- [x] No broken references
+- [x] `/qa` reports clean (1 doc issue fixed)
 
 ---
 
@@ -890,12 +896,12 @@ allowed-tools: Read
 | 2. New Plugins | 3-6, 3b | 3/5 ✅ | claude-md-includes, @include split, Doctor, Phoenix skill, Tidewave skill |
 | 3. Pre-commit | 7-8 | 0/2 | Strict mode, test pattern detection |
 | 4. Workflows | 9-11 | 0/3 | D/B scoring, Tidewave integration |
-| 5. Documentation | 12-14 | 0/3 | CLAUDE.md, README, testing |
+| 5. Documentation | 12-14 | 1/3 ✅ | CLAUDE.md, README, testing |
 
-**Total: 23 tasks (11 complete, 12 remaining)**
+**Total: 23 tasks (12 complete, 11 remaining)**
 
-**Completed:** 0a, 0b, 0c, 0d, 0e, 0h, 1, 2, 3, 3b, 4
-**Next by ROI:** 14 (Priority 4.5), 0g/6/9 (Priority 4.0)
+**Completed:** 0a, 0b, 0c, 0d, 0e, 0h, 1, 2, 3, 3b, 4, 14
+**Next by ROI:** 0g/6/9 (Priority 4.0), 10/11/12 (Priority 3.5)
 
 ---
 
@@ -1053,7 +1059,7 @@ Phase 5 (Documentation)
 | 🎯 8.0 | ~~0c~~ ✅, ~~1~~ ✅ |
 | 🎯 7.0 | ~~0a~~ ✅, ~~**0h**~~ ✅ |
 | 🎯 6.0 | ~~2~~ ✅ |
-| 🎯 4.5 | ~~0b~~ ✅, ~~0d~~ ✅, ~~4~~ ✅, 14 |
+| 🎯 4.5 | ~~0b~~ ✅, ~~0d~~ ✅, ~~4~~ ✅, ~~14~~ ✅ |
 | 🎯 4.0 | ~~**3b**~~ ✅, 0g, 6, 9 |
 | 🎯 3.5 | 10, 11, 12 |
 | 🎯 3.0 | 0f, 5, 13 |
