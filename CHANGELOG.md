@@ -5,13 +5,21 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 ## [Unreleased]
 
 ### Added
-- Task 0f: API Consumer Macro Skill (pending)
 - Task 7: Strict Pre-commit Mode (pending)
 - Task 8: Test Failure Pattern Detection (pending)
 - Tasks 9-11: Meta Plugin Template Updates (pending)
 - Tasks 12-13: Documentation Updates (pending)
 
 ### Skills
+
+**Task 0f: API Consumer Macro Skill** [D:3/B:9]
+- Macro-based API client generation for Elixir REST APIs
+- Part 0: Layered abstraction pattern (wrap existing libraries, don't reimplement)
+- Part 1: Declarative macro pattern with compile-time code generation
+- Part 2: API sync checking mix task and fixture generation
+- Part 3: OpenAPI enhancement (optional code generation from specs)
+- Decision tree: Build vs Wrap for API client architecture
+- Location: `plugins/core/skills/api-consumer/`
 
 **Task 5: Phoenix 1.8 Patterns Skill** [D:3/B:9]
 - Quick reference for Phoenix 1.8+ framework patterns

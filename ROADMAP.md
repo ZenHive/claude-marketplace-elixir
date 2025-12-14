@@ -6,7 +6,7 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 
 | Phase | Status | Remaining |
 |-------|--------|-----------|
-| 0. Foundation | 7/8 | Task 0f |
+| 0. Foundation | 8/8 ✅ | - |
 | 1. Ownership | 2/2 ✅ | - |
 | 2. New Plugins | 5/5 ✅ | - |
 | 3. Pre-commit | 0/2 | Tasks 7-8 |
@@ -14,7 +14,7 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 5. Documentation | 1/3 | Tasks 12-13 |
 | 6. New Skills | 0/1 | Task 14 |
 
-**Total: 15/22 complete (68%) | 7 remaining**
+**Total: 16/22 complete (73%) | 6 remaining**
 
 ---
 
@@ -42,7 +42,7 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 **Updates needed:**
 1. Add claude-md-includes plugin documentation
 2. Add Doctor plugin documentation
-3. Add new skills documentation (web-command, git-worktrees, roadmap-planning, tidewave-guide)
+3. Add new skills documentation (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer)
 4. Update ownership references
 5. Add D/B scoring explanation
 
@@ -53,56 +53,6 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 - [ ] All new plugins documented
 - [ ] All new skills documented
 - [ ] D/B scoring format explained
-
----
-
-#### Task 0f: Create API Consumer Macro Skill [D:3/B:9 → Priority:3.0] 🎯
-
-**Goal:** Create an on-demand skill for macro-based API client generation with tooling.
-
-**Sources:**
-- `crypto_bridge` - Declarative macro pattern (primary)
-- `zen_cex` - OpenAPI generation pattern (optional enhancement)
-
-**Skill location:** `plugins/core/skills/api-consumer/`
-
-**Content sections:**
-
-**Part 0: Layered Abstraction Pattern**
-- When NOT to build your own API client
-- If a battle-tested library exists (CCXT, Stripe SDK, etc.), wrap it declaratively
-- Example: crypto_bridge architecture (Elixir → TS Bridge → CCXT → APIs)
-
-**Part 1: Declarative Macro Pattern (Primary)**
-- When to use macros for API clients (10+ similar endpoints, no existing library)
-- Declarative method definition format
-- HTTP client patterns with Req
-- Explicit credentials (no env fallback in library code)
-
-**Part 2: Sync Checking & Fixtures**
-- Mix task for API sync checking
-- Fixture generation from real API responses
-
-**Part 3: OpenAPI Enhancement (Optional)**
-- When to use OpenAPI generation
-- OpenAPI → Elixir generation mix task
-
-**SKILL.md frontmatter:**
-```yaml
----
-name: api-consumer
-description: Macro-based API client generation for Elixir. Use when building clients for REST APIs with 10+ similar endpoints. Primary pattern: declarative method definitions with auto-generated functions. Optional: OpenAPI spec generation for discovery.
-allowed-tools: Read, Bash
----
-```
-
-**Acceptance criteria:**
-- [ ] Layered abstraction pattern: wrap existing libraries, don't reimplement
-- [ ] Declarative macro pattern documented as primary approach
-- [ ] OpenAPI generation documented as optional enhancement
-- [ ] Mix task pattern for API sync checking
-- [ ] Fixture generation workflow documented
-- [ ] SKILL.md has proper frontmatter
 
 ---
 
@@ -298,11 +248,10 @@ allowed-tools: Read, Bash, WebFetch
 
 | Order | Tasks | Rationale |
 |-------|-------|-----------|
-| 1 | 🎯 0f (API consumer) | High-value skill [Priority 3.0] |
-| 2 | 🎯 7 (Strict precommit), 8 (Test detection) | Quality gates [Priority 2.5-2.67] |
-| 3 | 🚀 14 (Popcorn skill) | New browser Elixir capability [Priority 1.5] |
-| 4 | 📋 9 (elixir-meta) | Integrate all skills + evaluate workflow |
-| 5 | 🎯 12 (CLAUDE.md), 13 (README) | Document everything at once |
+| 1 | 🎯 7 (Strict precommit), 8 (Test detection) | Quality gates [Priority 2.5-2.67] |
+| 2 | 🚀 14 (Popcorn skill) | New browser Elixir capability [Priority 1.5] |
+| 3 | 📋 9 (elixir-meta) | Integrate all skills + evaluate workflow |
+| 4 | 🎯 12 (CLAUDE.md), 13 (README) | Document everything at once |
 
 ---
 
