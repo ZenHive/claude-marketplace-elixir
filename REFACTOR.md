@@ -6,13 +6,13 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 
 | Phase | Status | Tasks |
 |-------|--------|-------|
-| 1. Script Consolidation | 0/3 | Tasks 1-3 |
+| 1. Script Consolidation | 1/3 | Task 1 complete, Tasks 2-3 pending |
 | 2. Naming Consistency | 2/2 ✅ | Tasks 4-5 complete |
 | 3. Metadata Standardization | 1/2 | Task 6 complete, Task 7 pending |
 | 4. Documentation Cleanup | 2/3 | Tasks 8-9 complete, Task 10 pending |
 | 5. Polish | 1/2 ✅ | Task 11 complete, Task 12 pending |
 
-**Total: 7/12 complete (58%)**
+**Total: 8/12 complete (67%)**
 
 ---
 
@@ -58,11 +58,11 @@ plugins/_shared/
 2. `validate_elixir_file()` - Check .ex/.exs extension
 
 **Acceptance criteria:**
-- [ ] `plugins/_shared/lib.sh` created with core functions
-- [ ] `plugins/_shared/precommit-utils.sh` created
-- [ ] `plugins/_shared/postedit-utils.sh` created
-- [ ] All functions have consistent error handling
-- [ ] Functions tested in isolation
+- [x] `plugins/_shared/lib.sh` created with core functions
+- [x] `plugins/_shared/precommit-utils.sh` created
+- [x] `plugins/_shared/postedit-utils.sh` created
+- [x] All functions have consistent error handling
+- [x] Functions tested in isolation (27 tests pass)
 
 ---
 
