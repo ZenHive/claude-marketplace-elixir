@@ -13,7 +13,6 @@
       "name": "core",
       "source": "./plugins/core",
       "description": "Essential Elixir development support with hooks and automation",
-      "keywords": ["elixir", "erlang", "beam", "otp", "functional"],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -22,13 +21,6 @@
       "name": "credo",
       "source": "./plugins/credo",
       "description": "Credo static code analysis for Elixir projects",
-      "keywords": [
-        "elixir",
-        "credo",
-        "linting",
-        "code-quality",
-        "static-analysis"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -37,7 +29,6 @@
       "name": "ash",
       "source": "./plugins/ash",
       "description": "Ash Framework code generation validation and automation",
-      "keywords": ["ash", "elixir", "codegen", "framework", "validation"],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -46,7 +37,6 @@
       "name": "dialyzer",
       "source": "./plugins/dialyzer",
       "description": "Dialyzer static type analysis for Elixir projects",
-      "keywords": ["elixir", "dialyzer", "type-checking", "static-analysis"],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -55,14 +45,6 @@
       "name": "sobelow",
       "source": "./plugins/sobelow",
       "description": "Sobelow security-focused static analysis for Phoenix and Elixir projects",
-      "keywords": [
-        "elixir",
-        "phoenix",
-        "sobelow",
-        "security",
-        "static-analysis",
-        "vulnerability-scanning"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -71,14 +53,6 @@
       "name": "ex_doc",
       "source": "./plugins/ex_doc",
       "description": "ExDoc documentation validation plugin that checks for documentation issues before commits",
-      "keywords": [
-        "elixir",
-        "exdoc",
-        "documentation",
-        "validation",
-        "quality",
-        "pre-commit"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -87,14 +61,6 @@
       "name": "mix_audit",
       "source": "./plugins/mix_audit",
       "description": "Dependency security audit plugin that scans Mix dependencies for known vulnerabilities",
-      "keywords": [
-        "elixir",
-        "mix_audit",
-        "security",
-        "audit",
-        "dependencies",
-        "vulnerability-scanning"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -103,14 +69,6 @@
       "name": "ex_unit",
       "source": "./plugins/ex_unit",
       "description": "ExUnit testing automation with pre-commit test validation",
-      "keywords": [
-        "elixir",
-        "exunit",
-        "testing",
-        "tdd",
-        "pre-commit",
-        "validation"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -119,13 +77,6 @@
       "name": "precommit",
       "source": "./plugins/precommit",
       "description": "Phoenix precommit alias automation - runs mix precommit before git commits if alias exists",
-      "keywords": [
-        "elixir",
-        "phoenix",
-        "precommit",
-        "validation",
-        "testing"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -134,20 +85,6 @@
       "name": "elixir-meta",
       "source": "./plugins/elixir-meta",
       "description": "Elixir development workflow plugin with planning, QA, reference commands, and interactive context gathering",
-      "keywords": [
-        "elixir-meta",
-        "elixir",
-        "workflow",
-        "generator",
-        "scaffolding",
-        "research",
-        "planning",
-        "implementation",
-        "qa",
-        "interview",
-        "context-gathering",
-        "interactive"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -156,7 +93,6 @@
       "name": "git",
       "source": "./plugins/git",
       "description": "Intelligent git commit workflow automation",
-      "keywords": ["git", "commit", "workflow", "version-control"],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -165,14 +101,6 @@
       "name": "claude-md-includes",
       "source": "./plugins/claude-md-includes",
       "description": "Process @include directives in CLAUDE.md for composable instructions",
-      "keywords": [
-        "claude",
-        "includes",
-        "composable",
-        "modular",
-        "instructions",
-        "session-start"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -181,14 +109,6 @@
       "name": "doctor",
       "source": "./plugins/doctor",
       "description": "Mix Doctor documentation quality validation for Elixir projects",
-      "keywords": [
-        "elixir",
-        "doctor",
-        "documentation",
-        "validation",
-        "pre-commit",
-        "coverage"
-      ],
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"

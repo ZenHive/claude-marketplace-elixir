@@ -2,11 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+@include ~/.claude/includes/across-instances.md
+
 @include ~/.claude/includes/critical-rules.md
 
 @include ~/.claude/includes/task-prioritization.md
 
 @include ~/.claude/includes/web-command.md
+
+@include ~/.claude/includes/code-style.md
+
+@include ~/.claude/includes/development-philosophy.md
 
 ## Repository Purpose
 
@@ -66,8 +72,8 @@ test/plugins/
 │   └── precommit-test/
 ├── ash/                      # Ash plugin tests
 │   ├── README.md
-│   ├── postedit_test/
-│   ├── precommit_test/
+│   ├── postedit-test/
+│   ├── precommit-test/
 │   └── test-ash-hooks.sh
 └── dialyzer/                 # Dialyzer plugin tests
     ├── README.md

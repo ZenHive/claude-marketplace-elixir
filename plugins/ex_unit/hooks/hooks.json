@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/pre-commit-test.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/pre-commit-check.sh",
             "timeout": 60
           }
         ]
