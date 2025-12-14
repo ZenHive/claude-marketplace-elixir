@@ -8,12 +8,13 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 |-------|--------|-----------|
 | 0. Foundation | 7/8 | Task 0f |
 | 1. Ownership | 2/2 ✅ | - |
-| 2. New Plugins | 4/5 | Task 5 |
+| 2. New Plugins | 5/5 ✅ | - |
 | 3. Pre-commit | 0/2 | Tasks 7-8 |
-| 4. Workflows | 0/3 | Tasks 9-11 |
+| 4. Workflows | 0/1 | Task 9 |
 | 5. Documentation | 1/3 | Tasks 12-13 |
+| 6. New Skills | 0/1 | Task 14 |
 
-**Total: 14/23 complete (61%) | 9 remaining**
+**Total: 15/22 complete (68%) | 7 remaining**
 
 ---
 
@@ -105,40 +106,6 @@ allowed-tools: Read, Bash
 
 ---
 
-#### Task 5: Create Phoenix 1.8 Patterns Skill [D:3/B:9 → Priority:3.0] 🎯
-
-**Goal:** On-demand skill providing Phoenix 1.8 patterns from your CLAUDE.md.
-
-**Skill location:** `plugins/core/skills/phoenix-patterns/`
-
-**Content sections:**
-1. Project setup (`--binary-id --live` flags)
-2. Template wrapper requirement (`<Layouts.app>`)
-3. Form handling (`to_form/2` pattern)
-4. LiveView streams
-5. Authentication routing patterns
-6. HEEx template syntax
-7. Verified routes (`~p` sigil)
-8. Tailwind v4 patterns
-9. Common pitfalls (runtime errors)
-
-**SKILL.md frontmatter:**
-```yaml
----
-name: phoenix-patterns
-description: Phoenix 1.8 framework patterns reference. Use when working with Phoenix templates, forms, LiveView streams, auth routing, HEEx syntax, or Tailwind v4.
-allowed-tools: Read
----
-```
-
-**Acceptance criteria:**
-- [ ] Skill provides all Phoenix 1.8 patterns from CLAUDE.md
-- [ ] Organized by category for easy lookup
-- [ ] Includes good/bad examples
-- [ ] SKILL.md has proper frontmatter
-
----
-
 #### Task 13: Update README.md [D:2/B:6 → Priority:3.0] 🎯
 
 **Goal:** Update README with new features and fork attribution.
@@ -216,54 +183,126 @@ allowed-tools: Read
 
 ### Lower Priority (📋 Priority < 2.0)
 
-#### Task 9: Add D/B Scoring to Plan Template [D:3/B:4 → Priority:1.33] 📋
+#### Task 14: Create Popcorn (Browser Elixir) Skill [D:4/B:6 → Priority:1.5] 🚀
 
-**Goal:** Update meta plugin's plan template to generate tasks with D/B scoring.
+**Goal:** Create an on-demand skill for Popcorn - running Elixir in the browser via WebAssembly.
 
-**Files to modify:**
-- `plugins/meta/skills/workflow-generator/templates/plan-template.md`
+**Context:** Popcorn is a library by Software Mansion that compiles Elixir to run in browsers via AtomVM (a tiny Erlang VM compiled to WASM). It enables offline-first, client-side Elixir applications with JS interoperability.
+
+**Skill location:** `plugins/core/skills/popcorn/`
+
+**Content sections:**
+
+**Part 1: Overview & When to Use**
+- What Popcorn is (Elixir → AtomVM → WASM → Browser)
+- Ideal use cases: calculators, offline tools, local-first apps, privacy-preserving analytics
+- NOT for: real-time trading, HFT, streaming data, persistent connections
+
+**Part 2: Project Setup**
+- Installation and configuration
+- Build process (`mix popcorn.build`)
+- Integration with existing projects
+
+**Part 3: JS Interoperability**
+- Calling JS from Elixir
+- Calling Elixir from JS
+- Data type mapping between Elixir and JS
+
+**Part 4: Limitations & Workarounds**
+- No direct API calls from WASM (use JS interop bridge)
+- No GenServer persistence across page reloads (use localStorage via JS)
+- Early stage - some OTP features limited
+- Performance considerations vs native Elixir
+
+**Part 5: Example Patterns**
+- Client-side calculators (P&L, position sizing)
+- Offline data processing
+- Form validation with Elixir logic
+
+**SKILL.md frontmatter:**
+```yaml
+---
+name: popcorn
+description: Popcorn client-side Elixir guide for browser WebAssembly apps. Use when building offline-first tools, client-side calculators, or privacy-preserving analytics. Covers setup, JS interop, limitations, and example patterns.
+allowed-tools: Read, Bash, WebFetch
+---
+```
+
+**Resources:**
+- GitHub: https://github.com/software-mansion/popcorn
+- Docs: https://hexdocs.pm/popcorn
+- Examples: https://popcorn.swmansion.com/
 
 **Acceptance criteria:**
-- [ ] Generated plans include D/B scoring instructions
-- [ ] Priority indicators documented (🎯 🚀 📋 ⚠️)
+- [ ] Overview explains Popcorn architecture (Elixir → AtomVM → WASM)
+- [ ] Clear guidance on when to use vs when NOT to use
+- [ ] JS interop patterns documented
+- [ ] Limitations and workarounds explained
+- [ ] Example patterns for common use cases
+- [ ] SKILL.md has proper frontmatter
 
 ---
 
-#### Task 10: Add D/B Scoring to QA Template [D:3/B:4 → Priority:1.33] 📋
+#### Task 9: Rename Meta Plugin & Update Templates [D:6/B:8 → Priority:1.33] 📋
 
-**Goal:** Update meta plugin's QA template to report issues with prioritized scoring.
+**Goal:** Rename `meta` → `elixir-meta` and integrate all marketplace capabilities into workflow templates.
 
-**Files to modify:**
-- `plugins/meta/skills/workflow-generator/templates/qa-template.md`
+**⚠️ Pre-work:** Consolidate `deferred/ELIXIR-META-ROADMAP.md` (25 micro-tasks) into session-sized tasks following this philosophy:
+
+> **Roadmap Philosophy:** Every task should fit into a Claude Code session and make full use of Claude Code's context window. Every task is a prompt.
+
+**Session 1: Rename & Update References**
+1. Rename `plugins/meta/` → `plugins/elixir-meta/`
+2. Update `plugins/elixir-meta/.claude-plugin/plugin.json` (name field)
+3. Update `.claude-plugin/marketplace.json` (source path)
+4. Update all references (CLAUDE.md, README.md, commands, skills)
+
+**Session 2: Evaluate Workflow Commands**
+- Test if `/research`, `/plan`, `/implement`, `/qa` fit actual workflow
+- Actual workflow: Read ROADMAP.md → pick task → work in session → commit
+- Decision: Keep, simplify, or remove workflow-generator
+
+**Session 3: Migrate Useful Reference Commands**
+- Migrate commands actually used: `/elixir-code-review`, `/elixir-refactor`
+- Evaluate others: debug, gotchas, phoenix, performance, tdd, schema, explain
+- Commands become `/elixir-meta:<command>`
+
+**Session 4: Align Templates with CLAUDE.md**
+- Integrate all new skills into templates
+- Add D/B scoring format to plan/QA outputs
+- Add Tidewave MCP tools to research phase
+- Add Finder/Analyzer pattern documentation
+- Replace WebFetch with `web` command
+
+**Session 5: Polish & Validate**
+- Update README with all commands
+- Validate JSON files and command discovery
+- Optional: Remove migrated global commands
+
+**Detailed task breakdown:** See `deferred/ELIXIR-META-ROADMAP.md`
 
 **Acceptance criteria:**
-- [ ] Issues reported with D/B scores
-- [ ] Sorted by priority (highest ROI first)
-
----
-
-#### Task 11: Add Tidewave to Research Template [D:3/B:4 → Priority:1.33] 📋
-
-**Goal:** Update meta plugin's research template to suggest Tidewave MCP tools.
-
-**Files to modify:**
-- `plugins/meta/skills/workflow-generator/templates/research-template.md`
-
-**Acceptance criteria:**
-- [ ] Research template mentions Tidewave when relevant
-- [ ] Suggests `project_eval` for API exploration
+- [ ] Plugin renamed from `meta` to `elixir-meta`
+- [ ] All references updated (marketplace.json, plugin.json)
+- [ ] Workflow commands evaluated and decision documented
+- [ ] Useful reference commands migrated
+- [ ] Templates aligned with global CLAUDE.md patterns
+- [ ] D/B scoring format in plan and QA outputs
+- [ ] `web` command usage instead of WebFetch
 
 ---
 
 ## Execution Order by ROI
 
-| Priority | Tasks |
-|----------|-------|
-| 🎯 3.5 | 12 (CLAUDE.md) |
-| 🎯 3.0 | 0f (API consumer), 5 (Phoenix), 13 (README) |
-| 🎯 2.67 | 7 (Strict precommit) |
-| 🎯 2.5 | 8 (Test detection) |
-| 📋 1.33 | 9, 10, 11 (Meta templates - low priority) |
+**Note:** Documentation tasks (12, 13) should be done AFTER all implementation is complete.
+
+| Order | Tasks | Rationale |
+|-------|-------|-----------|
+| 1 | 🎯 0f (API consumer) | High-value skill [Priority 3.0] |
+| 2 | 🎯 7 (Strict precommit), 8 (Test detection) | Quality gates [Priority 2.5-2.67] |
+| 3 | 🚀 14 (Popcorn skill) | New browser Elixir capability [Priority 1.5] |
+| 4 | 📋 9 (elixir-meta) | Integrate all skills + evaluate workflow |
+| 5 | 🎯 12 (CLAUDE.md), 13 (README) | Document everything at once |
 
 ---
 

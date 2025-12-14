@@ -6,11 +6,19 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 - Task 0f: API Consumer Macro Skill (pending)
-- Task 5: Phoenix 1.8 Patterns Skill (pending)
 - Task 7: Strict Pre-commit Mode (pending)
 - Task 8: Test Failure Pattern Detection (pending)
 - Tasks 9-11: Meta Plugin Template Updates (pending)
 - Tasks 12-13: Documentation Updates (pending)
+
+### Skills
+
+**Task 5: Phoenix 1.8 Patterns Skill** [D:3/B:9]
+- Quick reference for Phoenix 1.8+ framework patterns
+- Covers: project setup, template wrapper, form handling, LiveView streams
+- Authentication routing, HEEx syntax, verified routes, Tailwind v4
+- Common pitfalls and runtime error patterns
+- Location: `plugins/core/skills/phoenix-patterns/`
 
 ---
 
