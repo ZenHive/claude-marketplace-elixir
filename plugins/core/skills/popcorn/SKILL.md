@@ -1,7 +1,7 @@
 ---
 name: popcorn
 description: Popcorn client-side Elixir guide for browser WebAssembly apps. Use when building offline-first tools, client-side calculators, or privacy-preserving analytics. Covers setup, JS interop, limitations, and example patterns.
-allowed-tools: Read, Bash, WebFetch
+allowed-tools: Read, Bash
 ---
 
 # Popcorn: Client-Side Elixir in the Browser

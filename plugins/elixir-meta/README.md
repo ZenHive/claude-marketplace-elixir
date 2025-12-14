@@ -287,6 +287,32 @@ plugins/elixir-meta/
 └── workflow-generator.md        # Command to invoke skill
 ```
 
+## Design Decisions
+
+### Workflow Evaluation (2025-12)
+
+**Decision**: Keep the workflow commands and workflow-generator skill.
+
+**Rationale**:
+1. **Actual workflow** in this marketplace: Read `roadmap.md` → pick task → work in session → commit
+2. **Workflow commands complement this** by providing structured approaches when needed:
+   - `/elixir-research` for understanding unfamiliar code before making changes
+   - `/elixir-plan` for complex multi-step features that benefit from planning
+   - `/elixir-implement` for executing plans with verification
+   - `/elixir-qa` for validating changes before committing
+   - `/elixir-oneshot` for end-to-end feature development
+
+3. **Not every task needs all commands**:
+   - Simple tasks: Just read roadmap → implement → commit
+   - Complex features: Use /elixir-plan → /elixir-implement → /elixir-qa
+   - Exploratory work: Use /elixir-research to document findings
+
+4. **workflow-generator is useful** for bootstrapping Elixir projects with consistent patterns
+
+### D/B Scoring Integration
+
+Plan and QA outputs now include D/B (Difficulty/Benefit) scoring to prioritize implementation steps and fixes. Format: `[D:X/B:Y → Priority:Z]`
+
 ## Limitations
 
 - **Overwrites existing commands**: Regeneration replaces `/elixir-research`, `/elixir-plan`, `/elixir-implement`, `/elixir-qa`

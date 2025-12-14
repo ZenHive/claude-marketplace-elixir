@@ -10,11 +10,11 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 1. Ownership | 2/2 ✅ | - |
 | 2. New Plugins | 5/5 ✅ | - |
 | 3. Pre-commit | 2/2 ✅ | - |
-| 4. Workflows | 0/1 | Task 9 |
+| 4. Workflows | 1/1 ✅ | - |
 | 5. Documentation | 1/3 | Tasks 12-13 |
 | 6. New Skills | 1/1 ✅ | - |
 
-**Total: 19/22 complete (86%) | 3 remaining**
+**Total: 20/22 complete (91%) | 2 remaining**
 
 ---
 
@@ -117,13 +117,13 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 **Detailed task breakdown:** See `deferred/ELIXIR-META-ROADMAP.md`
 
 **Acceptance criteria:**
-- [ ] Plugin renamed from `meta` to `elixir-meta`
-- [ ] All references updated (marketplace.json, plugin.json)
-- [ ] Workflow commands evaluated and decision documented
-- [ ] Useful reference commands migrated
-- [ ] Templates aligned with global CLAUDE.md patterns
-- [ ] D/B scoring format in plan and QA outputs
-- [ ] `web` command usage instead of WebFetch
+- [x] Plugin renamed from `meta` to `elixir-meta`
+- [x] All references updated (marketplace.json, plugin.json)
+- [x] Workflow commands evaluated and decision documented
+- [x] Useful reference commands migrated (commands prefixed with elixir-)
+- [x] Templates aligned with global CLAUDE.md patterns
+- [x] D/B scoring format in plan and QA outputs
+- [x] `web` command usage instead of WebFetch
 
 ---
 

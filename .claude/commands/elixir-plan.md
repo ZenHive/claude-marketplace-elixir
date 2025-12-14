@@ -148,7 +148,13 @@ status: draft
 
 ## Implementation Steps
 
-### Step 1: [Phase Name]
+Use D/B scoring for prioritization: `[D:X/B:Y → Priority:Z]` where Priority = Benefit/Difficulty
+- Priority > 2.0: 🎯 Exceptional ROI - do immediately
+- Priority 1.5-2.0: 🚀 High ROI - do soon
+- Priority 1.0-1.5: 📋 Good ROI - plan carefully
+- Priority < 1.0: ⚠️ Poor ROI - reconsider or defer
+
+### Step 1: [Phase Name] [D:X/B:Y → Priority:Z] 🎯/🚀/📋/⚠️
 **Files**: [List of files]
 **Actions**:
 - [ ] [Specific action with file references]
@@ -159,7 +165,7 @@ status: draft
 // Code structure or pseudocode
 ```
 
-### Step 2: [Phase Name]
+### Step 2: [Phase Name] [D:X/B:Y → Priority:Z]
 [Continue for each implementation phase]
 
 ## Hook Implementation Details
@@ -238,6 +244,11 @@ status: draft
 - [ ] CLAUDE.md updated (if needed)
 - [ ] Usage examples provided
 - [ ] Hook behavior documented
+
+### Changelog
+- [ ] CHANGELOG.md updated with completed work
+- [ ] Uses [Keep a Changelog](https://keepachangelog.com/) format (Elixir standard)
+- [ ] Sections: Added, Changed, Deprecated, Removed, Fixed, Security
 
 ### Testing
 - [ ] Test suite exists

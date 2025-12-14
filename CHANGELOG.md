@@ -5,8 +5,18 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 ## [Unreleased]
 
 ### Added
-- Task 9: Meta Plugin Rename & Template Updates (pending)
 - Tasks 12-13: Documentation Updates (pending)
+
+### Plugins
+
+**Task 9: Meta Plugin Rename & Template Updates** [D:6/B:8]
+- Renamed `meta` plugin to `elixir-meta`
+- Updated marketplace.json and plugin.json references
+- Prefixed workflow commands with `elixir-` (elixir-research, elixir-plan, elixir-implement, elixir-qa, elixir-oneshot, elixir-interview)
+- Added D/B scoring format to plan and QA templates
+- Replaced WebFetch with `web` command in popcorn skill
+- Documented workflow evaluation decision in elixir-meta README
+- Decision: Keep workflow commands as complementary tools to roadmap-based development
 
 ### Skills
 

@@ -584,6 +584,12 @@ Fix these issues before pushing:
 
 ## Next Steps
 
+Use D/B scoring for prioritization: `[D:X/B:Y → Priority:Z]` where Priority = Benefit/Difficulty
+- Priority > 2.0: 🎯 Exceptional ROI - do immediately
+- Priority 1.5-2.0: 🚀 High ROI - do soon
+- Priority 1.0-1.5: 📋 Good ROI - plan carefully
+- Priority < 1.0: ⚠️ Poor ROI - reconsider or defer
+
 [IF ALL PASS]
 ```bash
 git push origin $(git branch --show-current)
@@ -591,11 +597,11 @@ git push origin $(git branch --show-current)
 
 [IF NEEDS ATTENTION]
 1. Review detailed reports in `.thoughts/`
-2. Address warnings in priority order
+2. Address warnings by priority (highest D/B ratio first)
 3. Re-run: `/qa`
 
 [IF CRITICAL]
-1. Fix critical issues listed above
+1. Fix critical issues listed above (score each fix)
 2. Re-run review: `/qa review`
 3. Re-run tests: `/qa test`
 4. Re-run full QA: `/qa`
@@ -900,7 +906,8 @@ Quick Stats:
 [What the plugin does well]
 
 ### Areas for Improvement
-[Specific issues with examples]
+Score each improvement with D/B: `[D:X/B:Y → Priority:Z]`
+[Specific issues with examples and priority scores]
 
 ### Validation Criteria
 ✅ READY / ⚠️ NEEDS WORK / ❌ INVALID
@@ -988,6 +995,23 @@ Documentation consistency validation checks ALL documentation files (regardless 
 - Main `README.md`: Any hook behavior or setup instructions
 
 **Severity**: All outdated documentation is ⚠️ WARNING (doesn't block push but should be fixed to prevent confusion)
+
+### Changelog Validation
+
+Check that CHANGELOG.md is updated for completed work:
+
+**Validation Checks:**
+- ⚠️ WARNING if changes detected but CHANGELOG.md not modified
+- Check for [Keep a Changelog](https://keepachangelog.com/) format (Elixir standard)
+- Verify entry in correct section: Added, Changed, Deprecated, Removed, Fixed, Security
+
+**How to Check:**
+```bash
+# Check if CHANGELOG.md was modified in current changes
+git diff --name-only | grep -q "CHANGELOG.md" && echo "updated" || echo "missing"
+```
+
+**Severity**: Missing changelog entry is ⚠️ WARNING (should document completed work)
 
 ### Versioning Protocol
 
