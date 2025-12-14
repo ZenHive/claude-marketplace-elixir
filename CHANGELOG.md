@@ -4,7 +4,23 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**Naming Consistency & Cleanup**
+- Renamed test directories from underscores to hyphens (`postedit_test` → `postedit-test`)
+- Renamed `hooks-handlers/` to `scripts/` in claude-md-includes plugin
+- Renamed `pre-commit-test.sh` to `pre-commit-check.sh` in ex_unit plugin
+- Removed unused `keywords` arrays from marketplace.json (-80 lines)
+- Added composable @include directives to project CLAUDE.md
+- Fixed command names in CLAUDE.md to match actual file names (`/interview` → `/elixir-interview`, etc.)
+- Documented naming convention: `elixir-` prefix for Elixir-specific commands, `/create-plugin` intentionally unprefixed
+
 ### Added
+
+**Refactoring Roadmap**
+- Added REFACTOR.md tracking 12 technical debt cleanup tasks across 5 phases
+- Estimated 85% reduction in script duplication after completion
+
 - Tasks 12-13: Documentation Updates (pending)
 
 ### Plugins
