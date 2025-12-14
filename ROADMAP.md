@@ -9,12 +9,12 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 0. Foundation | 8/8 ✅ | - |
 | 1. Ownership | 2/2 ✅ | - |
 | 2. New Plugins | 5/5 ✅ | - |
-| 3. Pre-commit | 0/2 | Tasks 7-8 |
+| 3. Pre-commit | 2/2 ✅ | - |
 | 4. Workflows | 0/1 | Task 9 |
 | 5. Documentation | 1/3 | Tasks 12-13 |
 | 6. New Skills | 0/1 | Task 14 |
 
-**Total: 16/22 complete (73%) | 6 remaining**
+**Total: 18/22 complete (82%) | 4 remaining**
 
 ---
 
@@ -73,61 +73,6 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 - [ ] Attribution clear and correct
 - [ ] All new features documented
 - [ ] Installation instructions current
-
----
-
-### Medium Priority (🎯 Priority 2.5-3.0)
-
-#### Task 7: Update Precommit Plugin for Strict Mode [D:3/B:8 → Priority:2.67] 🎯
-
-**Goal:** Make pre-commit validation strict by default, matching CLAUDE.md quality gates.
-
-**Enhanced behavior:**
-1. Check `mix format --check-formatted`
-2. Check `mix compile --warnings-as-errors`
-3. Check `mix credo --strict`
-4. Check `mix doctor` (new)
-5. Check `mix test` (if ex_unit plugin enabled)
-6. Block commit if ANY fail
-
-**Files to modify:**
-- `plugins/precommit/scripts/pre-commit-check.sh`
-- `plugins/precommit/README.md`
-
-**Acceptance criteria:**
-- [ ] All quality gates checked before commit
-- [ ] Clear error messages indicating which check failed
-- [ ] Can be bypassed with `--no-verify`
-- [ ] Tests pass for all check combinations
-
----
-
-#### Task 8: Add Test Failure Pattern Detection [D:4/B:10 → Priority:2.5] 🎯
-
-**Goal:** Detect and warn about tests that hide failures (your "never hide test failures" rule).
-
-**Detection patterns (from CLAUDE.md):**
-```elixir
-# BAD patterns to detect:
-{:error, _} -> assert true           # Makes all failures pass
-{:error, _reason} -> :ok             # Silent pass on any error
-```
-
-**Implementation:** PostToolUse hook in core plugin (immediate feedback)
-
-**Files to create:**
-- `plugins/core/scripts/detect-hidden-failures.sh`
-
-**Files to modify:**
-- `plugins/core/hooks/hooks.json`
-- `plugins/core/README.md`
-
-**Acceptance criteria:**
-- [ ] Detects `{:error, _} -> assert true` pattern
-- [ ] Detects `{:error, _} -> :ok` pattern
-- [ ] Warns via `additionalContext` (non-blocking)
-- [ ] Provides correct alternative patterns
-- [ ] Only scans `_test.exs` files
 
 ---
 
@@ -248,10 +193,9 @@ allowed-tools: Read, Bash, WebFetch
 
 | Order | Tasks | Rationale |
 |-------|-------|-----------|
-| 1 | 🎯 7 (Strict precommit), 8 (Test detection) | Quality gates [Priority 2.5-2.67] |
-| 2 | 🚀 14 (Popcorn skill) | New browser Elixir capability [Priority 1.5] |
-| 3 | 📋 9 (elixir-meta) | Integrate all skills + evaluate workflow |
-| 4 | 🎯 12 (CLAUDE.md), 13 (README) | Document everything at once |
+| 1 | 🚀 14 (Popcorn skill) | New browser Elixir capability [Priority 1.5] |
+| 2 | 📋 9 (elixir-meta) | Integrate all skills + evaluate workflow |
+| 3 | 🎯 12 (CLAUDE.md), 13 (README) | Document everything at once |
 
 ---
 

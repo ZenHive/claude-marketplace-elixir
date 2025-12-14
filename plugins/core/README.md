@@ -23,6 +23,7 @@ claude
 **PostToolUse - After file edits:**
 - ✅ **Auto-format** - Automatically runs `mix format` on edited .ex/.exs files
 - ✅ **Compile check** - Runs `mix compile --warnings-as-errors` to catch errors immediately
+- ✅ **Hidden test failure detection** - Warns when test files contain patterns that silently pass on errors
 
 **PostToolUse - After reading files:**
 - ✅ **Documentation recommendation on read** - Detects dependency usage in files and suggests documentation lookup
@@ -74,6 +75,15 @@ mix compile --warnings-as-errors
 - Runs after editing .ex or .exs files
 - Blocks on compilation errors - Claude must fix before continuing
 - Output truncated to 50 lines to avoid overwhelming context
+
+### Hidden Test Failure Detection (Non-blocking)
+- Runs after editing `_test.exs` files
+- Detects patterns that silently pass on errors:
+  - `{:error, _} -> assert true` (makes ALL failures pass)
+  - `{:error, _reason} -> :ok` (silent pass on any error)
+- Provides warning via `additionalContext` with correct alternatives
+- Non-blocking - warns but doesn't prevent edits
+- **Why this matters:** Tests should FAIL on unexpected errors. Silent passes hide bugs.
 
 ### Pre-commit Validation (Blocking)
 ```bash

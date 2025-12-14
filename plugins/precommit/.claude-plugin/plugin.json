@@ -1,7 +1,7 @@
 {
   "name": "precommit",
-  "version": "1.0.3",
-  "description": "Phoenix precommit alias automation - runs mix precommit before git commits if alias exists",
+  "version": "1.1.0",
+  "description": "Strict pre-commit validation - runs mix precommit alias or comprehensive quality checks (format, compile, credo, doctor)",
   "author": {
     "name": "Bradley Golden",
     "url": "https://github.com/bradleygolden"

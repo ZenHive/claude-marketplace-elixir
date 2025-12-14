@@ -5,10 +5,26 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 ## [Unreleased]
 
 ### Added
-- Task 7: Strict Pre-commit Mode (pending)
-- Task 8: Test Failure Pattern Detection (pending)
-- Tasks 9-11: Meta Plugin Template Updates (pending)
+- Task 9: Meta Plugin Rename & Template Updates (pending)
 - Tasks 12-13: Documentation Updates (pending)
+- Task 14: Popcorn Skill (pending)
+
+### Hooks
+
+**Task 7: Strict Pre-commit Mode** [D:3/B:8]
+- Enhanced precommit plugin to run comprehensive quality gates when no `mix precommit` alias exists
+- Checks: `mix format --check-formatted`, `mix compile --warnings-as-errors`, `mix credo --strict`, `mix doctor`
+- All checks always required (no conditional dependency detection)
+- Clear error messages indicating which check failed
+- Bypassable with `--no-verify`
+- Location: `plugins/precommit/scripts/pre-commit-check.sh`
+
+**Task 8: Test Failure Pattern Detection** [D:4/B:10]
+- PostToolUse hook detects test patterns that silently pass on errors
+- Detects: `{:error, _} -> assert true`, `{:error, _} -> :ok`
+- Non-blocking warning via `additionalContext` with correct alternatives
+- Only scans `_test.exs` files
+- Location: `plugins/core/scripts/detect-hidden-failures.sh`
 
 ### Skills
 
@@ -122,8 +138,9 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 | Category | Count |
 |----------|-------|
 | Plugins Added | 2 (claude-md-includes, doctor) |
-| Skills Added | 4 (web-command, git-worktrees, roadmap-planning, tidewave-guide) |
-| Tasks Completed | 14/23 (61%) |
+| Skills Added | 6 (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer, phoenix-patterns) |
+| Hooks Added | 2 (strict precommit, test failure detection) |
+| Tasks Completed | 18/22 (82%) |
 | Tests Passing | 93/93 |
 
 ## Attribution

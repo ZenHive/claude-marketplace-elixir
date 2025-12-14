@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
-# Pre-commit validation using Phoenix precommit alias
-# Runs mix precommit before git commits if the alias exists in mix.exs
+# Pre-commit validation for Elixir projects
+# Strict mode: runs comprehensive quality gates before commits
+#
+# If `mix precommit` alias exists: runs it
+# Otherwise: runs all quality checks directly:
+#   - mix format --check-formatted
+#   - mix compile --warnings-as-errors
+#   - mix credo --strict
+#   - mix doctor
 
 INPUT=$(cat) || exit 1
 
@@ -52,46 +59,95 @@ fi
 cd "$PROJECT_ROOT"
 
 # Check if precommit alias exists using Mix (authoritative detection)
-if ! mix help precommit >/dev/null 2>&1; then
-  # No precommit alias - suppress output and let other plugins handle validation
-  jq -n '{"suppressOutput": true}'
-  exit 0
-fi
+if mix help precommit >/dev/null 2>&1; then
+  # Run mix precommit
+  PRECOMMIT_OUTPUT=$(mix precommit 2>&1)
+  PRECOMMIT_EXIT=$?
 
-# Run mix precommit
-PRECOMMIT_OUTPUT=$(mix precommit 2>&1)
-PRECOMMIT_EXIT=$?
+  # Success case - suppress output
+  if [ $PRECOMMIT_EXIT -eq 0 ]; then
+    jq -n '{"suppressOutput": true}'
+    exit 0
+  fi
 
-# Success case - suppress output
-if [ $PRECOMMIT_EXIT -eq 0 ]; then
-  jq -n '{"suppressOutput": true}'
-  exit 0
-fi
+  # Failure case - truncate output and block commit
+  TOTAL_LINES=$(echo "$PRECOMMIT_OUTPUT" | wc -l)
+  MAX_LINES=50
 
-# Failure case - truncate output and block commit
-TOTAL_LINES=$(echo "$PRECOMMIT_OUTPUT" | wc -l)
-MAX_LINES=50
-
-if [ "$TOTAL_LINES" -gt "$MAX_LINES" ]; then
-  TRUNCATED_OUTPUT=$(echo "$PRECOMMIT_OUTPUT" | head -n $MAX_LINES)
-  FINAL_OUTPUT="$TRUNCATED_OUTPUT
+  if [ "$TOTAL_LINES" -gt "$MAX_LINES" ]; then
+    TRUNCATED_OUTPUT=$(echo "$PRECOMMIT_OUTPUT" | head -n $MAX_LINES)
+    FINAL_OUTPUT="$TRUNCATED_OUTPUT
 
 [Output truncated: showing $MAX_LINES of $TOTAL_LINES lines. Run 'mix precommit' in $PROJECT_ROOT to see full output]"
-else
-  FINAL_OUTPUT="$PRECOMMIT_OUTPUT"
+  else
+    FINAL_OUTPUT="$PRECOMMIT_OUTPUT"
+  fi
+
+  ERROR_MSG="Precommit validation failed:\n\n${FINAL_OUTPUT}\n\nFix these issues before committing."
+
+  jq -n \
+    --arg reason "$ERROR_MSG" \
+    --arg msg "Commit blocked: mix precommit validation failed" \
+    '{
+      "hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": $reason
+      },
+      "systemMessage": $msg
+    }'
+  exit 0
 fi
 
-ERROR_MSG="Precommit validation failed:\n\n${FINAL_OUTPUT}\n\nFix these issues before committing."
+# No precommit alias - run strict quality checks directly
+ERROR_MSG=""
+HAS_ERRORS=0
 
-jq -n \
-  --arg reason "$ERROR_MSG" \
-  --arg msg "Commit blocked: mix precommit validation failed" \
-  '{
-    "hookSpecificOutput": {
-      "hookEventName": "PreToolUse",
-      "permissionDecision": "deny",
-      "permissionDecisionReason": $reason
-    },
-    "systemMessage": $msg
-  }'
+# Check 1: Format
+FORMAT_OUTPUT=$(mix format --check-formatted 2>&1)
+if [ $? -ne 0 ]; then
+  ERROR_MSG="${ERROR_MSG}[ERROR] Format check failed:\n${FORMAT_OUTPUT}\n\n"
+  HAS_ERRORS=1
+fi
+
+# Check 2: Compile with warnings as errors
+COMPILE_OUTPUT=$(mix compile --warnings-as-errors 2>&1)
+if [ $? -ne 0 ]; then
+  ERROR_MSG="${ERROR_MSG}[ERROR] Compilation failed (warnings as errors):\n${COMPILE_OUTPUT}\n\n"
+  HAS_ERRORS=1
+fi
+
+# Check 3: Credo strict (always required)
+CREDO_OUTPUT=$(mix credo --strict 2>&1)
+if [ $? -ne 0 ]; then
+  ERROR_MSG="${ERROR_MSG}[ERROR] Credo strict check failed:\n${CREDO_OUTPUT}\n\n"
+  HAS_ERRORS=1
+fi
+
+# Check 4: Doctor (always required)
+DOCTOR_OUTPUT=$(mix doctor 2>&1)
+if [ $? -ne 0 ]; then
+  ERROR_MSG="${ERROR_MSG}[ERROR] Doctor check failed:\n${DOCTOR_OUTPUT}\n\n"
+  HAS_ERRORS=1
+fi
+
+# If any check failed, block the commit
+if [ $HAS_ERRORS -eq 1 ]; then
+  ERROR_MSG="${ERROR_MSG}Fix these issues before committing.\n\nTip: Add a precommit alias to mix.exs for customized checks."
+
+  jq -n \
+    --arg reason "$ERROR_MSG" \
+    --arg msg "Commit blocked: strict precommit validation failed" \
+    '{
+      "hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": $reason
+      },
+      "systemMessage": $msg
+    }'
+  exit 0
+fi
+
+jq -n '{"suppressOutput": true}'
 exit 0

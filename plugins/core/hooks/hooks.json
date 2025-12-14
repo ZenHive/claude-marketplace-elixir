@@ -13,6 +13,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/compile-check.sh",
             "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/detect-hidden-failures.sh",
+            "timeout": 10
           }
         ]
       },
