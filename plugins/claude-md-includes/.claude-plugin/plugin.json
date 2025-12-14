@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Process @include directives in CLAUDE.md for composable instructions",
   "author": {
-    "name": "DeltaHedge"
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive"
   },
   "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
   "license": "MIT",

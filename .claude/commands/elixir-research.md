@@ -28,16 +28,8 @@ When this command is invoked, the user provides their research query as an argum
 2. **Analyze and decompose the research question:**
    - Break down the user's query into composable research areas
    - Identify specific components to investigate (plugins, hooks, marketplace, tests, scripts)
-   - Create a research plan using TodoWrite to track all subtasks
-   - Use concrete TodoWrite structure:
-     ```
-     1. [in_progress] Identify relevant components
-     2. [pending] Research component A with finder agent
-     3. [pending] Analyze component B with analyzer agent
-     4. [pending] Synthesize findings
-     5. [pending] Write research document
-     ```
-   - Mark first todo as completed, second as in_progress before spawning agents
+   - Create a research plan using TodoWrite to track all subtasks (follow TodoWrite best practices from CLAUDE.md)
+   - Create todos for each major step, mark first as `in_progress` when starting
    - Consider which components are relevant:
      - Marketplace structure (marketplace.json)
      - Plugin metadata (plugin.json files)

@@ -3,8 +3,8 @@
   "version": "1.1.2",
   "description": "Dialyzer static type analysis for Elixir projects",
   "author": {
-    "name": "Bradley Golden",
-    "url": "https://github.com/bradleygolden"
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive"
   },
   "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
   "license": "MIT",

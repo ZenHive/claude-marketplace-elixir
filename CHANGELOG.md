@@ -6,6 +6,18 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**Metadata Standardization (Task 6)**
+- Standardized author fields across all 13 plugin.json files
+- Unified author name to "DeltaHedge" (was "Bradley Golden" in most plugins)
+- Unified author URL to "https://github.com/ZenHive" (was personal GitHub or email)
+- Removed `email` field from git plugin in favor of `url`
+- Added missing `url` field to claude-md-includes plugin
+
+**Documentation Cleanup (Task 9)**
+- Replaced verbose TodoWrite structure examples with references to CLAUDE.md best practices
+- Updated elixir-interview.md, elixir-research.md, elixir-plan.md, elixir-implement.md, elixir-oneshot.md
+- Reduced TodoWrite documentation duplication from ~200 lines to ~30 lines
+
 **Naming Consistency & Cleanup**
 - Renamed test directories from underscores to hyphens (`postedit_test` → `postedit-test`)
 - Renamed `hooks-handlers/` to `scripts/` in claude-md-includes plugin

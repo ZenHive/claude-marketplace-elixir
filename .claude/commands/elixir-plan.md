@@ -35,7 +35,7 @@ When this command is invoked, the user provides a feature description as an argu
    - Consider JSON schema validation requirements
 
 4. **Structure the plan document:**
-   - Use TodoWrite to track planning steps
+   - Use TodoWrite to track planning steps (follow TodoWrite best practices from CLAUDE.md)
    - Create a comprehensive plan with sections:
      - Overview
      - Prerequisites

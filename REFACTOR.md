@@ -8,11 +8,11 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 |-------|--------|-------|
 | 1. Script Consolidation | 0/3 | Tasks 1-3 |
 | 2. Naming Consistency | 2/2 ✅ | Tasks 4-5 complete |
-| 3. Metadata Standardization | 0/2 | Tasks 6-7 |
-| 4. Documentation Cleanup | 2/3 ✅ | Task 8 complete, Tasks 9-10 pending |
+| 3. Metadata Standardization | 1/2 | Task 6 complete, Task 7 pending |
+| 4. Documentation Cleanup | 2/3 | Tasks 8-9 complete, Task 10 pending |
 | 5. Polish | 1/2 ✅ | Task 11 complete, Task 12 pending |
 
-**Total: 5/12 complete (42%)**
+**Total: 7/12 complete (58%)**
 
 ---
 
@@ -21,9 +21,9 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 | Metric | Current | After Refactor |
 |--------|---------|----------------|
 | Script duplication | ~350 lines | ~50 lines |
-| Documentation duplication | ~500 lines | ~200 lines |
-| Naming inconsistencies | 5 | 0 |
-| Author format variations | 4 | 1 |
+| Documentation duplication | ~500 lines → ~300 lines ✅ | ~200 lines |
+| Naming inconsistencies | 5 → 0 ✅ | 0 |
+| Author format variations | 4 → 1 ✅ | 1 |
 | Undocumented timeouts | 9 | 0 |
 
 ---
@@ -188,9 +188,9 @@ source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
 - `plugins/*/. claude-plugin/plugin.json`
 
 **Acceptance criteria:**
-- [ ] All plugin.json files use identical author format
-- [ ] Author name consistent (DeltaHedge)
-- [ ] URL present in all
+- [x] All plugin.json files use identical author format
+- [x] Author name consistent (DeltaHedge)
+- [x] URL present in all
 
 ---
 
@@ -281,8 +281,8 @@ Follow TodoWrite best practices from CLAUDE.md. Key points:
 
 **Acceptance criteria:**
 - [x] Decision made: reference CLAUDE.md
-- [ ] Commands updated to reference rather than duplicate
-- [ ] Duplication reduced from ~200 lines to ~30 lines
+- [x] Commands updated to reference rather than duplicate
+- [x] Duplication reduced from ~200 lines to ~30 lines
 
 ---
 

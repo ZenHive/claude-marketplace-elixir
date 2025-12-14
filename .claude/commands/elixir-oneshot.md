@@ -22,16 +22,10 @@ When this command is invoked, the user provides a feature description as an argu
 
 ### 1. Create Workflow Tracking
 
-Use TodoWrite to create high-level workflow tracking:
-
-```
-1. [in_progress] Research existing patterns
-2. [pending] Create implementation plan
-3. [pending] Execute implementation
-4. [pending] Run QA validation
-5. [pending] Write workflow report
-6. [pending] Present final summary
-```
+Use TodoWrite to create high-level workflow tracking (follow TodoWrite best practices from CLAUDE.md):
+- Create todos for each major phase
+- Mark first todo as `in_progress` when starting
+- Mark `completed` immediately after finishing each phase
 
 ### 2. Research Phase
 

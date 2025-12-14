@@ -19,23 +19,10 @@ When this command is invoked, the user provides a plan name as an argument (e.g.
    - Extract implementation steps, file changes, and validation checklist
 
 2. **Create implementation tracking:**
-   - Use TodoWrite to create todos from plan's implementation steps
+   - Use TodoWrite to create todos from plan's implementation steps (follow TodoWrite best practices from CLAUDE.md)
    - Each step should be a separate todo item
    - Include file validation and testing as final todos
-   - Structure:
-     ```
-     1. [in_progress] Read and parse implementation plan
-     2. [pending] Create plugin metadata files
-     3. [pending] Implement hook definitions
-     4. [pending] Write hook scripts
-     5. [pending] Create documentation
-     6. [pending] Build test suite
-     7. [pending] Run JSON validation
-     8. [pending] Execute hook tests
-     9. [pending] Update plan status
-     10. [pending] Write implementation report
-     11. [pending] Present implementation summary
-     ```
+   - Mark first todo as `in_progress` when starting, mark `completed` immediately after finishing each step
 
 3. **Execute implementation steps sequentially:**
    - For each step in the plan:

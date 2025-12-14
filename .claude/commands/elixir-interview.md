@@ -32,18 +32,10 @@ ls .thoughts/interview/interview-*.md 2>/dev/null
 - Both research and plan exist → Target: `pre-implement`
 - Interview doc already exists → Target: `follow-up` (refine context)
 
-**Create TodoWrite tracking:**
-```
-1. [in_progress] Detect workflow context and target phase
-2. [pending] Analyze context and formulate relevant questions
-3. [pending] Ask context gathering questions
-4. [pending] Process and validate answers
-5. [pending] Generate derived context and recommendations
-6. [pending] Write interview document
-7. [pending] Present interview summary
-```
-
-Mark first todo as completed, second as in_progress.
+**Create TodoWrite tracking** (follow TodoWrite best practices from CLAUDE.md):
+- Create todos for each major step
+- Mark first todo as `in_progress` when starting
+- Mark `completed` immediately after finishing each step
 
 ---
 
