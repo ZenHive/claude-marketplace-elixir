@@ -12,9 +12,9 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 3. Pre-commit | 2/2 ✅ | - |
 | 4. Workflows | 0/1 | Task 9 |
 | 5. Documentation | 1/3 | Tasks 12-13 |
-| 6. New Skills | 0/1 | Task 14 |
+| 6. New Skills | 1/1 ✅ | - |
 
-**Total: 18/22 complete (82%) | 4 remaining**
+**Total: 19/22 complete (86%) | 3 remaining**
 
 ---
 
@@ -78,66 +78,6 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 
 ### Lower Priority (📋 Priority < 2.0)
 
-#### Task 14: Create Popcorn (Browser Elixir) Skill [D:4/B:6 → Priority:1.5] 🚀
-
-**Goal:** Create an on-demand skill for Popcorn - running Elixir in the browser via WebAssembly.
-
-**Context:** Popcorn is a library by Software Mansion that compiles Elixir to run in browsers via AtomVM (a tiny Erlang VM compiled to WASM). It enables offline-first, client-side Elixir applications with JS interoperability.
-
-**Skill location:** `plugins/core/skills/popcorn/`
-
-**Content sections:**
-
-**Part 1: Overview & When to Use**
-- What Popcorn is (Elixir → AtomVM → WASM → Browser)
-- Ideal use cases: calculators, offline tools, local-first apps, privacy-preserving analytics
-- NOT for: real-time trading, HFT, streaming data, persistent connections
-
-**Part 2: Project Setup**
-- Installation and configuration
-- Build process (`mix popcorn.build`)
-- Integration with existing projects
-
-**Part 3: JS Interoperability**
-- Calling JS from Elixir
-- Calling Elixir from JS
-- Data type mapping between Elixir and JS
-
-**Part 4: Limitations & Workarounds**
-- No direct API calls from WASM (use JS interop bridge)
-- No GenServer persistence across page reloads (use localStorage via JS)
-- Early stage - some OTP features limited
-- Performance considerations vs native Elixir
-
-**Part 5: Example Patterns**
-- Client-side calculators (P&L, position sizing)
-- Offline data processing
-- Form validation with Elixir logic
-
-**SKILL.md frontmatter:**
-```yaml
----
-name: popcorn
-description: Popcorn client-side Elixir guide for browser WebAssembly apps. Use when building offline-first tools, client-side calculators, or privacy-preserving analytics. Covers setup, JS interop, limitations, and example patterns.
-allowed-tools: Read, Bash, WebFetch
----
-```
-
-**Resources:**
-- GitHub: https://github.com/software-mansion/popcorn
-- Docs: https://hexdocs.pm/popcorn
-- Examples: https://popcorn.swmansion.com/
-
-**Acceptance criteria:**
-- [ ] Overview explains Popcorn architecture (Elixir → AtomVM → WASM)
-- [ ] Clear guidance on when to use vs when NOT to use
-- [ ] JS interop patterns documented
-- [ ] Limitations and workarounds explained
-- [ ] Example patterns for common use cases
-- [ ] SKILL.md has proper frontmatter
-
----
-
 #### Task 9: Rename Meta Plugin & Update Templates [D:6/B:8 → Priority:1.33] 📋
 
 **Goal:** Rename `meta` → `elixir-meta` and integrate all marketplace capabilities into workflow templates.
@@ -193,9 +133,8 @@ allowed-tools: Read, Bash, WebFetch
 
 | Order | Tasks | Rationale |
 |-------|-------|-----------|
-| 1 | 🚀 14 (Popcorn skill) | New browser Elixir capability [Priority 1.5] |
-| 2 | 📋 9 (elixir-meta) | Integrate all skills + evaluate workflow |
-| 3 | 🎯 12 (CLAUDE.md), 13 (README) | Document everything at once |
+| 1 | 📋 9 (elixir-meta) | Integrate all skills + evaluate workflow |
+| 2 | 🎯 12 (CLAUDE.md), 13 (README) | Document everything at once |
 
 ---
 

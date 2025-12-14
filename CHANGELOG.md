@@ -7,7 +7,19 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 ### Added
 - Task 9: Meta Plugin Rename & Template Updates (pending)
 - Tasks 12-13: Documentation Updates (pending)
-- Task 14: Popcorn Skill (pending)
+
+### Skills
+
+**Task 14: Popcorn (Browser Elixir) Skill** [D:4/B:6]
+- Client-side Elixir guide for browser WebAssembly apps via Popcorn library
+- Architecture overview: Elixir → AtomVM → WASM → Browser
+- When to use: offline-first tools, calculators, privacy-preserving analytics
+- When NOT to use: real-time trading, streaming data, persistent state
+- Project setup with OTP 26.0.2 / Elixir 1.17.3 requirements
+- JS interop: `Popcorn.Wasm.run_js/3`, event listeners, data type mapping
+- Limitations and workarounds (no direct API calls, localStorage for persistence)
+- Example patterns: calculator, data filter, form validation
+- Location: `plugins/core/skills/popcorn/`
 
 ### Hooks
 
@@ -138,9 +150,9 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 | Category | Count |
 |----------|-------|
 | Plugins Added | 2 (claude-md-includes, doctor) |
-| Skills Added | 6 (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer, phoenix-patterns) |
+| Skills Added | 7 (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer, phoenix-patterns, popcorn) |
 | Hooks Added | 2 (strict precommit, test failure detection) |
-| Tasks Completed | 18/22 (82%) |
+| Tasks Completed | 19/22 (86%) |
 | Tests Passing | 93/93 |
 
 ## Attribution
