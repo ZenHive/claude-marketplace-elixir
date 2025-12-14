@@ -7,12 +7,12 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 | Phase | Status | Tasks |
 |-------|--------|-------|
 | 1. Script Consolidation | 0/3 | Tasks 1-3 |
-| 2. Naming Consistency | 1/2 ✅ | Task 4 complete, Task 5 pending |
+| 2. Naming Consistency | 2/2 ✅ | Tasks 4-5 complete |
 | 3. Metadata Standardization | 0/2 | Tasks 6-7 |
 | 4. Documentation Cleanup | 2/3 ✅ | Task 8 complete, Tasks 9-10 pending |
 | 5. Polish | 1/2 ✅ | Task 11 complete, Task 12 pending |
 
-**Total: 4/12 complete (33%)**
+**Total: 5/12 complete (42%)**
 
 ---
 
@@ -159,8 +159,8 @@ source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
 
 **Acceptance criteria:**
 - [x] Decision made: keep `/create-plugin` (not Elixir-specific)
-- [ ] Exception documented in CLAUDE.md
-- [ ] Command list in CLAUDE.md matches actual names
+- [x] Exception documented in CLAUDE.md
+- [x] Command list in CLAUDE.md matches actual names
 
 ---
 

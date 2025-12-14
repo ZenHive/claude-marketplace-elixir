@@ -419,19 +419,22 @@ This pattern reduces token usage by 30-50% compared to having analyzer explore a
 - Use **parallel** when researching independent aspects (no dependency)
 - Use **sequential** (finder first, then analyzer) when analyzer needs file paths from finder
 
-See `.claude/commands/qa.md` (lines 807-844) and `.claude/commands/research.md` (lines 56-73) for examples.
+See `.claude/commands/elixir-qa.md` (lines 807-844) and `.claude/commands/elixir-research.md` (lines 56-73) for examples.
 
 ## Workflow System
 
 The marketplace includes a comprehensive workflow system for development:
 
 **Commands**:
-- `/interview` - Gather context through interactive questioning
-- `/research` - Research codebase with parallel agents
-- `/plan` - Create detailed implementation plans
-- `/implement` - Execute plans with verification
-- `/qa` - Validate implementation quality
-- `/oneshot` - Complete workflow (research → plan → implement → qa)
+- `/elixir-interview` - Gather context through interactive questioning
+- `/elixir-research` - Research codebase with parallel agents
+- `/elixir-plan` - Create detailed implementation plans
+- `/elixir-implement` - Execute plans with verification
+- `/elixir-qa` - Validate implementation quality
+- `/elixir-oneshot` - Complete workflow (research → plan → implement → qa)
+- `/create-plugin` - Scaffold new plugin structure (no prefix - not Elixir-specific)
+
+**Naming Convention**: Commands use `elixir-` prefix for Elixir/BEAM-specific workflows. The `/create-plugin` command intentionally has no prefix because it creates Claude Code plugins for any language or purpose.
 
 **Documentation Location**: All workflow artifacts saved to `.thoughts/`
 ```
@@ -450,7 +453,7 @@ See `.claude/WORKFLOWS.md` for complete workflow documentation.
 
 Before pushing changes, run:
 ```bash
-/qa
+/elixir-qa
 ```
 
 This validates:
