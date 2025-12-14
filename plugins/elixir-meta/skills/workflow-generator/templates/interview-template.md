@@ -13,7 +13,7 @@ You are tasked with gathering context through interactive questioning to guide w
 ### 1. Parse Arguments and Detect Context
 
 **Check for explicit workflow phase argument:**
-- If user provides argument (e.g., `/interview research`, `/interview plan`), use that as target phase
+- If user provides argument (e.g., `/elixir-interview research`, `/elixir-interview plan`), use that as target phase
 - If no argument, auto-detect based on existing documents
 
 **Auto-detect workflow phase:**
@@ -321,15 +321,15 @@ status: complete
 **To use this context:**
 
 [IF pre-research:]
-Run: `/research [your-topic]`
+Run: `/elixir-research [your-topic]`
 The research command will automatically detect and use this interview context.
 
 [IF pre-plan:]
-Run: `/plan [your-feature]`
+Run: `/elixir-plan [your-feature]`
 The plan command will automatically detect and use this interview context.
 
 [IF pre-implement:]
-Run: `/implement [plan-name]`
+Run: `/elixir-implement [plan-name]`
 The implement command can reference this context for implementation decisions.
 
 [IF follow-up:]
@@ -377,21 +377,21 @@ This context will be automatically detected and used by subsequent workflow comm
 [IF pre-research:]
 You can now run:
 ```bash
-/research [your-research-topic]
+/elixir-research [your-research-topic]
 ```
 The research command will use this interview context to focus its investigation.
 
 [IF pre-plan:]
 You can now run:
 ```bash
-/plan [your-feature-description]
+/elixir-plan [your-feature-description]
 ```
 The plan command will use this interview context to guide design decisions.
 
 [IF pre-implement:]
 You can now run:
 ```bash
-/implement [your-plan-name]
+/elixir-implement [your-plan-name]
 ```
 The implement command can reference this context for implementation preferences.
 
@@ -419,7 +419,7 @@ This ensures questions are always relevant and meaningful, not generic.
 ### Context Detection Logic
 
 The command intelligently determines what questions to ask based on:
-1. **Explicit argument**: User can specify phase (`/interview research`, `/interview plan`)
+1. **Explicit argument**: User can specify phase (`/elixir-interview research`, `/elixir-interview plan`)
 2. **Existing documents**: Auto-detect based on what workflow docs exist
 3. **Interview history**: Check for existing interview docs to avoid redundant questions
 
@@ -440,9 +440,9 @@ Interview documents are stored in `{{DOCS_LOCATION}}/interview/` for:
 ### Integration with Workflows
 
 Interview documents are referenced by:
-- `/research` - Checks for interview doc at start, uses context to focus research
-- `/plan` - Checks for interview doc at start, uses context for design decisions
-- `/implement` - Can reference interview doc for implementation preferences
+- `/elixir-research` - Checks for interview doc at start, uses context to focus research
+- `/elixir-plan` - Checks for interview doc at start, uses context for design decisions
+- `/elixir-implement` - Can reference interview doc for implementation preferences
 
 ### Follow-Up Interviews
 
@@ -453,7 +453,7 @@ If an interview document already exists:
 
 ## Example Usage
 
-**User**: `/interview` (before researching "How does the plugin hook system work?")
+**User**: `/elixir-interview` (before researching "How does the plugin hook system work?")
 
 **Process**:
 1. Detect no research docs exist → Target: pre-research
@@ -466,9 +466,9 @@ If an interview document already exists:
 5. User answers questions
 6. Process answers into research directives specific to the hook system
 7. Generate interview document
-8. Present summary with next steps to run `/research`
+8. Present summary with next steps to run `/elixir-research`
 
-**User**: `/interview plan` (after researching, before planning "Add monitoring plugin")
+**User**: `/elixir-interview plan` (after researching, before planning "Add monitoring plugin")
 
 **Process**:
 1. Explicit phase provided → Target: pre-plan
@@ -481,6 +481,6 @@ If an interview document already exists:
 5. User answers questions
 6. Process into planning directives specific to monitoring plugin design
 7. Generate interview document
-8. Present summary with next steps to run `/plan`
+8. Present summary with next steps to run `/elixir-plan`
 
 Note how questions are specific to the actual task, not generic templates.

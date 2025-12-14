@@ -21,10 +21,10 @@ Create a standardized workflow system adapted to any project's:
 
 ### Template Path Resolution
 
-Templates are stored in `plugins/meta/skills/workflow-generator/templates/`. When this skill uses the Read tool:
+Templates are stored in `plugins/elixir-meta/skills/workflow-generator/templates/`. When this skill uses the Read tool:
 - **During marketplace development**: Paths are relative to repository root
 - **When plugin is installed**: Claude Code resolves paths relative to plugin installation location
-- Template paths in this skill use the format: `plugins/meta/skills/workflow-generator/templates/<template-name>.md`
+- Template paths in this skill use the format: `plugins/elixir-meta/skills/workflow-generator/templates/<template-name>.md`
 
 ### Template Syntax
 
@@ -109,12 +109,12 @@ Use TodoWrite to track progress:
 ```
 1. [in_progress] Discover project context
 2. [pending] Ask customization questions
-3. [pending] Generate /research command
-4. [pending] Generate /plan command
-5. [pending] Generate /implement command
-6. [pending] Generate /qa command
-7. [pending] Generate /oneshot command
-8. [pending] Generate /interview command
+3. [pending] Generate /elixir-research command
+4. [pending] Generate /elixir-plan command
+5. [pending] Generate /elixir-implement command
+6. [pending] Generate /elixir-qa command
+7. [pending] Generate /elixir-oneshot command
+8. [pending] Generate /elixir-interview command
 9. [pending] Create documentation
 10. [pending] Present usage instructions
 ```
@@ -189,12 +189,12 @@ Mark step 1 completed, step 2 in progress.
 
 ---
 
-## Step 3: Generate /research Command
+## Step 3: Generate /elixir-research Command
 
 Mark step 3 as in_progress in TodoWrite.
 
 **Read the template:**
-- Use Read tool to read `plugins/meta/skills/workflow-generator/templates/research-template.md`
+- Use Read tool to read `plugins/elixir-meta/skills/workflow-generator/templates/research-template.md`
 - This contains the full command structure with placeholders
 
 **Perform variable substitution:**
@@ -214,19 +214,19 @@ Replace these variables in the template:
   - Umbrella Project → "umbrella apps and shared modules"
 
 **Write customized command:**
-- Use Write tool to create `.claude/commands/research.md`
+- Use Write tool to create `.claude/commands/elixir-research.md`
 - Content is the template with all variables substituted
 
 Mark step 3 completed in TodoWrite.
 
 ---
 
-## Step 4: Generate /plan Command
+## Step 4: Generate /elixir-plan Command
 
 Mark step 4 as in_progress in TodoWrite.
 
 **Read the template:**
-- Use Read tool to read `plugins/meta/skills/workflow-generator/templates/plan-template.md`
+- Use Read tool to read `plugins/elixir-meta/skills/workflow-generator/templates/plan-template.md`
 - This contains the full command structure with placeholders
 
 **Perform variable substitution:**
@@ -250,19 +250,19 @@ Replace these variables in the template:
 - `{{QUALITY_TOOLS_EXAMPLES}}` → Same expansion as checks but as examples
 
 **Write customized command:**
-- Use Write tool to create `.claude/commands/plan.md`
+- Use Write tool to create `.claude/commands/elixir-plan.md`
 - Content is the template with all variables substituted
 
 Mark step 4 completed in TodoWrite.
 
 ---
 
-## Step 5: Generate /implement Command
+## Step 5: Generate /elixir-implement Command
 
 Mark step 5 as in_progress in TodoWrite.
 
 **Read the template:**
-- Use Read tool to read `plugins/meta/skills/workflow-generator/templates/implement-template.md`
+- Use Read tool to read `plugins/elixir-meta/skills/workflow-generator/templates/implement-template.md`
 - This contains the full command structure with placeholders
 
 **Perform variable substitution:**
@@ -288,19 +288,19 @@ Replace these variables in the template:
 - `{{OPTIONAL_QUALITY_CHECKS}}` → Per-phase optional checks if tools enabled
 
 **Write customized command:**
-- Use Write tool to create `.claude/commands/implement.md`
+- Use Write tool to create `.claude/commands/elixir-implement.md`
 - Content is the template with all variables substituted
 
 Mark step 5 completed in TodoWrite.
 
 ---
 
-## Step 6: Generate /qa Command
+## Step 6: Generate /elixir-qa Command
 
 Mark step 6 as in_progress in TodoWrite.
 
 **Read the template:**
-- Use Read tool to read `plugins/meta/skills/workflow-generator/templates/qa-template.md`
+- Use Read tool to read `plugins/elixir-meta/skills/workflow-generator/templates/qa-template.md`
 - This contains the full command structure with placeholders
 
 **Perform variable substitution:**
@@ -328,19 +328,19 @@ Replace these variables in the template:
 - `{{QUALITY_TOOLS_SUMMARY_DISPLAY}}` → Display format for enabled tools in final output
 
 **Write customized command:**
-- Use Write tool to create `.claude/commands/qa.md`
+- Use Write tool to create `.claude/commands/elixir-qa.md`
 - Content is the template with all variables substituted
 
 Mark step 6 completed in TodoWrite.
 
 ---
 
-## Step 7: Generate /oneshot Command
+## Step 7: Generate /elixir-oneshot Command
 
 Mark step 7 as in_progress in TodoWrite.
 
 **Read the template:**
-- Use Read tool to read `plugins/meta/skills/workflow-generator/templates/oneshot-template.md`
+- Use Read tool to read `plugins/elixir-meta/skills/workflow-generator/templates/oneshot-template.md`
 - This contains the full command structure with placeholders
 
 **Perform variable substitution:**
@@ -357,19 +357,19 @@ Replace these variables in the template:
 - `{{QA_PASSED}}` → Conditional variable for success/failure branching
 
 **Write customized command:**
-- Use Write tool to create `.claude/commands/oneshot.md`
+- Use Write tool to create `.claude/commands/elixir-oneshot.md`
 - Content is the template with all variables substituted
 
 Mark step 7 completed in TodoWrite.
 
 ---
 
-## Step 8: Generate /interview Command
+## Step 8: Generate /elixir-interview Command
 
 Mark step 8 as in_progress in TodoWrite.
 
 **Read the template:**
-- Use Read tool to read `plugins/meta/skills/workflow-generator/templates/interview-template.md`
+- Use Read tool to read `plugins/elixir-meta/skills/workflow-generator/templates/interview-template.md`
 - This contains the full command structure with placeholders
 
 **Perform variable substitution:**
@@ -381,7 +381,7 @@ Replace these variables in the template:
 The interview command is designed to be project-agnostic with dynamic question generation, so it needs minimal customization compared to other commands.
 
 **Write customized command:**
-- Use Write tool to create `.claude/commands/interview.md`
+- Use Write tool to create `.claude/commands/elixir-interview.md`
 - Content is the template with variables substituted
 
 Mark step 8 completed in TodoWrite.
@@ -562,13 +562,13 @@ The recommended workflow for new features:
 
 These commands were generated based on your project configuration. You can edit them directly:
 
-- `.claude/commands/research.md`
-- `.claude/commands/plan.md`
-- `.claude/commands/implement.md`
-- `.claude/commands/qa.md`
-- `.claude/commands/oneshot.md`
+- `.claude/commands/elixir-research.md`
+- `.claude/commands/elixir-plan.md`
+- `.claude/commands/elixir-implement.md`
+- `.claude/commands/elixir-qa.md`
+- `.claude/commands/elixir-oneshot.md`
 
-To regenerate: `/meta:workflow-generator`
+To regenerate: `/elixir-meta:workflow-generator`
 
 ---
 
@@ -737,10 +737,10 @@ This will:
 
 All generated commands are fully editable. Customize them to match your exact workflow:
 
-- **Add custom validation**: Edit `.claude/commands/qa.md`
-- **Change plan structure**: Edit `.claude/commands/plan.md`
-- **Add research sources**: Edit `.claude/commands/research.md`
-- **Modify checkpoints**: Edit `.claude/commands/implement.md`
+- **Add custom validation**: Edit `.claude/commands/elixir-qa.md`
+- **Change plan structure**: Edit `.claude/commands/elixir-plan.md`
+- **Add research sources**: Edit `.claude/commands/elixir-research.md`
+- **Modify checkpoints**: Edit `.claude/commands/elixir-implement.md`
 
 ---
 

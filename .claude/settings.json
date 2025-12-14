@@ -9,7 +9,6 @@
     "mix_audit@deltahedge": true,
     "ex_unit@deltahedge": true,
     "precommit@deltahedge": true,
-    "meta@deltahedge": true,
     "git@deltahedge": true,
     "claude-md-includes@deltahedge": true,
     "doctor@deltahedge": true

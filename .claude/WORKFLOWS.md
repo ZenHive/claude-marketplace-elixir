@@ -8,16 +8,16 @@ This project uses a standardized workflow system for research, planning, impleme
 
 ## Available Commands
 
-### /interview
+### /elixir-interview
 
 Gather context through interactive questioning to guide workflow execution.
 
 **Usage**:
 ```bash
-/interview              # Auto-detect workflow phase
-/interview research     # Before research phase
-/interview plan         # Before planning phase
-/interview implement    # Before implementation phase
+/elixir-interview              # Auto-detect workflow phase
+/elixir-interview research     # Before research phase
+/elixir-interview plan         # Before planning phase
+/elixir-interview implement    # Before implementation phase
 ```
 
 **Output**: Interview documents saved to `.thoughts/interview/interview-YYYY-MM-DD-phase-topic.md`
@@ -31,14 +31,14 @@ Gather context through interactive questioning to guide workflow execution.
 
 ---
 
-### /research
+### /elixir-research
 
 Research the codebase to answer questions and document existing implementations.
 
 **Usage**:
 ```bash
-/research "How does the plugin hook system work?"
-/research "What is the marketplace structure?"
+/elixir-research "How does the plugin hook system work?"
+/elixir-research "What is the marketplace structure?"
 ```
 
 **Output**: Research documents saved to `.thoughts/research/research-YYYY-MM-DD-topic.md`
@@ -51,14 +51,14 @@ Research the codebase to answer questions and document existing implementations.
 
 ---
 
-### /plan
+### /elixir-plan
 
 Create detailed implementation plans with success criteria.
 
 **Usage**:
 ```bash
-/plan "Add monitoring plugin"
-/plan "Refactor hook test framework"
+/elixir-plan "Add monitoring plugin"
+/elixir-plan "Refactor hook test framework"
 ```
 
 **Output**: Plans saved to `.thoughts/plans/YYYY-MM-DD-description.md`
@@ -74,14 +74,14 @@ Create detailed implementation plans with success criteria.
 
 ---
 
-### /implement
+### /elixir-implement
 
 Execute implementation plans with automated verification.
 
 **Usage**:
 ```bash
-/implement "2025-10-27-monitoring-plugin"
-/implement   # Will prompt for plan selection
+/elixir-implement "2025-10-27-monitoring-plugin"
+/elixir-implement   # Will prompt for plan selection
 ```
 
 **Verification Commands**:
@@ -91,14 +91,14 @@ Execute implementation plans with automated verification.
 
 ---
 
-### /qa
+### /elixir-qa
 
 Validate implementation against success criteria and project quality standards.
 
 **Usage**:
 ```bash
-/qa                    # General health check
-/qa "plan-name"        # Validate specific plan implementation
+/elixir-qa                    # General health check
+/elixir-qa "plan-name"        # Validate specific plan implementation
 ```
 
 **Quality Gates**:
@@ -110,13 +110,13 @@ Validate implementation against success criteria and project quality standards.
 
 ---
 
-### /oneshot
+### /elixir-oneshot
 
 Complete workflow - research, plan, implement, and validate a feature.
 
 **Usage**:
 ```bash
-/oneshot "Add security scanning plugin"
+/elixir-oneshot "Add security scanning plugin"
 ```
 
 **What it does**:
@@ -132,15 +132,15 @@ Complete workflow - research, plan, implement, and validate a feature.
 
 The recommended workflow for new features:
 
-1. **Interview** (`/interview`) - Gather context and preferences
-2. **Research** (`/research`) - Understand current implementation
-3. **Plan** (`/plan`) - Create detailed implementation plan
-4. **Implement** (`/implement`) - Execute plan with verification
-5. **QA** (`/qa`) - Validate against success criteria
+1. **Interview** (`/elixir-interview`) - Gather context and preferences
+2. **Research** (`/elixir-research`) - Understand current implementation
+3. **Plan** (`/elixir-plan`) - Create detailed implementation plan
+4. **Implement** (`/elixir-implement`) - Execute plan with verification
+5. **QA** (`/elixir-qa`) - Validate against success criteria
 
 **Alternative: One-shot workflow**
 
-For simpler features, use `/oneshot` to execute all steps automatically.
+For simpler features, use `/elixir-oneshot` to execute all steps automatically.
 
 ---
 
@@ -148,12 +148,12 @@ For simpler features, use `/oneshot` to execute all steps automatically.
 
 These commands were generated based on your project configuration. You can edit them directly:
 
-- `.claude/commands/interview.md`
-- `.claude/commands/research.md`
-- `.claude/commands/plan.md`
-- `.claude/commands/implement.md`
-- `.claude/commands/qa.md`
-- `.claude/commands/oneshot.md`
+- `.claude/commands/elixir-interview.md`
+- `.claude/commands/elixir-research.md`
+- `.claude/commands/elixir-plan.md`
+- `.claude/commands/elixir-implement.md`
+- `.claude/commands/elixir-qa.md`
+- `.claude/commands/elixir-oneshot.md`
 
 To regenerate: `/workflow-generator`
 
@@ -190,7 +190,7 @@ To regenerate: `/workflow-generator`
 ### 1. Gather Context (Optional but Recommended)
 
 ```bash
-/interview
+/elixir-interview
 ```
 
 This will:
@@ -202,7 +202,7 @@ This will:
 ### 2. Research the Codebase
 
 ```bash
-/research "How do PostToolUse hooks work?"
+/elixir-research "How do PostToolUse hooks work?"
 ```
 
 This will:
@@ -214,7 +214,7 @@ This will:
 ### 3. Create an Implementation Plan
 
 ```bash
-/plan "Add performance monitoring plugin"
+/elixir-plan "Add performance monitoring plugin"
 ```
 
 This will:
@@ -227,7 +227,7 @@ This will:
 ### 4. Execute the Plan
 
 ```bash
-/implement "2025-10-27-performance-monitoring"
+/elixir-implement "2025-10-27-performance-monitoring"
 ```
 
 This will:
@@ -240,7 +240,7 @@ This will:
 ### 5. Validate Implementation
 
 ```bash
-/qa "performance-monitoring"
+/elixir-qa "performance-monitoring"
 ```
 
 This will:
@@ -257,43 +257,43 @@ This will:
 
 ```bash
 # 1. Gather context about requirements
-/interview plan
+/elixir-interview plan
 
 # 2. Research existing security plugin patterns
-/research "How are security plugins like sobelow structured?"
+/elixir-research "How are security plugins like sobelow structured?"
 
 # 3. Create implementation plan
-/plan "Add SAST security scanning plugin"
+/elixir-plan "Add SAST security scanning plugin"
 
 # 4. Execute the plan
-/implement "2025-10-27-sast-plugin"
+/elixir-implement "2025-10-27-sast-plugin"
 
 # 5. Validate implementation
-/qa "sast-plugin"
+/elixir-qa "sast-plugin"
 ```
 
 ---
 
 ## Interview-Driven Workflow
 
-The `/interview` command helps gather context before each workflow phase:
+The `/elixir-interview` command helps gather context before each workflow phase:
 
 **Before Research:**
 ```bash
-/interview research
-/research "Your research query"
+/elixir-interview research
+/elixir-research "Your research query"
 ```
 
 **Before Planning:**
 ```bash
-/interview plan
-/plan "Your feature description"
+/elixir-interview plan
+/elixir-plan "Your feature description"
 ```
 
 **Before Implementation:**
 ```bash
-/interview implement
-/implement "plan-name"
+/elixir-interview implement
+/elixir-implement "plan-name"
 ```
 
 The interview command asks context-specific questions and generates directives that guide the subsequent workflow step.
@@ -314,10 +314,10 @@ This will ask questions again and regenerate all commands.
 
 ## Next Steps
 
-1. ✅ Try your first interview: `/interview`
-2. ✅ Try your first research: `/research "marketplace structure"`
+1. ✅ Try your first interview: `/elixir-interview`
+2. ✅ Try your first research: `/elixir-research "marketplace structure"`
 3. Read full workflow docs (you're reading it!)
-4. Customize commands as needed (edit `.claude/commands/*.md`)
+4. Customize commands as needed (edit `.claude/commands/elixir-*.md`)
 5. Start your first planned feature!
 
 **Need help?** Each command has detailed instructions in its markdown file.

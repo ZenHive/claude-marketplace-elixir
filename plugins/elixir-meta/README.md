@@ -1,20 +1,20 @@
-# meta
+# elixir-meta
 
-Meta plugin for generating Elixir project-specific workflow commands.
+Elixir development workflow plugin for generating project-specific workflow commands.
 
 ## Overview
 
-The meta plugin provides a **workflow-generator skill** that generates a complete, customized workflow system for Elixir projects by creating:
-- `/interview` - Interactive context gathering through dynamic questioning
-- `/research` - Research and document codebase
-- `/plan` - Create detailed implementation plans
-- `/implement` - Execute plans with automated verification
-- `/qa` - Validate implementation against quality standards
-- `/oneshot` - Complete workflow in one command
+The elixir-meta plugin provides a **workflow-generator skill** that generates a complete, customized workflow system for Elixir projects by creating:
+- `/elixir-interview` - Interactive context gathering through dynamic questioning
+- `/elixir-research` - Research and document codebase
+- `/elixir-plan` - Create detailed implementation plans
+- `/elixir-implement` - Execute plans with automated verification
+- `/elixir-qa` - Validate implementation against quality standards
+- `/elixir-oneshot` - Complete workflow in one command
 
 ## Purpose
 
-Instead of creating workflow commands manually for each Elixir project, the meta plugin:
+Instead of creating workflow commands manually for each Elixir project, the elixir-meta plugin:
 1. **Asks questions** about your project (type, test strategy, quality tools)
 2. **Generates customized commands** adapted to your Elixir workflow
 3. **Creates documentation** explaining the workflow system
@@ -24,7 +24,7 @@ Instead of creating workflow commands manually for each Elixir project, the meta
 
 ```bash
 /plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install meta@deltahedge
+/plugin install elixir-meta@deltahedge
 ```
 
 ## Usage
@@ -38,13 +38,13 @@ Instead of creating workflow commands manually for each Elixir project, the meta
 This will:
 1. Detect your project type and tech stack
 2. Ask customization questions via interactive prompts
-3. Generate five workflow commands:
-   - `/interview` - Interactive context gathering before research/planning
-   - `/research` - Research and document codebase
-   - `/plan` - Create implementation plans with success criteria
-   - `/implement` - Execute plans with automated verification
-   - `/qa` - Validate implementation against quality gates
-   - `/oneshot` - Complete workflow automation
+3. Generate six workflow commands:
+   - `/elixir-interview` - Interactive context gathering before research/planning
+   - `/elixir-research` - Research and document codebase
+   - `/elixir-plan` - Create implementation plans with success criteria
+   - `/elixir-implement` - Execute plans with automated verification
+   - `/elixir-qa` - Validate implementation against quality gates
+   - `/elixir-oneshot` - Complete workflow automation
 4. Create supporting documentation
 5. Set up documentation directories
 
@@ -53,12 +53,12 @@ This will:
 ```
 .claude/
 ├── commands/
-│   ├── interview.md         # Context gathering before workflows
-│   ├── research.md          # Customized for your file patterns
-│   ├── plan.md              # Uses your build/test commands
-│   ├── implement.md         # Includes your verification steps
-│   ├── qa.md                # Enforces your quality gates
-│   └── oneshot.md           # Complete workflow in one command
+│   ├── elixir-interview.md  # Context gathering before workflows
+│   ├── elixir-research.md   # Customized for your file patterns
+│   ├── elixir-plan.md       # Uses your build/test commands
+│   ├── elixir-implement.md  # Includes your verification steps
+│   ├── elixir-qa.md         # Enforces your quality gates
+│   └── elixir-oneshot.md    # Complete workflow in one command
 
 .claude/WORKFLOWS.md         # Complete workflow documentation
                              # (or your chosen location during generation)
@@ -89,36 +89,36 @@ Plus documentation directories at your chosen location (e.g., `.thoughts/`, `doc
 - **Customized**: Adapted to your specific test commands and quality tools
 - **Editable**: Full markdown files you can modify
 - **Best-practice**: Follow Elixir and Phoenix conventions
-- **Context-aware**: Generated `/interview` command provides dynamic question generation; `/research` and `/plan` can invoke it when needed
+- **Context-aware**: Generated `/elixir-interview` command provides dynamic question generation; `/elixir-research` and `/elixir-plan` can invoke it when needed
 
 ## Workflow System
 
 The generated workflow follows a proven pattern with optional context gathering:
 
-### 0. Interview (`/interview`) - Optional
+### 0. Interview (`/elixir-interview`) - Optional
 Gather context before research or planning through dynamic questioning. Claude analyzes your query and asks relevant questions to focus subsequent workflow steps.
 
 **Features**:
 - Auto-detects workflow phase
 - Generates contextual questions (not hardcoded)
 - Creates interview documents for persistent context
-- Can be invoked by `/research` and `/plan` when needed
+- Can be invoked by `/elixir-research` and `/elixir-plan` when needed
 
-### 1. Research (`/research`)
+### 1. Research (`/elixir-research`)
 Document existing code without evaluation. Spawns parallel agents to:
 - Find relevant files and patterns
 - Analyze implementation details
 - Extract architectural insights
 - Save findings to research documents
 
-### 2. Plan (`/plan`)
+### 2. Plan (`/elixir-plan`)
 Create detailed implementation plans with:
 - Phased execution structure
 - Specific file changes with examples
 - Success criteria (automated + manual)
 - Design options and trade-offs
 
-### 3. Implement (`/implement`)
+### 3. Implement (`/elixir-implement`)
 Execute plans with built-in verification:
 - Read plan and track progress
 - Work phase by phase
@@ -126,7 +126,7 @@ Execute plans with built-in verification:
 - Update checkmarks
 - Handle plan vs reality mismatches
 
-### 4. QA (`/qa`)
+### 4. QA (`/elixir-qa`)
 Validate implementation quality:
 - Run automated checks (tests, types, linting, security)
 - Spawn validation agents
@@ -138,8 +138,8 @@ Validate implementation quality:
 ### First-Time Setup
 
 ```bash
-# Install meta plugin
-/plugin install meta@deltahedge
+# Install elixir-meta plugin
+/plugin install elixir-meta@deltahedge
 
 # Generate workflow commands
 /workflow-generator
@@ -151,16 +151,16 @@ Answer the questions, and you'll have a complete workflow system!
 
 ```bash
 # Research existing code
-/research "How does authentication work?"
+/elixir-research "How does authentication work?"
 
 # Plan new feature
-/plan "Add OAuth integration"
+/elixir-plan "Add OAuth integration"
 
 # Execute the plan
-/implement "2025-01-23-oauth-integration"
+/elixir-implement "2025-01-23-oauth-integration"
 
 # Validate implementation
-/qa "oauth-integration"
+/elixir-qa "oauth-integration"
 ```
 
 ## Customization
@@ -171,10 +171,10 @@ All commands are standard markdown files. Customize them:
 
 ```bash
 # Edit research command
-vim .claude/commands/research.md
+vim .claude/commands/elixir-research.md
 
 # Edit QA checks
-vim .claude/commands/qa.md
+vim .claude/commands/elixir-qa.md
 ```
 
 ### Regenerate Commands
@@ -198,16 +198,16 @@ vim .claude/agents/database-analyzer.md
 
 Then reference it in your customized commands.
 
-## Why Meta Plugin?
+## Why elixir-meta Plugin?
 
-### Before Meta Plugin
+### Before elixir-meta Plugin
 
 - Manually create workflow commands for each project
 - Copy/paste from other projects and adapt
 - Inconsistent patterns across projects
 - Time-consuming setup
 
-### After Meta Plugin
+### After elixir-meta Plugin
 
 - One command generates complete workflow system
 - Automatically adapted to project specifics
@@ -219,7 +219,7 @@ Then reference it in your customized commands.
 ### Convention-Based Skill Discovery
 
 The workflow-generator skill is discovered automatically by Claude Code:
-- Location: `plugins/meta/skills/workflow-generator/SKILL.md`
+- Location: `plugins/elixir-meta/skills/workflow-generator/SKILL.md`
 - No JSON registration required
 - Available as `workflow-generator@deltahedge`
 
@@ -264,9 +264,9 @@ Integrates with common Elixir quality tools:
 |--------|---------|-----------|--------------|
 | core | Auto-format, compile check | Yes (hooks) | No |
 | credo | Static analysis | Yes (hooks) | No |
-| **meta** | **Workflow generation** | **No** | **Yes (command/skill)** |
+| **elixir-meta** | **Workflow generation** | **No** | **Yes (command/skill)** |
 
-The meta plugin is unique:
+The elixir-meta plugin is unique:
 - **Not a hook**: Doesn't trigger automatically
 - **Elixir-focused**: Designed for Elixir/Phoenix projects
 - **Generates other commands**: Creates customized workflow system
@@ -275,7 +275,7 @@ The meta plugin is unique:
 ## Architecture
 
 ```
-plugins/meta/
+plugins/elixir-meta/
 ├── .claude-plugin/
 │   └── plugin.json              # Plugin metadata
 ├── skills/
@@ -289,9 +289,9 @@ plugins/meta/
 
 ## Limitations
 
-- **Overwrites existing commands**: Regeneration replaces `/research`, `/plan`, `/implement`, `/qa`
+- **Overwrites existing commands**: Regeneration replaces `/elixir-research`, `/elixir-plan`, `/elixir-implement`, `/elixir-qa`
 - **Template-based**: Generated commands are starting points, may need customization
-- **No hooks**: Meta plugin doesn't use hooks (it generates commands, not automation)
+- **No hooks**: elixir-meta plugin doesn't use hooks (it generates commands, not automation)
 
 ## Contributing
 
@@ -305,7 +305,7 @@ To improve the workflow generator:
 ## Support
 
 - Report issues: https://github.com/bradleygolden/claude-marketplace-elixir/issues
-- Source code: https://github.com/bradleygolden/claude-marketplace-elixir/tree/main/plugins/meta
+- Source code: https://github.com/ZenHive/claude-marketplace-elixir/tree/main/plugins/elixir-meta
 
 ## License
 

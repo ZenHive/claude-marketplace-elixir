@@ -408,7 +408,7 @@ Address warnings before merge or create follow-up tasks.
 Critical issues prevent approval:
 - [List critical issues]
 
-Fix these issues and re-run QA: `/qa "[plan-name]"`
+Fix these issues and re-run QA: `/elixir-qa "[plan-name]"`
 
 ## Next Steps
 
@@ -425,7 +425,7 @@ Fix these issues and re-run QA: `/qa "[plan-name]"`
 [IF FAIL]
 - Fix critical issues
 - Address failing tests
-- Re-run: `/qa "[plan-name]"`
+- Re-run: `/elixir-qa "[plan-name]"`
 ```
 
 Save report to: `{{DOCS_LOCATION}}/qa-reports/YYYY-MM-DD-[plan-name]-qa.md`
@@ -461,7 +461,7 @@ Mark this step complete in TodoWrite.
 1. [Issue with file:line]
 2. [Issue with file:line]
 
-Fix these and re-run: `/qa "[plan-name]"`
+Fix these and re-run: `/elixir-qa "[plan-name]"`
 
 [IF PASS]
 **Ready to merge!** ✅
@@ -486,10 +486,10 @@ Header: "Fix Plan"
 Options (multiSelect: false):
   Option 1:
     Label: "Yes, generate fix plan"
-    Description: "Create a detailed plan to address all critical issues using /plan command"
+    Description: "Create a detailed plan to address all critical issues using /elixir-plan command"
   Option 2:
     Label: "No, I'll fix manually"
-    Description: "Exit QA and fix issues manually, then re-run /qa"
+    Description: "Exit QA and fix issues manually, then re-run /elixir-qa"
 ```
 
 **9.3 If User Selects "Yes, generate fix plan":**
@@ -507,14 +507,14 @@ Store filename in variable: QA_REPORT_PATH
 
 Use SlashCommand tool:
 ```
-Command: /plan "Fix critical issues from QA report: [QA_REPORT_PATH]"
+Command: /elixir-plan "Fix critical issues from QA report: [QA_REPORT_PATH]"
 ```
 
 Wait for plan generation to complete.
 
 **9.3.3 Extract Plan Filename**
 
-Parse the output from /plan command to find the generated plan filename.
+Parse the output from /elixir-plan command to find the generated plan filename.
 Typical format: `{{DOCS_LOCATION}}/plans/plan-YYYY-MM-DD-fix-*.md`
 
 Store plan name without path/extension in variable: FIX_PLAN_NAME
@@ -533,7 +533,7 @@ Header: "Execute Plan"
 Options (multiSelect: false):
   Option 1:
     Label: "Yes, execute fix plan"
-    Description: "Run /implement to apply fixes, then re-run /qa for validation"
+    Description: "Run /elixir-implement to apply fixes, then re-run /elixir-qa for validation"
   Option 2:
     Label: "No, I'll review first"
     Description: "Exit and review the plan manually before implementing"
@@ -543,7 +543,7 @@ Options (multiSelect: false):
 
 Use SlashCommand tool:
 ```
-Command: /implement "[FIX_PLAN_NAME]"
+Command: /elixir-implement "[FIX_PLAN_NAME]"
 ```
 
 Wait for implementation to complete.
@@ -555,7 +555,7 @@ Fix implementation complete. Re-running QA for validation...
 
 Use SlashCommand tool:
 ```
-Command: /qa
+Command: /elixir-qa
 ```
 
 Wait for QA to complete.
@@ -572,10 +572,10 @@ Report:
 Fix plan saved at: [PLAN_FILENAME]
 
 When ready to implement:
-  /implement "[FIX_PLAN_NAME]"
+  /elixir-implement "[FIX_PLAN_NAME]"
 
 After implementing, re-run QA:
-  /qa
+  /elixir-qa
 ```
 
 **9.4 If User Selects "No, I'll fix manually":**
@@ -587,7 +587,7 @@ Manual fixes required.
 Critical issues documented in: [QA_REPORT_PATH]
 
 After fixing, re-run QA:
-  /qa
+  /elixir-qa
 ```
 
 **9.5 If QA Status is NOT ❌ FAIL:**
@@ -671,7 +671,7 @@ If Credo, Dialyzer, etc. not in mix.exs:
 
 ## Example Session
 
-**User**: `/qa "user-authentication"`
+**User**: `/elixir-qa "user-authentication"`
 
 **Process**:
 1. Find plan: `{{DOCS_LOCATION}}/plans/2025-01-23-user-authentication.md`

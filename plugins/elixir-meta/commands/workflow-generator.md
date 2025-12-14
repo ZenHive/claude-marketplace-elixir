@@ -18,7 +18,7 @@ Generates four workflow commands tailored to your project:
 
 ## Execution
 
-Invoke the workflow-generator skill from the meta plugin:
+Invoke the workflow-generator skill from the elixir-meta plugin:
 
 ```
 Execute the workflow-generator@deltahedge skill, which will:

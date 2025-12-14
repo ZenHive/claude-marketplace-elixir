@@ -19,8 +19,8 @@ This command automates the entire development workflow:
 ## Usage
 
 ```bash
-/oneshot "Add user profile page with avatar upload"
-/oneshot "Refactor authentication to use OAuth"
+/elixir-oneshot "Add user profile page with avatar upload"
+/elixir-oneshot "Refactor authentication to use OAuth"
 ```
 
 ## Execution Flow
@@ -45,7 +45,7 @@ Create TodoWrite plan to track the entire workflow:
 Execute research to understand the codebase:
 
 ```
-SlashCommand(command="/research $ARGUMENTS")
+SlashCommand(command="/elixir-research $ARGUMENTS")
 ```
 
 **What happens:**
@@ -62,7 +62,7 @@ Mark step 2 completed, mark step 3 in_progress.
 Create implementation plan based on research:
 
 ```
-SlashCommand(command="/plan $ARGUMENTS")
+SlashCommand(command="/elixir-plan $ARGUMENTS")
 ```
 
 **What happens:**
@@ -83,7 +83,7 @@ Mark step 3 completed, mark step 4 in_progress.
 Execute the plan:
 
 ```
-SlashCommand(command="/implement PLAN_FILENAME")
+SlashCommand(command="/elixir-implement PLAN_FILENAME")
 ```
 
 Where `PLAN_FILENAME` is extracted from the plan command output (e.g., "2025-10-25-user-profile").
@@ -110,7 +110,7 @@ Mark step 4 completed, mark step 5 in_progress.
 Validate the implementation:
 
 ```
-SlashCommand(command="/qa PLAN_FILENAME")
+SlashCommand(command="/elixir-qa PLAN_FILENAME")
 ```
 
 **What happens:**
@@ -158,7 +158,7 @@ Possible statuses:
       Description: "Automatically create fix plan, implement fixes, and re-run QA"
     Option 2:
       Label: "No, stop for manual fixes"
-      Description: "Stop oneshot workflow, fix manually, then re-run /qa"
+      Description: "Stop oneshot workflow, fix manually, then re-run /elixir-qa"
   ```
 
   **5.2.3 If User Selects "Yes, auto-fix and re-validate":**
@@ -182,7 +182,7 @@ Possible statuses:
 
   **Generate Fix Plan:**
   ```
-  SlashCommand(command="/plan Fix critical issues from QA report: [QA_REPORT_PATH]")
+  SlashCommand(command="/elixir-plan Fix critical issues from QA report: [QA_REPORT_PATH]")
   ```
 
   Wait for plan generation to complete.
@@ -196,7 +196,7 @@ Possible statuses:
 
   **Execute Fix Implementation:**
   ```
-  SlashCommand(command="/implement [FIX_PLAN_NAME]")
+  SlashCommand(command="/elixir-implement [FIX_PLAN_NAME]")
   ```
 
   Wait for implementation to complete.
@@ -207,7 +207,7 @@ Possible statuses:
 
   **Re-run QA Validation:**
   ```
-  SlashCommand(command="/qa PLAN_FILENAME")
+  SlashCommand(command="/elixir-qa PLAN_FILENAME")
   ```
 
   Note: Use original PLAN_FILENAME, not the fix plan name.
@@ -254,7 +254,7 @@ Possible statuses:
 
   Report: "Workflow stopped for manual fixes."
   Report: "QA report: [QA_REPORT_PATH]"
-  Report: "After fixing, continue with: /qa PLAN_FILENAME"
+  Report: "After fixing, continue with: /elixir-qa PLAN_FILENAME"
 
   Mark step 5 completed with note: "Stopped for manual fixes"
   Mark step 6 in_progress
@@ -460,8 +460,8 @@ Workflow paused for manual fixes:
 
 1. **Review QA report**: `cat {{DOCS_LOCATION}}/qa-reports/YYYY-MM-DD-qa.md`
 2. **Fix critical issues manually**
-3. **Re-run QA**: `/qa [PLAN_NAME]`
-4. **Or generate fix plan**: `/qa` (will offer fix plan generation)
+3. **Re-run QA**: `/elixir-qa [PLAN_NAME]`
+4. **Or generate fix plan**: `/elixir-qa` (will offer fix plan generation)
 
 ## Documentation
 
@@ -505,8 +505,8 @@ Auto-fix was incomplete, manual intervention required:
 1. **Review final QA report**: `cat {{DOCS_LOCATION}}/qa-reports/YYYY-MM-DD-qa.md`
 2. **Review fix plan**: `cat {{DOCS_LOCATION}}/plans/[FIX_PLAN_FILENAME]`
 3. **Fix remaining issues manually**
-4. **Re-run QA**: `/qa [ORIGINAL_PLAN_NAME]`
-5. **Or generate new fix plan**: `/qa` (will offer new plan generation)
+4. **Re-run QA**: `/elixir-qa [ORIGINAL_PLAN_NAME]`
+5. **Or generate new fix plan**: `/elixir-qa` (will offer new plan generation)
 
 ## Documentation
 
@@ -523,7 +523,7 @@ Mark step 6 completed.
 
 ### Research Phase Fails
 
-If `/research` fails or times out:
+If `/elixir-research` fails or times out:
 1. Report the error to user
 2. Ask if they want to:
    - Retry research
@@ -532,7 +532,7 @@ If `/research` fails or times out:
 
 ### Planning Phase Fails
 
-If `/plan` fails:
+If `/elixir-plan` fails:
 1. Report the error
 2. Research document still exists for reference
 3. Ask if they want to:
@@ -542,19 +542,19 @@ If `/plan` fails:
 
 ### Implementation Phase Fails
 
-If `/implement` fails or verification fails:
+If `/elixir-implement` fails or verification fails:
 1. Implementation is partial (some phases may be complete)
 2. Plan document shows progress (checkmarks)
 3. Do NOT proceed to QA
 4. Report what was completed and what failed
 5. Ask if they want to:
    - Continue implementation manually
-   - Fix issues and retry `/implement`
+   - Fix issues and retry `/elixir-implement`
    - Abort and review partial work
 
 ### QA Phase Fails
 
-If `/qa` fails or checks fail:
+If `/elixir-qa` fails or checks fail:
 1. Report QA failures
 2. Implementation is complete but quality issues exist
 3. Present QA report with actionable feedback
@@ -576,7 +576,7 @@ If `/qa` fails or checks fail:
 
 ## When to Use Oneshot vs Individual Commands
 
-**Use `/oneshot`** when:
+**Use `/elixir-oneshot`** when:
 - Starting a new feature from scratch
 - You want automated end-to-end workflow
 - Feature scope is well-defined
@@ -602,7 +602,7 @@ After generation, users can customize:
 
 ```bash
 # User runs:
-/oneshot "Add OAuth integration for GitHub"
+/elixir-oneshot "Add OAuth integration for GitHub"
 
 # What happens:
 1. Research: Finds auth patterns, session handling, OAuth examples
@@ -632,4 +632,4 @@ This oneshot workflow is customized for Elixir projects ({{PROJECT_TYPE}}) with:
 
 ---
 
-**Note**: This command orchestrates other workflow commands. For more control over individual phases, use `/research`, `/plan`, `/implement`, and `/qa` separately.
+**Note**: This command orchestrates other workflow commands. For more control over individual phases, use `/elixir-research`, `/elixir-plan`, `/elixir-implement`, and `/elixir-qa` separately.

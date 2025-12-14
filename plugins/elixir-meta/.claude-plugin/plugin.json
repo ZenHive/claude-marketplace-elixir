@@ -1,7 +1,7 @@
 {
-  "name": "meta",
+  "name": "elixir-meta",
   "version": "1.0.0",
-  "description": "Meta plugin for generating project-specific workflow commands (research, plan, implement, qa) and interactive context gathering (interview)",
+  "description": "Elixir development workflow plugin with planning, QA, reference commands, and interactive context gathering",
   "author": {
     "name": "Bradley Golden",
     "url": "https://github.com/bradleygolden"
@@ -9,7 +9,8 @@
   "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
   "license": "MIT",
   "keywords": [
-    "meta",
+    "elixir-meta",
+    "elixir",
     "workflow",
     "generator",
     "scaffolding",

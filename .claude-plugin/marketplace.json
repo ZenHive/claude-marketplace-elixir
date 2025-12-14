@@ -131,15 +131,15 @@
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
-      "name": "meta",
-      "source": "./plugins/meta",
-      "description": "Meta plugin for generating project-specific workflow commands (research, plan, implement, qa) and interactive context gathering (interview)",
+      "name": "elixir-meta",
+      "source": "./plugins/elixir-meta",
+      "description": "Elixir development workflow plugin with planning, QA, reference commands, and interactive context gathering",
       "keywords": [
-        "meta",
+        "elixir-meta",
+        "elixir",
         "workflow",
         "generator",
         "scaffolding",
-        "project-agnostic",
         "research",
         "planning",
         "implementation",

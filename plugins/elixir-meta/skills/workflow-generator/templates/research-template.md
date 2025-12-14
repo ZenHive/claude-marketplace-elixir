@@ -17,7 +17,7 @@ You are tasked with conducting comprehensive research across the Elixir reposito
 
 ## Steps to Execute:
 
-When this command is invoked, the user provides their research query as an argument (e.g., `/research How does authentication work?`). Begin research immediately.
+When this command is invoked, the user provides their research query as an argument (e.g., `/elixir-research How does authentication work?`). Begin research immediately.
 
 1. **Read any directly mentioned files first:**
    - If the user mentions specific files, read them FULLY first
@@ -268,7 +268,7 @@ When this command is invoked, the user provides their research query as an argum
 
 ## Example Usage:
 
-**User**: `/research` then "How does authentication work in this application?"
+**User**: `/elixir-research` then "How does authentication work in this application?"
 
 **Process**:
 1. Read any mentioned files

@@ -149,7 +149,7 @@ ls -t {{DOCS_LOCATION}}/plans/*.md | head -5
    {{QUALITY_TOOLS_SUMMARY}}
 
    **Next Steps**:
-   - Run QA validation: `/qa "[plan-name]"`
+   - Run QA validation: `/elixir-qa "[plan-name]"`
    - Manual testing recommended
    - Ready for code review
    ```
@@ -359,7 +359,7 @@ Sometimes completed phases have tests that break:
 
 ## Example Session
 
-**User**: `/implement user-authentication`
+**User**: `/elixir-implement user-authentication`
 
 **Process**:
 1. Find plan: `{{DOCS_LOCATION}}/plans/2025-01-23-user-authentication.md`

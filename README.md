@@ -26,7 +26,7 @@ claude
 /plugin install dialyzer@deltahedge
 /plugin install ex_doc@deltahedge
 /plugin install ex_unit@deltahedge
-/plugin install meta@deltahedge
+/plugin install elixir-meta@deltahedge
 /plugin install mix_audit@deltahedge
 /plugin install precommit@deltahedge
 /plugin install sobelow@deltahedge
@@ -39,7 +39,7 @@ claude
 * [dialyzer](./plugins/dialyzer/README.md) - Static type analysis and discrepancy detection
 * [ex_doc](./plugins/ex_doc/README.md) - Documentation quality validation (This is still pre-release, it might be buggy!)
 * [ex_unit](./plugins/ex_unit/README.md) - ExUnit testing automation with smart pre-commit test validation
-* [meta](./plugins/meta/README.md) - Generates project-specific workflow commands (research, plan, implement, qa)
+* [elixir-meta](./plugins/elixir-meta/README.md) - Elixir development workflow plugin with planning, QA, and reference commands
 * [mix_audit](./plugins/mix_audit/README.md) - Dependency security audit for known vulnerabilities
 * [precommit](./plugins/precommit/README.md) - Phoenix 1.8+ precommit alias runner (coordinates with other plugins)
 * [sobelow](./plugins/sobelow/README.md) - Security-focused static analysis for Phoenix applications
