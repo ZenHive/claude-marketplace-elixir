@@ -14,6 +14,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @include ~/.claude/includes/development-philosophy.md
 
+@include ~/.claude/includes/elixir-patterns.md
+
+@include ~/.claude/includes/api-integration.md
+
+@include ~/.claude/includes/library-design.md
+
 ## Repository Purpose
 
 This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem development. It provides automated development workflows through hooks that trigger on file edits and git operations.

@@ -371,6 +371,19 @@ end
 3. **where/join/select** for refinement
 4. **Repo operations** (all, one, insert, update, delete)
 
+### Macro Patterns (Elixir DSLs)
+1. **Module attributes** - Accumulate definitions at compile time
+2. **@before_compile** - Generate functions from accumulated data
+3. **__using__/1** - Setup when module does `use MyDSL`
+4. **quote/unquote** - Template code generation
+5. **Declarative definitions** - Routes, schema fields, API methods
+
+**Recognize macro DSLs:**
+- Multiple similar function definitions differing only in data
+- Configuration-like syntax (routes, schema fields, API endpoints)
+- Compile-time validated declarations
+- Code that generates other code
+
 ## What NOT to Do
 
 - Don't guess about how Elixir code works - read the actual implementation

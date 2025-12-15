@@ -1,12 +1,12 @@
 ---
 name: phoenix-patterns
-description: Phoenix 1.8 framework patterns reference. Use when working with Phoenix templates, forms, LiveView streams, auth routing, HEEx syntax, or Tailwind v4.
+description: Phoenix 1.8 framework patterns reference. Use when working with Phoenix templates, forms, LiveView streams, auth routing, HEEx syntax, Tailwind v4, Elixir macros, or API integration patterns.
 allowed-tools: Read
 ---
 
 # Phoenix 1.8 Patterns Reference
 
-Quick reference for Phoenix 1.8+ framework patterns, common pitfalls, and best practices.
+Quick reference for Phoenix 1.8+ framework patterns, Elixir idioms, common pitfalls, and best practices.
 
 ## When to use this skill
 
@@ -16,6 +16,8 @@ Quick reference for Phoenix 1.8+ framework patterns, common pitfalls, and best p
 - Setting up authentication routing
 - Writing HEEx templates
 - Configuring Tailwind CSS v4
+- Understanding when to use Elixir macros
+- Building API clients (when to abstract, macro DSLs)
 
 ## Project Setup
 
@@ -315,6 +317,61 @@ message.user.name  # LazyLoad error in LiveView
 # ✅ Always preload
 from m in Message, preload: [:user]
 ```
+
+### Other Critical
+
+- **HTTP client:** Use `:req` (not `:httpoison`, `:tesla`)
+- **Predicates:** `active?(user)` not `is_active(user)` (reserve `is_` for guards)
+- **Atoms from user input:** NEVER `String.to_atom(user_input)` (memory leak)
+- **Module nesting:** Don't nest modules in one file (cyclic dependencies)
+- **Task.async_stream:** Use `timeout: :infinity` for back-pressure
+
+## Macro Patterns (Elixir Idiom)
+
+Macros are idiomatic in Elixir - Phoenix, Ecto, and most libraries use them. **Don't avoid macros when they're the right tool.**
+
+**Use macros when:**
+- 3+ similar function definitions differing only in data (method name, path, params)
+- Declarative DSLs (routes, schema fields, API endpoints, test setup)
+- Compile-time validation catches errors before runtime
+- The alternative is copy-paste with risk of inconsistency
+
+**Macro structure basics:**
+```elixir
+defmodule MyDSL do
+  defmacro api_method(name, http_method, path, path_params, body_params \\ []) do
+    quote do
+      @spec unquote(name)(unquote_splicing(generate_param_types(path_params ++ body_params))) ::
+              {:ok, map()} | {:error, term()}
+      def unquote(name)(unquote_splicing(Macro.generate_arguments(length(path_params ++ body_params), __MODULE__))) do
+        # Implementation using bound variables
+      end
+    end
+  end
+end
+```
+
+**Common patterns:**
+- `@before_compile` - Generate functions from accumulated attributes
+- `__using__/1` - Setup when module does `use MyDSL`
+- Module attributes (`@methods []`) - Accumulate definitions, generate at compile
+- `quote` + `unquote` - Template code generation
+
+## API Integration: When to Abstract
+
+- **1-3 endpoints**: Plain functions are fine, copy-paste is acceptable
+- **4-9 endpoints**: Consider a shared helper module for common patterns
+- **10+ endpoints with similar patterns**: A macro DSL may be justified
+
+**Always prove first** - Implement 3-5 endpoints manually to understand actual patterns before abstracting.
+
+**Signs you should use a macro:**
+- Multiple functions differing only in method name, path, or params
+- Copy-paste patterns where inconsistency causes bugs
+- Configuration-like definitions benefiting from compile-time checks
+- Wrapping an external API with 10+ similar endpoints
+
+**Key principle**: Repetition is cheaper than wrong abstraction. Wait until you feel the pain.
 
 ## AGENTS.md Reminder
 

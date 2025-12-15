@@ -384,6 +384,13 @@ Every phase/task with code changes MUST include:
 - Message passing patterns
 - Process naming and registration
 
+**For API clients or repetitive patterns:**
+- 1-3 endpoints: Plain functions, copy-paste acceptable
+- 4-9 endpoints: Shared helper module for common patterns
+- 10+ similar endpoints: Consider macro DSL
+- Always prove patterns first with manual implementations
+- Macros are idiomatic in Elixir for declarative DSLs
+
 ## Non-Negotiable Standards
 
 1. **Research first**: Always gather context before planning

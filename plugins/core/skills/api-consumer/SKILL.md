@@ -11,10 +11,12 @@ Build production-grade API clients in Elixir using declarative macros and compil
 ## When to use this skill
 
 Use this skill when:
+- Deciding how to structure an API client (plain functions vs helpers vs macros)
 - Building an Elixir client for a REST API with 10+ similar endpoints
 - Need consistent error handling, timeouts, and retries across all endpoints
 - Want auto-generated documentation and tests from method definitions
 - Need API sync checking to detect upstream changes
+- Understanding when abstraction is justified vs premature
 
 ## Decision tree: Build vs Wrap
 
@@ -37,6 +39,64 @@ Does a battle-tested library exist? (CCXT, Stripe SDK, AWS SDK, etc.)
                              Just write functions directly
                              Macros are overkill
 ```
+
+---
+
+## Always Prove First
+
+**Never build abstractions speculatively.** Implement 3-5 endpoints manually first to:
+- Understand the actual response structures
+- Discover error patterns and edge cases
+- Identify what's truly repetitive vs. what varies
+
+**Key principle**: Repetition is cheaper than wrong abstraction. A few duplicated lines are easier to maintain than a complex abstraction that doesn't quite fit. Wait until you feel the pain before abstracting.
+
+## What to Standardize (when scale justifies it)
+
+Common boilerplate worth abstracting at scale:
+- HTTP client configuration (base URL, headers, timeouts)
+- Authentication (API keys, OAuth, signature generation)
+- Error response parsing and normalization
+- Rate limiting and retry logic
+- Response validation and type conversion
+
+## Example Progression
+
+```elixir
+# Stage 1: Manual (1-3 endpoints) - Just write the functions
+def get_user(id, api_key) do
+  Req.get!("#{@base_url}/users/#{id}", headers: [{"Authorization", api_key}])
+end
+
+# Stage 2: Shared helpers (4-9 endpoints) - Extract common patterns
+defp api_request(method, path, opts) do
+  # Shared auth, error handling, retries
+end
+
+# Stage 3: DSL (10+ endpoints) - Only if patterns are truly uniform
+defapi :users do
+  get :show, "/users/:id"
+  post :create, "/users"
+end
+```
+
+## Elixir-Specific: Macros Are Idiomatic
+
+Unlike most languages, Elixir embraces macros for declarative APIs. Phoenix, Ecto, and most major libraries use them extensively (`plug`, `get/post`, `field`, `attr`).
+
+**When macros ARE the right choice in Elixir:**
+- Declarative configuration (routes, schema fields, plugs)
+- Compile-time validation of API contracts
+- Reducing boilerplate where patterns repeat 3+ times with only data differences
+- DSLs that read like configuration, not code
+
+**Signs you should use a macro instead of repetitive functions:**
+- Multiple functions differing only in method name, path, or params
+- Copy-paste patterns where inconsistency causes bugs
+- Configuration-like definitions benefiting from compile-time checks
+- You're wrapping an external API with 10+ similar endpoints
+
+**Don't fight Elixir idioms.** Ten nearly-identical functions with minor variations is a signal to consider a macro - that's elegant simplicity in Elixir, not premature abstraction.
 
 ---
 
