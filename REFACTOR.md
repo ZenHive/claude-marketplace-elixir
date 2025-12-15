@@ -10,9 +10,9 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 | 2. Naming Consistency | 2/2 ✅ | Tasks 4-5 complete |
 | 3. Metadata Standardization | 2/2 ✅ | Tasks 6-7 complete |
 | 4. Documentation Cleanup | 3/3 ✅ | Tasks 8-10 complete |
-| 5. Polish | 1/2 | Task 11 complete, Task 12 pending |
+| 5. Polish | 2/2 ✅ | Tasks 11-12 complete |
 
-**Total: 11/12 complete (92%)**
+**Total: 12/12 complete (100%)**
 
 ---
 
@@ -369,9 +369,14 @@ One-line description.
 - All `plugins/*/scripts/*.sh`
 
 **Acceptance criteria:**
-- [ ] All shebangs use `#!/usr/bin/env bash`
-- [ ] JSON output formatting consistent
-- [ ] NULL checks consistent
+- [x] All shebangs use `#!/usr/bin/env bash`
+- [x] JSON output formatting consistent
+- [x] NULL checks consistent
+
+**Changes made:**
+- Fixed shebangs in 6 scripts: session-start.sh, post-edit-check.sh (sobelow), auto-format.sh, recommend-docs-lookup.sh, compile-check.sh, recommend-docs-on-read.sh
+- Fixed NULL check order in 3 scripts: auto-format.sh, compile-check.sh, detect-hidden-failures.sh (now use `-z` check first)
+- JSON formatting was already consistent (no extra spaces)
 
 ---
 

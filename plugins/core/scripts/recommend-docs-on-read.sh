@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Recommend documentation lookup when reading files with dependency module references
 # Triggered on PostToolUse (Read)

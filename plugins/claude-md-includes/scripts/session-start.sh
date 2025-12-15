@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Session start hook for claude-md-includes plugin
 # Calls the Python processor to expand @include directives in CLAUDE.md
 

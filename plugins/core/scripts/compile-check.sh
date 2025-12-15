@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Check compilation after file edits
 
@@ -9,7 +9,7 @@ INPUT=$(cat) || exit 1
 FILE_PATH=$(echo "$INPUT" | jq -e -r '.tool_input.file_path' 2>/dev/null) || exit 1
 
 # Validate extracted value is not null
-if [[ "$FILE_PATH" == "null" ]] || [[ -z "$FILE_PATH" ]]; then
+if [[ -z "$FILE_PATH" ]] || [[ "$FILE_PATH" == "null" ]]; then
   exit 0
 fi
 

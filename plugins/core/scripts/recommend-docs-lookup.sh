@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Recommend documentation lookup when user mentions dependencies
 # Triggered on UserPromptSubmit
