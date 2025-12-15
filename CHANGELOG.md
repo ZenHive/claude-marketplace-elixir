@@ -108,6 +108,16 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Skills
 
+**Phoenix Scope Patterns Skill**
+- Guide for Phoenix 1.8+ Scope struct patterns
+- Basic usage in LiveViews, templates, and contexts
+- Key principles: always pass scope, validate ownership, access user via scope
+- Extending Scope with custom fields (e.g., exchange capabilities, permissions)
+- UI feature toggling based on scope capabilities
+- Common patterns: optional auth, scope in changesets, testing
+- What NOT to put in scope, refreshing scope
+- Location: `plugins/core/skills/phoenix-scope/`
+
 **Task 0f: API Consumer Macro Skill** [D:3/B:9]
 - Macro-based API client generation for Elixir REST APIs
 - Part 0: Layered abstraction pattern (wrap existing libraries, don't reimplement)
@@ -218,7 +228,7 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 | Category | Count |
 |----------|-------|
 | Plugins Added | 2 (claude-md-includes, doctor) |
-| Skills Added | 7 (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer, phoenix-patterns, popcorn) |
+| Skills Added | 8 (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer, phoenix-patterns, popcorn, phoenix-scope) |
 | Hooks Added | 2 (strict precommit, test failure detection) |
 | Tasks Completed | 19/22 (86%) |
 | Tests Passing | 93/93 |
