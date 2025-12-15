@@ -48,6 +48,12 @@ defp aliases do
 end
 ```
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| pre-commit-check | 120s | Runs multiple quality checks (format, compile, credo, doctor) |
+
 ## Quality Checks in Strict Mode
 
 | Check | Description |

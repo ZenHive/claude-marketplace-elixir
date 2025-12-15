@@ -41,6 +41,12 @@ mix dialyzer
 - **Timeout**: 120 seconds (Dialyzer can take longer than other checks)
 - **Note**: Skips if project has a `precommit` alias (defers to precommit plugin)
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| pre-commit-check | 120s | Dialyzer analysis can be slow on large codebases |
+
 ## Why Pre-commit Only?
 
 Unlike Credo or compilation checks, Dialyzer is intentionally only run on commit because:

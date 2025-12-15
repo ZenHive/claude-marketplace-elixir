@@ -141,6 +141,12 @@ def project do
 end
 ```
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| pre-commit-check | 45s | Documentation generation can take 10-30+ seconds |
+
 ## Requirements
 
 - ExDoc must be in your project dependencies (`{:ex_doc` in `mix.exs`)

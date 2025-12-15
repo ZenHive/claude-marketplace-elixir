@@ -58,6 +58,17 @@ See [skills/hex-docs-search/SKILL.md](skills/hex-docs-search/SKILL.md) for detai
 
 See [skills/usage-rules/SKILL.md](skills/usage-rules/SKILL.md) for details.
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| auto-format | 15s | Single file formatting is fast |
+| compile-check | 20s | Incremental compilation after edit |
+| detect-hidden-failures | 10s | Pattern matching in test files |
+| recommend-docs-on-read | 10s | Dependency detection in file |
+| pre-commit-check | 45s | Format check + compile + unused deps |
+| recommend-docs-lookup | 10s | Dependency matching in user prompt |
+
 ## Hooks Behavior
 
 ### Auto-format (Non-blocking)

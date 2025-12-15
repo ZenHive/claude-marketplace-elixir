@@ -192,6 +192,12 @@ Running stale tests...
 ✗ Commit blocked - fix tests first
 ```
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| pre-commit-check | 60s | Stale test execution for changed modules |
+
 ## Comparison with Other Approaches
 
 ### vs. Manual Testing

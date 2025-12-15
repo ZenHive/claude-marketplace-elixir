@@ -27,6 +27,13 @@ claude
 **PreToolUse - Before git commits:**
 - ✅ **Pre-commit check** - Runs `mix credo --strict` before any `git commit` and blocks if violations found
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| post-edit-check | 30s | Single-file Credo analysis |
+| pre-commit-check | 30s | Project-wide Credo strict check |
+
 ## Hooks Behavior
 
 ### Code Analysis (Non-blocking)

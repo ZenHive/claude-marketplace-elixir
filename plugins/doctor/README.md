@@ -40,6 +40,12 @@ mix doctor
 - **Context Detection**: Automatically finds Mix project root by traversing upward from current directory
 - **Note**: Skips if project has a `precommit` alias (defers to precommit plugin)
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| pre-commit-check | 60s | Documentation coverage analysis across codebase |
+
 ## What Mix Doctor Checks
 
 Mix Doctor validates documentation quality including:

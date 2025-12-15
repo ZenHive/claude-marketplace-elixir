@@ -39,6 +39,13 @@ Before allowing git commits, the plugin validates that all Ash-generated code is
 - Timeout: 45 seconds
 - **Note**: Skips if project has a `precommit` alias (defers to precommit plugin)
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| post-edit-check | 30s | Quick ash.codegen check for edited file |
+| pre-commit-check | 45s | Full codegen validation before commit |
+
 ## How It Works
 
 The plugin only activates for Elixir projects with Ash as a dependency (detected by checking `mix.exs`). It automatically:

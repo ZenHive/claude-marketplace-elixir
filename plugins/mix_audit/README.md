@@ -116,6 +116,12 @@ See [mix_audit documentation](https://hexdocs.pm/mix_audit/) for details.
 
 The pre-commit hook has a 30-second timeout (configurable in `hooks/hooks.json`). This is typically sufficient for dependency audits.
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| pre-commit-check | 30s | Dependency audit is typically fast after initial database fetch |
+
 ## Complementary Plugins
 
 Consider installing these related security plugins:

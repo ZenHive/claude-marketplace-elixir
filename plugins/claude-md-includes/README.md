@@ -152,6 +152,12 @@ Project-specific rules here...
 
 The plugin automatically processes includes at session start.
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| session-start | 15s | Process includes in CLAUDE.md at startup |
+
 ## Requirements
 
 - Python 3.6+

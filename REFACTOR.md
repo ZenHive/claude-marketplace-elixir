@@ -8,11 +8,11 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 |-------|--------|-------|
 | 1. Script Consolidation | 3/3 ✅ | Tasks 1-3 complete |
 | 2. Naming Consistency | 2/2 ✅ | Tasks 4-5 complete |
-| 3. Metadata Standardization | 1/2 | Task 6 complete, Task 7 pending |
+| 3. Metadata Standardization | 2/2 ✅ | Tasks 6-7 complete |
 | 4. Documentation Cleanup | 2/3 | Tasks 8-9 complete, Task 10 pending |
-| 5. Polish | 1/2 ✅ | Task 11 complete, Task 12 pending |
+| 5. Polish | 1/2 | Task 11 complete, Task 12 pending |
 
-**Total: 10/12 complete (83%)**
+**Total: 11/12 complete (92%)**
 
 ---
 
@@ -24,7 +24,7 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 | Documentation duplication | ~500 lines → ~300 lines ✅ | ~200 lines |
 | Naming inconsistencies | 5 → 0 ✅ | 0 |
 | Author format variations | 4 → 1 ✅ | 1 |
-| Undocumented timeouts | 9 | 0 |
+| Undocumented timeouts | 9 → 0 ✅ | 0 |
 
 ---
 
@@ -218,15 +218,16 @@ source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
 | dialyzer-pre-commit | 120s | Dialyzer analysis can be slow on large codebases |
 ```
 
-**Files to modify:**
-- `plugins/*/README.md` - add timeout documentation table
-- `plugins/ex_doc/hooks/hooks.json` - add missing timeout
-- `plugins/doctor/hooks/hooks.json` - add missing timeout
+**Files modified:**
+- `plugins/*/README.md` - added timeout documentation tables to all 11 plugins
+- `plugins/core/hooks/hooks.json` - added missing timeouts to recommend-docs-on-read (10s) and recommend-docs-lookup (10s)
+- `plugins/claude-md-includes/hooks/hooks.json` - added missing timeout to session-start (15s)
+- Note: ex_doc and doctor already had timeouts (45s and 60s respectively)
 
 **Acceptance criteria:**
-- [ ] All hooks.json have timeout specified
-- [ ] All plugin READMEs have timeout rationale table
-- [ ] JSON remains valid (no comments in JSON files)
+- [x] All hooks.json have timeout specified
+- [x] All plugin READMEs have timeout rationale table
+- [x] JSON remains valid (no comments in JSON files)
 
 ---
 

@@ -146,6 +146,13 @@ git commit -m "fix: resolve XSS vulnerability"
 # ✅ Passes (SQL.Query skipped, XSS.Raw fixed)
 ```
 
+## Hook Timeouts
+
+| Hook | Timeout | Rationale |
+|------|---------|-----------|
+| post-edit-check | 30s | Quick Sobelow scan with JSON output |
+| pre-commit-check | 30s | Full security scan before commit |
+
 ## Hook Configuration
 
 ### PostToolUse Hook
