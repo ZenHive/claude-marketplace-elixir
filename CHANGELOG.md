@@ -6,6 +6,23 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**Version Bump (All Plugins)**
+- Bumped marketplace version: 1.0.0 → 1.0.1
+- Bumped all 13 plugin versions to trigger Claude Code reload
+- core: 1.5.0 → 1.5.1, credo/ash/dialyzer/sobelow/mix_audit/ex_unit: 1.1.2 → 1.1.3
+- precommit: 1.1.0 → 1.1.1, ex_doc: 1.0.0-rc.7 → 1.0.0-rc.8
+- elixir-meta/git/claude-md-includes/doctor: 1.0.0 → 1.0.1
+
+**Script Consolidation (Tasks 1-3)**
+- Created shared bash library at `plugins/_shared/` with core utilities
+- `lib.sh`: project detection, JSON parsing, git directory extraction, output truncation
+- `precommit-utils.sh`: defer-to-precommit, deny JSON emission, git commit detection
+- `postedit-utils.sh`: context JSON emission, Elixir file validation
+- Migrated all 10 pre-commit scripts to use shared library
+- Migrated all 5 post-edit scripts to use shared library
+- Reduced script duplication from ~350 lines to ~50 lines
+- All 27 shared library tests pass
+
 **Metadata Standardization (Task 6)**
 - Standardized author fields across all 13 plugin.json files
 - Unified author name to "DeltaHedge" (was "Bradley Golden" in most plugins)
@@ -13,12 +30,22 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 - Removed `email` field from git plugin in favor of `url`
 - Added missing `url` field to claude-md-includes plugin
 
+**Hook Timeout Documentation (Task 7)**
+- Added timeout rationale tables to all 11 plugin READMEs
+- Added missing timeouts to core hooks: recommend-docs-on-read (10s), recommend-docs-lookup (10s)
+- Added missing timeout to claude-md-includes session-start hook (15s)
+
 **Documentation Cleanup (Task 9)**
 - Replaced verbose TodoWrite structure examples with references to CLAUDE.md best practices
 - Updated elixir-interview.md, elixir-research.md, elixir-plan.md, elixir-implement.md, elixir-oneshot.md
 - Reduced TodoWrite documentation duplication from ~200 lines to ~30 lines
 
-**Naming Consistency & Cleanup**
+**README Standardization (Task 10)**
+- Standardized section order across all plugin READMEs
+- Order: Title → Installation → Requirements (if applicable) → Features → Hook Timeouts
+- Reordered ash, mix_audit, sobelow, and git READMEs to follow standard
+
+**Naming Consistency & Cleanup (Tasks 4, 5, 11)**
 - Renamed test directories from underscores to hyphens (`postedit_test` → `postedit-test`)
 - Renamed `hooks-handlers/` to `scripts/` in claude-md-includes plugin
 - Renamed `pre-commit-test.sh` to `pre-commit-check.sh` in ex_unit plugin
@@ -27,13 +54,16 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 - Fixed command names in CLAUDE.md to match actual file names (`/interview` → `/elixir-interview`, etc.)
 - Documented naming convention: `elixir-` prefix for Elixir-specific commands, `/create-plugin` intentionally unprefixed
 
+**Script Style Standardization (Task 12)**
+- Standardized all scripts to use `#!/usr/bin/env bash` shebang
+- Fixed NULL check order to use `-z` check first consistently
+- Fixed 6 scripts: session-start.sh, post-edit-check.sh (sobelow), auto-format.sh, recommend-docs-lookup.sh, compile-check.sh, recommend-docs-on-read.sh
+
 ### Added
 
 **Refactoring Roadmap**
-- Added REFACTOR.md tracking 12 technical debt cleanup tasks across 5 phases
-- Estimated 85% reduction in script duplication after completion
-
-- Tasks 12-13: Documentation Updates (pending)
+- Added refactor.md tracking 12 technical debt cleanup tasks across 5 phases
+- All 12/12 tasks complete (100%)
 
 ### Plugins
 

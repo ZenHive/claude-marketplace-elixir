@@ -1,6 +1,6 @@
 {
   "name": "precommit",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Strict pre-commit validation - runs mix precommit alias or comprehensive quality checks (format, compile, credo, doctor)",
   "author": {
     "name": "DeltaHedge",
