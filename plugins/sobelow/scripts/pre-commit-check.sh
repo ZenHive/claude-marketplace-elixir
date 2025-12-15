@@ -1,60 +1,11 @@
 #!/usr/bin/env bash
+set -eo pipefail
 
-INPUT=$(cat) || exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../_shared/lib.sh"
+source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
 
-COMMAND=$(echo "$INPUT" | jq -e -r '.tool_input.command' 2>/dev/null) || exit 1
-CWD=$(echo "$INPUT" | jq -e -r '.cwd' 2>/dev/null) || exit 1
-
-if [[ -z "$COMMAND" ]] || [[ "$COMMAND" == "null" ]]; then
-  exit 0
-fi
-
-if [[ -z "$CWD" ]] || [[ "$CWD" == "null" ]]; then
-  exit 0
-fi
-
-if ! echo "$COMMAND" | grep -qE 'git\b.*\bcommit\b'; then
-  exit 0
-fi
-
-# Extract directory from git -C flag if present, otherwise use CWD
-GIT_DIR="$CWD"
-if echo "$COMMAND" | grep -qE 'git\s+-C\s+'; then
-  GIT_DIR=$(echo "$COMMAND" | sed -n 's/.*git[[:space:]]*-C[[:space:]]*\([^[:space:]]*\).*/\1/p')
-  if [[ -z "$GIT_DIR" ]] || [[ ! -d "$GIT_DIR" ]]; then
-    GIT_DIR="$CWD"
-  fi
-fi
-
-# Find Mix project root by traversing upward from current working directory
-find_mix_project_root() {
-  local dir="$1"
-  while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/mix.exs" ]]; then
-      echo "$dir"
-      return 0
-    fi
-    dir=$(dirname "$dir")
-  done
-  return 1
-}
-
-PROJECT_ROOT=$(find_mix_project_root "$GIT_DIR")
-
-if [[ -z "$PROJECT_ROOT" ]]; then
-  exit 0
-fi
-
-# Defer to precommit alias if it exists (Phoenix 1.8+ standard)
-if cd "$PROJECT_ROOT" && mix help precommit >/dev/null 2>&1; then
-  jq -n '{"suppressOutput": true}'
-  exit 0
-fi
-
-if ! grep -qE '\{:sobelow' "$PROJECT_ROOT/mix.exs" 2>/dev/null; then
-  exit 0
-fi
-
+precommit_setup_with_dep "sobelow" || exit 0
 cd "$PROJECT_ROOT"
 
 # Run Sobelow with --skip flag (respects .sobelow-skips and #sobelow_skip comments)
@@ -63,8 +14,10 @@ cd "$PROJECT_ROOT"
 CMD="mix sobelow --format json"
 [[ -f .sobelow-skips ]] && CMD="$CMD --skip"
 
+# Disable errexit to capture exit code
+set +e
 SOBELOW_OUTPUT=$($CMD 2>&1)
-SOBELOW_EXIT_CODE=$?
+set -e
 
 # Check if there are any findings by parsing JSON output
 # Extract JSON from output (Sobelow may emit warnings before JSON)
@@ -75,48 +28,19 @@ if echo "$JSON_OUTPUT" | jq -e '.findings | (.high_confidence + .medium_confiden
 fi
 
 if [ "$HAS_FINDINGS" = true ]; then
-  TOTAL_LINES=$(echo "$SOBELOW_OUTPUT" | wc -l)
-  MAX_LINES=30
-
-  if [ "$TOTAL_LINES" -gt "$MAX_LINES" ]; then
-    TRUNCATED_OUTPUT=$(echo "$SOBELOW_OUTPUT" | head -n $MAX_LINES)
-    OUTPUT="$TRUNCATED_OUTPUT
-
-[Output truncated: showing $MAX_LINES of $TOTAL_LINES lines]
-Run 'mix sobelow' in $PROJECT_ROOT to see the full output.
+  OUTPUT=$(truncate_output "$SOBELOW_OUTPUT" 30 "mix sobelow")
+  OUTPUT="${OUTPUT}
 
 WARNING: Sobelow found security issues. Options:
   1. Fix the issues (recommended)
   2. Mark false positives: mix sobelow --mark-skip-all
   3. Skip specific types: mix sobelow --ignore Type1,Type2 --mark-skip-all
   4. Adjust threshold: Create .sobelow-conf with --threshold flag"
-  else
-    OUTPUT="$SOBELOW_OUTPUT
-
-WARNING: Sobelow found security issues. Options:
-  1. Fix the issues (recommended)
-  2. Mark false positives: mix sobelow --mark-skip-all
-  3. Skip specific types: mix sobelow --ignore Type1,Type2 --mark-skip-all
-  4. Adjust threshold: Create .sobelow-conf with --threshold flag"
-  fi
 
   REASON="Sobelow plugin found security issues:\n\n${OUTPUT}"
-
-  jq -n \
-    --arg reason "$REASON" \
-    --arg msg "Commit blocked: Sobelow found security issues" \
-    '{
-      "hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
-        "permissionDecisionReason": $reason
-      },
-      "systemMessage": $msg
-    }'
-  exit 0
-else
-  jq -n '{
-    "suppressOutput": true
-  }'
+  emit_deny_json "$REASON" "Commit blocked: Sobelow found security issues"
   exit 0
 fi
+
+emit_suppress_json
+exit 0

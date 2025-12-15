@@ -56,16 +56,27 @@ emit_deny_json() {
 # project has a precommit alias. This is intentional - it suppresses hook
 # output and defers to the project's own precommit workflow. If you need
 # different behavior, use the individual helper functions instead.
+#
+# Emits suppress JSON before returning 1 for skip cases (not git commit, no project).
 precommit_setup() {
   read_hook_input
-  parse_precommit_input || return 1
+  if ! parse_precommit_input; then
+    emit_suppress_json
+    return 1
+  fi
 
-  is_git_commit_command "$HOOK_COMMAND" || return 1
+  if ! is_git_commit_command "$HOOK_COMMAND"; then
+    emit_suppress_json
+    return 1
+  fi
 
   local git_dir
   git_dir=$(extract_git_dir "$HOOK_COMMAND" "$HOOK_CWD")
 
-  PROJECT_ROOT=$(find_mix_project_root_from_dir "$git_dir") || return 1
+  if ! PROJECT_ROOT=$(find_mix_project_root_from_dir "$git_dir"); then
+    emit_suppress_json
+    return 1
+  fi
 
   # Defer to precommit alias if it exists (exits directly, not returns)
   if defer_to_precommit "$PROJECT_ROOT"; then
@@ -79,12 +90,18 @@ precommit_setup() {
 # Standard pre-commit setup that requires a specific dependency
 # Sets: PROJECT_ROOT
 # Usage: precommit_setup_with_dep "dialyxir" || exit 0
+#
+# Emits suppress JSON before returning 1 when dependency not found.
 precommit_setup_with_dep() {
   local dep_name="$1"
 
+  # precommit_setup already emits suppress JSON on failure
   precommit_setup || return 1
 
-  has_mix_dependency "$dep_name" "$PROJECT_ROOT" || return 1
+  if ! has_mix_dependency "$dep_name" "$PROJECT_ROOT"; then
+    emit_suppress_json
+    return 1
+  fi
 
   return 0
 }

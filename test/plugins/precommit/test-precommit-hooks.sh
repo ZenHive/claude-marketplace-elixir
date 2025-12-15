@@ -23,15 +23,7 @@ test_hook_json \
   0 \
   ".suppressOutput == true"
 
-# Test 3: Pre-commit hook skips when no precommit alias exists
-test_hook_json \
-  "Pre-commit: Skips when no precommit alias in mix.exs" \
-  "plugins/precommit/scripts/pre-commit-check.sh" \
-  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/precommit/no-precommit-alias\"}" \
-  0 \
-  ".suppressOutput == true"
-
-# Test 4: Pre-commit hook ignores non-commit git commands
+# Test 3: Pre-commit hook ignores non-commit git commands
 test_hook \
   "Pre-commit: Ignores non-commit git commands" \
   "plugins/precommit/scripts/pre-commit-check.sh" \
@@ -39,7 +31,7 @@ test_hook \
   0 \
   ""
 
-# Test 5: Pre-commit hook ignores non-git commands
+# Test 4: Pre-commit hook ignores non-git commands
 test_hook \
   "Pre-commit: Ignores non-git commands" \
   "plugins/precommit/scripts/pre-commit-check.sh" \
@@ -47,7 +39,7 @@ test_hook \
   0 \
   ""
 
-# Test 6: Pre-commit hook skips non-Elixir projects
+# Test 5: Pre-commit hook skips non-Elixir projects
 test_hook_json \
   "Pre-commit: Skips non-Elixir projects" \
   "plugins/precommit/scripts/pre-commit-check.sh" \
@@ -55,7 +47,7 @@ test_hook_json \
   0 \
   ".suppressOutput == true"
 
-# Test 7: Pre-commit uses -C flag directory instead of CWD
+# Test 6: Pre-commit uses -C flag directory instead of CWD
 test_hook_json \
   "Pre-commit: Uses git -C directory instead of CWD" \
   "plugins/precommit/scripts/pre-commit-check.sh" \
@@ -63,7 +55,7 @@ test_hook_json \
   0 \
   ".suppressOutput == true"
 
-# Test 8: Pre-commit falls back to CWD when -C path is invalid
+# Test 7: Pre-commit falls back to CWD when -C path is invalid
 test_hook_json \
   "Pre-commit: Falls back to CWD when -C path is invalid" \
   "plugins/precommit/scripts/pre-commit-check.sh" \

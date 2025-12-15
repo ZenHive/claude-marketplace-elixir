@@ -1,73 +1,31 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -eo pipefail
 
-INPUT=$(cat) || exit 1
+# Post-edit validation for Credo static analysis
+# Runs after editing .ex/.exs files to detect code quality issues
+# Provides informational context to Claude (non-blocking)
 
-FILE_PATH=$(echo "$INPUT" | jq -e -r '.tool_input.file_path' 2>/dev/null) || exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../_shared/lib.sh"
+source "$SCRIPT_DIR/../../_shared/postedit-utils.sh"
 
-if [[ -z "$FILE_PATH" ]] || [[ "$FILE_PATH" == "null" ]]; then
-  exit 0
-fi
+postedit_setup_with_dep "credo" || { emit_suppress_json; exit 0; }
+cd "$PROJECT_ROOT"
 
-if ! echo "$FILE_PATH" | grep -qE '\.(ex|exs)$'; then
-  exit 0
-fi
-
-# Find Mix project root by traversing upward from file directory
-find_mix_project_root() {
-  local dir=$(dirname "$1")
-  while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/mix.exs" ]]; then
-      echo "$dir"
-      return 0
-    fi
-    dir=$(dirname "$dir")
-  done
-  return 1
-}
-
-PROJECT_ROOT=$(find_mix_project_root "$FILE_PATH")
-
-# If no project root found, exit silently
-if [[ -z "$PROJECT_ROOT" ]]; then
-  jq -n '{
-    "suppressOutput": true
-  }'
-  exit 0
-fi
-
-CREDO_OUTPUT=$(cd "$PROJECT_ROOT" && mix credo "$FILE_PATH" 2>&1)
+# Disable errexit to capture exit code
+set +e
+CREDO_OUTPUT=$(mix credo "$HOOK_FILE_PATH" 2>&1)
 CREDO_EXIT_CODE=$?
+set -e
 
 if [ $CREDO_EXIT_CODE -ne 0 ] || echo "$CREDO_OUTPUT" | grep -qE '(issues|warnings|errors)'; then
-  TOTAL_LINES=$(echo "$CREDO_OUTPUT" | wc -l)
-  MAX_LINES=30
+  OUTPUT=$(truncate_output "$CREDO_OUTPUT" 30 "mix credo \"$HOOK_FILE_PATH\"")
+  CONTEXT="Credo analysis for $HOOK_FILE_PATH:
 
-  if [ "$TOTAL_LINES" -gt "$MAX_LINES" ]; then
-    TRUNCATED_OUTPUT=$(echo "$CREDO_OUTPUT" | head -n $MAX_LINES)
-    CONTEXT="Credo analysis for $FILE_PATH:
-
-$TRUNCATED_OUTPUT
-
-[Output truncated: showing $MAX_LINES of $TOTAL_LINES lines]
-Run 'mix credo \"$FILE_PATH\"' to see the full output."
-  else
-    CONTEXT="Credo analysis for $FILE_PATH:
-
-$CREDO_OUTPUT"
-  fi
-
-  jq -n \
-    --arg context "$CONTEXT" \
-    '{
-      "hookSpecificOutput": {
-        "hookEventName": "PostToolUse",
-        "additionalContext": $context
-      }
-    }'
+$OUTPUT"
+  emit_context_json "$CONTEXT"
 else
-  jq -n '{
-    "suppressOutput": true
-  }'
+  emit_suppress_json
 fi
 
 exit 0

@@ -1,62 +1,14 @@
 #!/usr/bin/env bash
+set -eo pipefail
 
 # ExDoc Pre-Commit Check
 
-INPUT=$(cat) || exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../_shared/lib.sh"
+source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
 
-COMMAND=$(echo "$INPUT" | jq -e -r '.tool_input.command' 2>/dev/null) || exit 1
-CWD=$(echo "$INPUT" | jq -e -r '.cwd' 2>/dev/null) || exit 1
-
-if [[ "$COMMAND" == "null" ]] || [[ -z "$COMMAND" ]]; then
-  exit 0
-fi
-
-if [[ "$CWD" == "null" ]] || [[ -z "$CWD" ]]; then
-  exit 0
-fi
-
-if ! echo "$COMMAND" | grep -qE 'git\b.*\bcommit\b'; then
-  exit 0
-fi
-
-# Extract directory from git -C flag if present, otherwise use CWD
-GIT_DIR="$CWD"
-if echo "$COMMAND" | grep -qE 'git\s+-C\s+'; then
-  GIT_DIR=$(echo "$COMMAND" | sed -n 's/.*git[[:space:]]*-C[[:space:]]*\([^[:space:]]*\).*/\1/p')
-  if [[ -z "$GIT_DIR" ]] || [[ ! -d "$GIT_DIR" ]]; then
-    GIT_DIR="$CWD"
-  fi
-fi
-
-find_mix_project_root() {
-  local dir="$1"
-  while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/mix.exs" ]]; then
-      echo "$dir"
-      return 0
-    fi
-    dir=$(dirname "$dir")
-  done
-  return 1
-}
-
-PROJECT_ROOT=$(find_mix_project_root "$GIT_DIR")
-
-if [[ -z "$PROJECT_ROOT" ]]; then
-  exit 0
-fi
-
+precommit_setup_with_dep "ex_doc" || exit 0
 cd "$PROJECT_ROOT"
-
-# Defer to precommit alias if it exists (Phoenix 1.8+ standard)
-if mix help precommit >/dev/null 2>&1; then
-  jq -n '{"suppressOutput": true}'
-  exit 0
-fi
-
-if ! grep -qE '\{:ex_doc' mix.exs 2>/dev/null; then
-  exit 0
-fi
 
 # Acquire lock to prevent concurrent mix docs processes from racing
 # This prevents file conflicts when multiple hooks run in parallel
@@ -78,38 +30,18 @@ done
 
 trap 'rmdir "$LOCK_DIR" 2>/dev/null' EXIT
 
+# Disable errexit to capture exit code
+set +e
 DOCS_OUTPUT=$(mix docs --warnings-as-errors 2>&1)
 DOCS_EXIT_CODE=$?
+set -e
 
 if [ $DOCS_EXIT_CODE -ne 0 ]; then
-  TOTAL_LINES=$(echo "$DOCS_OUTPUT" | wc -l)
-  MAX_LINES=30
-
-  if [ "$TOTAL_LINES" -gt "$MAX_LINES" ]; then
-    TRUNCATED_OUTPUT=$(echo "$DOCS_OUTPUT" | head -n $MAX_LINES)
-    OUTPUT="$TRUNCATED_OUTPUT
-
-[Output truncated: showing $MAX_LINES of $TOTAL_LINES lines]
-Run 'mix docs --warnings-as-errors' to see the full output."
-  else
-    OUTPUT="$DOCS_OUTPUT"
-  fi
-
+  OUTPUT=$(truncate_output "$DOCS_OUTPUT" 30 "mix docs --warnings-as-errors")
   REASON="ExDoc plugin found documentation warnings:\n\n${OUTPUT}"
-
-  jq -n \
-    --arg reason "$REASON" \
-    --arg msg "Commit blocked: ExDoc found documentation warnings" \
-    '{
-      "hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
-        "permissionDecisionReason": $reason
-      },
-      "systemMessage": $msg
-    }'
+  emit_deny_json "$REASON" "Commit blocked: ExDoc found documentation warnings"
   exit 0
 fi
 
-jq -n '{"suppressOutput": true}'
+emit_suppress_json
 exit 0

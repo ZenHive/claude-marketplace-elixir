@@ -6,13 +6,13 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 
 | Phase | Status | Tasks |
 |-------|--------|-------|
-| 1. Script Consolidation | 1/3 | Task 1 complete, Tasks 2-3 pending |
+| 1. Script Consolidation | 3/3 ✅ | Tasks 1-3 complete |
 | 2. Naming Consistency | 2/2 ✅ | Tasks 4-5 complete |
 | 3. Metadata Standardization | 1/2 | Task 6 complete, Task 7 pending |
 | 4. Documentation Cleanup | 2/3 | Tasks 8-9 complete, Task 10 pending |
 | 5. Polish | 1/2 ✅ | Task 11 complete, Task 12 pending |
 
-**Total: 8/12 complete (67%)**
+**Total: 10/12 complete (83%)**
 
 ---
 
@@ -96,10 +96,10 @@ source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
 ```
 
 **Acceptance criteria:**
-- [ ] All pre-commit scripts source shared library
-- [ ] Each script only contains plugin-specific logic
-- [ ] All tests pass: `./test/run-all-tests.sh`
-- [ ] Git commit detection tests pass for all plugins
+- [x] All pre-commit scripts source shared library
+- [x] Each script only contains plugin-specific logic
+- [x] All tests pass: `./test/run-all-tests.sh`
+- [x] Git commit detection tests pass for all plugins
 
 ---
 
@@ -114,10 +114,14 @@ source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
 - `plugins/ash/scripts/post-edit-check.sh`
 - `plugins/sobelow/scripts/post-edit-check.sh`
 
+**Notes:**
+- Ash and Credo post-edit scripts migrated to use `postedit_setup_with_dep`
+- Fixed test path naming (`postedit_test` → `postedit-test`) in ash test suite
+
 **Acceptance criteria:**
-- [ ] All post-edit scripts source shared library
-- [ ] Each script only contains plugin-specific logic
-- [ ] Post-edit hook tests pass
+- [x] All post-edit scripts source shared library
+- [x] Each script only contains plugin-specific logic
+- [x] Post-edit hook tests pass
 
 ---
 
