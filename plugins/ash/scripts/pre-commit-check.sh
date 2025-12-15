@@ -5,8 +5,8 @@ set -eo pipefail
 # Blocks git commits if ash.codegen is out of sync with resource definitions
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../_shared/lib.sh"
-source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
+source "$SCRIPT_DIR/../lib/lib.sh"
+source "$SCRIPT_DIR/../lib/precommit-utils.sh"
 
 precommit_setup_with_dep "ash" || exit 0
 cd "$PROJECT_ROOT"

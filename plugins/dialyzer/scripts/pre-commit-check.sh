@@ -6,8 +6,8 @@ set -eo pipefail
 # Uses 120s timeout due to Dialyzer's analysis time
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../_shared/lib.sh"
-source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
+source "$SCRIPT_DIR/../lib/lib.sh"
+source "$SCRIPT_DIR/../lib/precommit-utils.sh"
 
 precommit_setup_with_dep "dialyxir" || exit 0
 cd "$PROJECT_ROOT"

@@ -5,8 +5,8 @@ set -eo pipefail
 # Runs stale tests (tests for changed modules) before git commits
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../_shared/lib.sh"
-source "$SCRIPT_DIR/../../_shared/precommit-utils.sh"
+source "$SCRIPT_DIR/../lib/lib.sh"
+source "$SCRIPT_DIR/../lib/precommit-utils.sh"
 
 precommit_setup || exit 0
 

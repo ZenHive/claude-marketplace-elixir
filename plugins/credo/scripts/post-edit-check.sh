@@ -6,8 +6,8 @@ set -eo pipefail
 # Provides informational context to Claude (non-blocking)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../_shared/lib.sh"
-source "$SCRIPT_DIR/../../_shared/postedit-utils.sh"
+source "$SCRIPT_DIR/../lib/lib.sh"
+source "$SCRIPT_DIR/../lib/postedit-utils.sh"
 
 postedit_setup_with_dep "credo" || { emit_suppress_json; exit 0; }
 cd "$PROJECT_ROOT"
