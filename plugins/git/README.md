@@ -2,15 +2,6 @@
 
 Intelligent git commit workflow automation for Claude Code marketplace.
 
-## Features
-
-- **AI-powered file grouping** - Automatically groups changed files by context (feature, fix, refactor, docs, tests, config)
-- **Configurable commit message formats** - Choose between Conventional Commits, Imperative Mood, or custom templates
-- **Structured commit workflow** - Review → Plan → Approve → Execute → Display
-- **User-only attribution** - Clean commits without Claude Code attribution
-- **First-run configuration wizard** - One-time setup that persists across sessions
-- **Conversation-aware grouping** - Uses discussion context to improve file grouping accuracy
-
 ## Installation
 
 ### From Marketplace (after publication)
@@ -26,6 +17,15 @@ Intelligent git commit workflow automation for Claude Code marketplace.
 /plugin marketplace add /path/to/claude-marketplace-elixir
 /plugin install git@deltahedge
 ```
+
+## Features
+
+- **AI-powered file grouping** - Automatically groups changed files by context (feature, fix, refactor, docs, tests, config)
+- **Configurable commit message formats** - Choose between Conventional Commits, Imperative Mood, or custom templates
+- **Structured commit workflow** - Review → Plan → Approve → Execute → Display
+- **User-only attribution** - Clean commits without Claude Code attribution
+- **First-run configuration wizard** - One-time setup that persists across sessions
+- **Conversation-aware grouping** - Uses discussion context to improve file grouping accuracy
 
 ## Usage
 

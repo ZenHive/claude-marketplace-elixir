@@ -9,7 +9,7 @@ Technical debt and consistency improvements for the Claude Code plugin marketpla
 | 1. Script Consolidation | 3/3 ✅ | Tasks 1-3 complete |
 | 2. Naming Consistency | 2/2 ✅ | Tasks 4-5 complete |
 | 3. Metadata Standardization | 2/2 ✅ | Tasks 6-7 complete |
-| 4. Documentation Cleanup | 2/3 | Tasks 8-9 complete, Task 10 pending |
+| 4. Documentation Cleanup | 3/3 ✅ | Tasks 8-10 complete |
 | 5. Polish | 1/2 | Task 11 complete, Task 12 pending |
 
 **Total: 11/12 complete (92%)**
@@ -322,9 +322,16 @@ One-line description.
 - All `plugins/*/README.md`
 
 **Acceptance criteria:**
-- [ ] All READMEs follow same section order
-- [ ] All have Installation section
-- [ ] All have Features section with hook descriptions
+- [x] All READMEs follow same section order
+- [x] All have Installation section
+- [x] All have Features section with hook descriptions
+
+**Changes made:**
+- Reordered ash README: moved Requirements after Installation
+- Reordered mix_audit README: moved Installation before Requirements and Features
+- Reordered sobelow README: moved Installation before Features
+- Reordered git README: moved Installation before Features
+- All READMEs now follow: Title → Installation → Requirements (if applicable) → Features → Hook Timeouts
 
 ---
 

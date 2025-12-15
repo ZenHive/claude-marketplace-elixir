@@ -2,29 +2,16 @@
 
 Dependency security audit plugin for Claude Code that scans Mix dependencies for known vulnerabilities before commits.
 
-## Overview
-
-The mix_audit plugin integrates the [mix_audit](https://hex.pm/packages/mix_audit) Elixir dependency security scanner into Claude Code workflows. It automatically scans your project's dependencies against a database of known security vulnerabilities and blocks commits if vulnerable dependencies are detected.
-
-## Features
-
-- **Pre-commit validation**: Automatically runs `mix deps.audit` before git commits
-- **Blocking behavior**: Prevents commits containing vulnerable dependencies
-- **Automatic detection**: Only runs if `mix_audit` is in your project dependencies
-- **Clear feedback**: Provides detailed vulnerability information with truncated output for readability
-- **Zero configuration**: Works out of the box once installed
-
-## Requirements
-
-- Elixir installed and available in PATH
-- Mix available (included with Elixir)
-- Git for version control
-- An Elixir project with `mix.exs` file
-- mix_audit package installed in your project (see Installation below)
-
 ## Installation
 
-### 1. Add mix_audit to your Elixir project
+### 1. Install the Claude Code plugin
+
+```bash
+/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
+/plugin install mix_audit@deltahedge
+```
+
+### 2. Add mix_audit to your Elixir project
 
 ```elixir
 # mix.exs
@@ -40,12 +27,21 @@ Then run:
 mix deps.get
 ```
 
-### 2. Install the Claude Code plugin
+## Requirements
 
-```bash
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install mix_audit@deltahedge
-```
+- Elixir installed and available in PATH
+- Mix available (included with Elixir)
+- Git for version control
+- An Elixir project with `mix.exs` file
+- mix_audit package installed in your project
+
+## Features
+
+- **Pre-commit validation**: Automatically runs `mix deps.audit` before git commits
+- **Blocking behavior**: Prevents commits containing vulnerable dependencies
+- **Automatic detection**: Only runs if `mix_audit` is in your project dependencies
+- **Clear feedback**: Provides detailed vulnerability information with truncated output for readability
+- **Zero configuration**: Works out of the box once installed
 
 ## How It Works
 

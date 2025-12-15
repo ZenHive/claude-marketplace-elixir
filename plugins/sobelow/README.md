@@ -2,19 +2,6 @@
 
 Security-focused static analysis for Phoenix and Elixir projects using [Sobelow](https://github.com/nccgroup/sobelow).
 
-## Overview
-
-This plugin integrates Sobelow security scanning into your Claude Code workflow, providing automated security analysis for Phoenix and Elixir applications. Sobelow identifies potential security vulnerabilities including XSS, SQL injection, command injection, insecure configuration, and more.
-
-## Features
-
-- **Post-edit security scanning**: Automatically analyzes files after edits to identify security issues
-- **Pre-commit validation**: Blocks commits that introduce medium or high confidence security vulnerabilities
-- **Skip file support**: Respects `.sobelow-skips` file for managing false positives
-- **Inline comment support**: Honors `# sobelow_skip` comments for function-level suppressions
-- **Intelligent filtering**: Only runs on Elixir projects with Sobelow dependency
-- **Confidence-based blocking**: Blocks commits on medium and high confidence findings, allowing low confidence issues to pass
-
 ## Installation
 
 ```bash
@@ -39,6 +26,15 @@ Then run:
 ```bash
 mix deps.get
 ```
+
+## Features
+
+- **Post-edit security scanning**: Automatically analyzes files after edits to identify security issues
+- **Pre-commit validation**: Blocks commits that introduce medium or high confidence security vulnerabilities
+- **Skip file support**: Respects `.sobelow-skips` file for managing false positives
+- **Inline comment support**: Honors `# sobelow_skip` comments for function-level suppressions
+- **Intelligent filtering**: Only runs on Elixir projects with Sobelow dependency
+- **Confidence-based blocking**: Blocks commits on medium and high confidence findings, allowing low confidence issues to pass
 
 ## How It Works
 

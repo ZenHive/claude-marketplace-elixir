@@ -18,6 +18,16 @@ Automated code generation validation for Ash Framework projects. This plugin ens
 /plugin install ash@deltahedge
 ```
 
+## Requirements
+
+- Elixir project with `mix.exs`
+- Ash Framework as a dependency (`{:ash, "~> 3.0"}` or later)
+- At least one Ash data layer extension installed:
+  - `{:ash_sqlite, "~> 0.2"}` - SQLite data layer
+  - `{:ash_postgres, "~> 2.0"}` - PostgreSQL data layer
+  - Or other Ash data layer packages
+- `mix ash.codegen` task available (provided by Ash data layer extensions)
+
 ## Features
 
 ### Post-Edit Code Generation Check (Non-blocking)
@@ -83,13 +93,3 @@ This plugin specifically validates **Ash code generation**, which is distinct fr
 - General Elixir compilation issues
 
 Use the `core@deltahedge` plugin alongside this plugin for comprehensive validation (formatting, compilation, and Ash codegen).
-
-## Requirements
-
-- Elixir project with `mix.exs`
-- Ash Framework as a dependency (`{:ash, "~> 3.0"}` or later)
-- At least one Ash data layer extension installed:
-  - `{:ash_sqlite, "~> 0.2"}` - SQLite data layer
-  - `{:ash_postgres, "~> 2.0"}` - PostgreSQL data layer
-  - Or other Ash data layer packages
-- `mix ash.codegen` task available (provided by Ash data layer extensions)
