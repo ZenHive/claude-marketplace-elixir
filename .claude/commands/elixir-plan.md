@@ -154,16 +154,17 @@ Use D/B scoring for prioritization: `[D:X/B:Y → Priority:Z]` where Priority = 
 - Priority 1.0-1.5: 📋 Good ROI - plan carefully
 - Priority < 1.0: ⚠️ Poor ROI - reconsider or defer
 
-### Step 1: [Phase Name] [D:X/B:Y → Priority:Z] 🎯/🚀/📋/⚠️
-**Files**: [List of files]
-**Actions**:
-- [ ] [Specific action with file references]
-- [ ] [Specific action with file references]
+**CRITICAL**: Each step's description should be a **prompt for Claude Code to implement**, not implementation details. Claude Code will research the codebase and determine specifics at execution time.
 
-**Implementation details**:
-```[language]
-// Code structure or pseudocode
-```
+### Step 1: [Phase Name] [D:X/B:Y → Priority:Z] 🎯/🚀/📋/⚠️
+
+[Write a prompt describing WHAT to accomplish, not HOW to implement it]
+
+Example: "Create a GenServer that manages WebSocket connections to Binance. It should handle connection establishment, automatic reconnection on failure, and message parsing. Include supervision setup."
+
+**Success criteria:**
+- [ ] [Verifiable outcome]
+- [ ] [Verifiable outcome]
 
 ### Step 2: [Phase Name] [D:X/B:Y → Priority:Z]
 [Continue for each implementation phase]
@@ -317,8 +318,9 @@ Use D/B scoring for prioritization: `[D:X/B:Y → Priority:Z]` where Priority = 
 
 ## Important Notes:
 
-- Plans should be detailed enough to implement without research
-- Include specific file paths and code structures
+- **Task descriptions ARE prompts**: Each step should read as a prompt for Claude Code to execute, not implementation code
+- **Describe WHAT, not HOW**: Let Claude Code determine implementation specifics by researching the codebase
+- **Avoid over-specification**: Code examples in plans become outdated; prompts remain valid
 - Consider the full plugin lifecycle: development, testing, documentation, release
 - Think about edge cases and error scenarios
 - Plan for comprehensive testing from the start

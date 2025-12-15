@@ -1,6 +1,6 @@
 {
   "name": "elixir-meta",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Elixir development workflow plugin with planning, QA, reference commands, and interactive context gathering",
   "author": {
     "name": "DeltaHedge",

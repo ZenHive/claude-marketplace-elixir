@@ -172,26 +172,47 @@ Prerequisites: Phase 2 complete
 - [ ] Write documentation [D:4/B:6 → Priority:1.5] 🚀
 ```
 
-### Acceptance criteria
+### Task descriptions as prompts
 
-Include clear completion criteria for each task:
+**Critical**: Task descriptions should be **prompts for Claude Code to implement**, not implementation details themselves.
 
-```markdown
-### Task: Add user authentication [D:5/B:9 → Priority:1.8] 🚀
+**Why prompts, not details:**
+- Claude Code will research the codebase and determine implementation specifics
+- Over-specified tasks become outdated as code evolves
+- Prompts allow Claude Code to adapt to current patterns
+- Details in plans often conflict with actual codebase state
 
-**Goal:** Implement secure user login and session management
+**Bad** - Too much implementation detail:
+```
+Task: Add user authentication [D:5/B:9 → Priority:1.8]
 
-**Acceptance criteria:**
+Files: lib/myapp/accounts.ex, lib/myapp_web/controllers/session_controller.ex
+Implementation: [code showing exact module structure, function bodies, etc.]
+```
+
+**Good** - Prompt for Claude Code:
+```
+Task: Add user authentication [D:5/B:9 → Priority:1.8]
+
+Add email/password authentication with session tokens. Users should be able to register, log in, and access protected routes. Hash passwords with bcrypt. Include tests for registration, login success, and login failure cases.
+```
+
+The task description IS the prompt that Claude Code will execute. It should describe WHAT to accomplish, not HOW to implement it.
+
+### Success criteria
+
+Include verifiable completion criteria when needed:
+
+```
+Task: Add user authentication [D:5/B:9 → Priority:1.8]
+
+Add email/password authentication with session tokens. Users should be able to register, log in, and access protected routes. Hash passwords with bcrypt.
+
+Success criteria:
 - [ ] User can register with email/password
 - [ ] User can log in and receive session token
 - [ ] Protected routes require valid session
-- [ ] Passwords hashed with bcrypt
 - [ ] Tests cover happy path and error cases
-
-**Files to create/modify:**
-- `lib/myapp/accounts.ex` - Account context
-- `lib/myapp_web/controllers/session_controller.ex` - Login/logout
-- `test/myapp/accounts_test.exs` - Unit tests
 ```
 
 ### Dependency tracking

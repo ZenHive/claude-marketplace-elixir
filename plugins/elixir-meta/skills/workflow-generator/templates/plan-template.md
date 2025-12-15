@@ -171,73 +171,44 @@ tags: [plan, elixir, {{PROJECT_TYPE_TAGS}}]
 {{#if PLANNING_STYLE equals "Detailed phases"}}
 ## Implementation Phases
 
+**CRITICAL**: Each phase description should be a **prompt for Claude Code to implement**, not implementation code. Describe WHAT to accomplish; Claude Code will determine HOW by researching the codebase.
+
 ### Phase 1: [Phase Name]
 
 **Goal**: [What this phase accomplishes]
 
-**Changes Required:**
+**Prompt**: [Write a natural language description of what to implement. This will be executed by Claude Code.]
 
-1. **Create/Modify** `lib/my_app/schema.ex`
-   ```elixir
-   defmodule MyApp.Schema do
-     use Ecto.Schema
-     import Ecto.Changeset
+Example prompt: "Create an Ecto schema for users with email, hashed_password, and role fields. Add a context module with create_user/1, get_user/1, and authenticate/2 functions. Include changeset validations for email format and password minimum length. Write tests for all context functions."
 
-     schema "table" do
-       field :name, :string
-       # Add fields
-       timestamps()
-     end
-
-     def changeset(struct, params) do
-       struct
-       |> cast(params, [:name])
-       |> validate_required([:name])
-     end
-   end
-   ```
-
-2. **Create/Modify** `lib/my_app/context.ex`
-   ```elixir
-   defmodule MyApp.Context do
-     alias MyApp.{Repo, Schema}
-
-     def create_thing(attrs) do
-       %Schema{}
-       |> Schema.changeset(attrs)
-       |> Repo.insert()
-     end
-   end
-   ```
-
-**Verification:**
+**Success Criteria:**
 - [ ] `mix compile --warnings-as-errors` succeeds
 - [ ] {{TEST_COMMAND}} passes
-- [ ] Schema migration runs cleanly
+- [ ] [Specific verifiable outcome]
 {{/if}}
 
 {{#if PLANNING_STYLE equals "Task checklist"}}
 ## Implementation Tasks
 
-- [ ] **Task 1**: Create Ecto schema for [entity]
-  - File: `lib/my_app/schemas/entity.ex`
-  - Include fields: [list]
-  - Add validations: [list]
-  - Verify: Schema tests pass
+**CRITICAL**: Each task description should be a **prompt for Claude Code to implement**, not implementation details. Describe WHAT to accomplish; Claude Code will determine HOW.
 
-- [ ] **Task 2**: Add context functions
-  - File: `lib/my_app/contexts/context.ex`
-  - Functions: create/1, update/2, delete/1, list/0
-  - Verify: Context tests pass
+- [ ] **Task 1**: [Task Name]
+  Prompt: "Create an Ecto schema for [entity] with [fields]. Include validations for [requirements]. Write tests covering creation, validation errors, and edge cases."
+  Success: Schema and tests exist and pass
 
-- [ ] **Task 3**: Create controller/LiveView
-  - File: `lib/my_app_web/controllers/entity_controller.ex`
-  - Actions: index, show, new, create, edit, update, delete
-  - Verify: Controller tests pass
+- [ ] **Task 2**: [Task Name]
+  Prompt: "Add context functions for [entity] CRUD operations. Follow existing context patterns in the codebase. Include tests for success and error cases."
+  Success: Context tests pass
+
+- [ ] **Task 3**: [Task Name]
+  Prompt: "Create a LiveView for managing [entity]. Support list, create, edit, and delete operations. Follow the existing LiveView patterns in this project."
+  Success: LiveView tests pass, UI works as expected
 {{/if}}
 
 {{#if PLANNING_STYLE equals "Milestone-based"}}
 ## Implementation Milestones
+
+**CRITICAL**: Task descriptions under each milestone should be **prompts for Claude Code to implement**, not implementation details.
 
 ### Milestone 1: Database Layer Complete
 
@@ -246,11 +217,11 @@ tags: [plan, elixir, {{PROJECT_TYPE_TAGS}}]
 - Migration file
 - Basic CRUD context functions
 
-**Tasks:**
-- Create schema module
-- Write migration
-- Implement context
-- Add tests
+**Tasks (as prompts for Claude Code):**
+- "Create an Ecto schema for [entity] with appropriate fields and validations"
+- "Generate a migration for the [entity] table"
+- "Add context module with standard CRUD functions following existing patterns"
+- "Write comprehensive tests for schema and context functions"
 
 **Acceptance Criteria:**
 - All database operations work
@@ -264,11 +235,10 @@ tags: [plan, elixir, {{PROJECT_TYPE_TAGS}}]
 - Templates/HEEx
 - Routes configured
 
-**Tasks:**
-- Create controller/LiveView
-- Add templates
-- Update router
-- Add integration tests
+**Tasks (as prompts for Claude Code):**
+- "Create a LiveView for [entity] management with list, create, edit, and delete"
+- "Add routes for the new LiveView following existing router patterns"
+- "Write integration tests for all LiveView actions"
 
 **Acceptance Criteria:**
 - All CRUD operations accessible via web
@@ -356,13 +326,13 @@ Human verification required:
 - Edge case handling
 - Documentation quality
 
-### Code Examples Required
+### Task Descriptions as Prompts
 
-Every phase/task with code changes MUST include:
-- Specific file paths
-- Actual Elixir code examples
-- Not pseudo-code or placeholders
-- Show imports, use statements, module attributes
+Every phase/task MUST be written as a prompt for Claude Code:
+- Describe WHAT to accomplish, not HOW to implement
+- Let Claude Code research the codebase for implementation details
+- Avoid code examples in plans (they become outdated)
+- Include success criteria for verification
 
 ### Elixir-Specific Considerations
 
@@ -394,11 +364,11 @@ Every phase/task with code changes MUST include:
 ## Non-Negotiable Standards
 
 1. **Research first**: Always gather context before planning
-2. **No placeholders**: Every code example must be real Elixir code
-3. **File references**: Always include specific file paths
-4. **Success criteria**: Always separate automated vs manual
-5. **User approval**: Get approval on approach before detailed plan
-6. **Complete plan**: No open questions when finished
+2. **Prompts, not code**: Task descriptions are prompts for Claude Code, not implementation details
+3. **Success criteria**: Always separate automated vs manual verification
+4. **User approval**: Get approval on approach before detailed plan
+5. **Complete plan**: No open questions when finished
+6. **Describe WHAT**: Let Claude Code determine HOW by researching the codebase
 
 ## Example Scenario
 
@@ -410,6 +380,9 @@ Every phase/task with code changes MUST include:
 3. User chooses Guardian
 4. Propose 5 phases: Schema, Context, Plugs, Controllers, Tests
 5. User approves
-6. Write detailed plan with Guardian-specific code examples
-7. Include Guardian dependency in plan
-8. Define success criteria (auth tests pass, login works)
+6. Write plan with tasks as prompts:
+   - Phase 1 prompt: "Add Guardian dependency and create User schema with email and hashed_password fields. Include password hashing in changeset."
+   - Phase 2 prompt: "Create Accounts context with register_user/1, authenticate/2, and get_user!/1 functions. Add tests for each."
+   - etc.
+7. Include success criteria (auth tests pass, login works)
+8. Plan ready for Claude Code to execute phase by phase
