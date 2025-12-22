@@ -346,6 +346,78 @@ Phase 1 → Phase 2 → Phase 3
 | ... | ... |
 ```
 
+## Roadmap Maintenance
+
+When completing a task, follow these steps to keep the roadmap clean and maintainable:
+
+### Step 1: Move full task details to CHANGELOG.md
+
+Move the complete task description, implementation notes, and any learnings to `CHANGELOG.md`:
+
+```markdown
+## [Unreleased]
+
+### Added
+- User authentication with email/password [D:5/B:9 → Priority:1.8]
+  - Created User schema with hashed passwords
+  - Added Accounts context with register/authenticate functions
+  - Guardian integration for JWT tokens
+```
+
+### Step 2: Update the Summary table
+
+Change the task status indicator from incomplete to complete:
+
+```markdown
+| Phase | Tasks | Status | Focus |
+|-------|-------|--------|-------|
+| 1. Foundation | 3 | ⬜⬜⬜ → ✅✅✅ | Setup |
+| 2. Core | 4 | ⬜⬜⬜⬜ → ✅⬜⬜⬜ | Features |
+```
+
+### Step 3: Update the Priority Order section
+
+Strike through completed tasks in the execution order:
+
+```markdown
+## Execution Order (by ROI)
+
+| Priority | Task | Phase |
+|----------|------|-------|
+| ~~🎯 6.0~~ | ~~Add core dependencies~~ | ~~1~~ |
+| 🎯 3.5 | Set up project structure | 1 |
+| ~~🎯 2.67~~ | ~~Configure CI/CD~~ | ~~1~~ |
+```
+
+### Step 4: Keep one-line reference in phase section
+
+Replace the detailed task description with a brief completion note:
+
+**Before:**
+```markdown
+### Phase 1: Foundation
+
+- [ ] Set up project structure [D:2/B:7 → Priority:3.5] 🎯
+      Create standard Elixir project layout with mix.exs, config/, lib/,
+      and test/ directories. Configure umbrella if multi-app architecture.
+```
+
+**After:**
+```markdown
+### Phase 1: Foundation
+
+- [x] Set up project structure [D:2/B:7 → Priority:3.5] 🎯 — Done, see CHANGELOG
+- [ ] Configure CI/CD pipeline [D:3/B:8 → Priority:2.67] 🎯
+```
+
+### Why this pattern?
+
+- **CHANGELOG becomes the source of truth** for completed work
+- **Roadmap stays scannable** without completed task clutter
+- **Priority Order shows progress** at a glance
+- **Summary table provides quick status** overview
+- **Cross-referencing** connects roadmap to historical record
+
 ## Best practices
 
 ### Keep scores honest
@@ -388,3 +460,4 @@ Phase 1 → Phase 2 → Phase 3
 | Poor ROI | Priority < 1.0 (⚠️) |
 | Difficulty scale | 1 (trivial) to 10 (major) |
 | Benefit scale | 1 (minimal) to 10 (transformative) |
+| Task completion | Move to CHANGELOG → Update Summary ✅ → Strike Priority Order → One-line in phase |
