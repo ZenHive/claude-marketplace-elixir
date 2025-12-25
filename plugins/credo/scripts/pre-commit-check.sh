@@ -10,7 +10,8 @@ cd "$PROJECT_ROOT"
 
 # Disable errexit to capture exit code
 set +e
-CREDO_OUTPUT=$(mix credo --strict 2>&1)
+# Exclude TODO/FIXME tag checks - these are intentional documentation, not code quality issues
+CREDO_OUTPUT=$(mix credo --strict --ignore-checks Credo.Check.Design.TagTODO,Credo.Check.Design.TagFIXME 2>&1)
 CREDO_EXIT_CODE=$?
 set -e
 
