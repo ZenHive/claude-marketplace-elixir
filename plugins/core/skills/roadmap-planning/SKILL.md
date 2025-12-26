@@ -438,6 +438,24 @@ Replace the detailed task description with a brief completion note:
 - [ ] Configure CI/CD pipeline [D:3/B:8 → Priority:2.67] 🎯
 ```
 
+### Avoid stale metrics in completion notes
+
+When documenting completed work (in CHANGELOG or roadmap notes), avoid specific counts or percentages that become stale:
+
+**Bad** - Specific numbers become outdated:
+```markdown
+- [x] Extract API specs — Done: 110 specs, 100% success rate
+- [x] Add semantic endpoints — Impact: 2/110 → 86/110
+```
+
+**Good** - Generic or verifiable:
+```markdown
+- [x] Extract API specs — Done, see CHANGELOG
+- [x] Add semantic endpoints — Run `mix count_endpoints` to verify
+```
+
+Completion reports are accurate when written, but if they stay in the roadmap they become misleading. Either move details to CHANGELOG (where staleness is expected for historical records) or use commands that verify current state.
+
 ### Why this pattern?
 
 - **CHANGELOG becomes the source of truth** for completed work

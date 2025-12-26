@@ -18,6 +18,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/detect-hidden-failures.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/roadmap-changelog-reminder.sh",
+            "timeout": 5
           }
         ]
       },
