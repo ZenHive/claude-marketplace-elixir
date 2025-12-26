@@ -321,6 +321,7 @@ Example: "Create a GenServer that manages WebSocket connections to Binance. It s
 - **Task descriptions ARE prompts**: Each step should read as a prompt for Claude Code to execute, not implementation code
 - **Describe WHAT, not HOW**: Let Claude Code determine implementation specifics by researching the codebase
 - **Avoid over-specification**: Code examples in plans become outdated; prompts remain valid
+- **Avoid unverified claims**: Never include specific numbers (e.g., "86/110 complete") that haven't been verified at execution time; let Claude Code research and verify current state
 - Consider the full plugin lifecycle: development, testing, documentation, release
 - Think about edge cases and error scenarios
 - Plan for comprehensive testing from the start

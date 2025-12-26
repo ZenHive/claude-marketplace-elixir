@@ -199,6 +199,34 @@ Add email/password authentication with session tokens. Users should be able to r
 
 The task description IS the prompt that Claude Code will execute. It should describe WHAT to accomplish, not HOW to implement it.
 
+### Avoid unverified claims
+
+**Never include specific numbers or statistics that haven't been verified at execution time.**
+
+**Why:**
+- Specific numbers (86/110, "all 109") become outdated immediately
+- Claims may be fabricated or miscounted
+- Claude Code should verify current state at execution time
+- Prompts remain valid even as codebase evolves
+
+**Bad** - Makes specific claims that may not be verified:
+```
+Task: Add semantic endpoints [D:5/B:8]
+
+86/110 exchanges have semantic endpoints. Update remaining 24.
+Impact: "2/110 → 86/110"
+```
+
+**Good** - Describes what to accomplish, lets Claude verify:
+```
+Task: Add semantic endpoints [D:5/B:8]
+
+Identify exchanges missing semantic endpoints and add them.
+Prioritize high-volume exchanges first.
+```
+
+If you need to track progress, use success criteria with checkboxes rather than claiming specific numbers in the task description.
+
 ### Success criteria
 
 Include verifiable completion criteria when needed:
