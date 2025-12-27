@@ -14,7 +14,8 @@ cd "$PROJECT_ROOT"
 
 # Disable errexit to capture exit code
 set +e
-CREDO_OUTPUT=$(mix credo "$HOOK_FILE_PATH" 2>&1)
+# Exclude TODO/FIXME checks - these are intentional documentation, not code quality issues
+CREDO_OUTPUT=$(mix credo "$HOOK_FILE_PATH" --ignore-checks Credo.Check.Design.TagTODO,Credo.Check.Design.TagFIXME 2>&1)
 CREDO_EXIT_CODE=$?
 set -e
 
