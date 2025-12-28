@@ -9,7 +9,7 @@ This plugin integrates ExDoc's documentation validation into your development wo
 ## Installation
 
 ```bash
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install ex_doc@deltahedge
 ```
 

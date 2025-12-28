@@ -7,14 +7,13 @@ Automated code generation validation for Ash Framework projects. This plugin ens
 ### From GitHub (Recommended)
 
 ```bash
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install ash@deltahedge
 ```
 
 ### Local Development
 
 ```bash
-/plugin marketplace add /path/to/claude-marketplace-elixir
 /plugin install ash@deltahedge
 ```
 

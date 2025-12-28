@@ -5,7 +5,7 @@ Security-focused static analysis for Phoenix and Elixir projects using [Sobelow]
 ## Installation
 
 ```bash
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install sobelow@deltahedge
 ```
 

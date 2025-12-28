@@ -17,7 +17,7 @@ This plugin enforces quality gates before every commit. It works in two modes:
 ## Installation
 
 ```bash
-/plugin marketplace add github:ZenHive/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install precommit@deltahedge
 ```
 

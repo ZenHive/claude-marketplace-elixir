@@ -153,21 +153,15 @@ Skills are designed to be **single-purpose** and **composed by agents/commands**
 
 ## Development Commands
 
-### Testing the Marketplace Locally
+### Installing from GitHub (Recommended)
 
 ```bash
 # From Claude Code
-/plugin marketplace add /Users/bradleygolden/Development/bradleygolden/claude
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install core@deltahedge
 ```
 
-### Testing from GitHub
-
-```bash
-# From Claude Code
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
-/plugin install core@deltahedge
-```
+**Note**: Local directory marketplace loading (`/plugin marketplace add /path/to/dir`) has known bugs with cache/registry sync. Always use the GitHub format for reliable installation.
 
 ### Validation
 
@@ -245,14 +239,12 @@ See `test/README.md` for detailed documentation.
 
 **"Plugin 'X' not found in marketplace 'Y'"**
 1. Check that `source` paths in marketplace.json start with `./` and include the full path (e.g., `./plugins/core`)
-2. Remove and re-add the marketplace:
+2. Run the cleanup script and re-add from GitHub:
    ```bash
-   /plugin marketplace remove deltahedge
-   /plugin marketplace add /path/to/claude-marketplace-elixir
-   ```
-3. If error persists, clear the plugin cache and restart Claude Code:
-   ```bash
-   rm -rf ~/.claude/plugins/cache/deltahedge/
+   ./scripts/clear-cache.sh
+   # Restart Claude Code, then:
+   /plugin marketplace add ZenHive/claude-marketplace-elixir
+   /plugin install core@deltahedge
    ```
 
 **"Plugin directory not found at path"**
@@ -275,10 +267,10 @@ See `test/README.md` for detailed documentation.
 - Restart Claude Code after editing settings
 
 **Changes not taking effect**
-1. Clear the cache: `rm -rf ~/.claude/plugins/cache/deltahedge/`
-2. Remove marketplace: `/plugin marketplace remove deltahedge`
-3. Restart Claude Code completely (close and reopen)
-4. Re-add marketplace: `/plugin marketplace add /path/to/marketplace`
+1. Run cleanup script: `./scripts/clear-cache.sh`
+2. Restart Claude Code completely (close and reopen)
+3. Re-add marketplace: `/plugin marketplace add ZenHive/claude-marketplace-elixir`
+4. Install plugins: `/plugin install core@deltahedge`
 
 ### Marketplace Namespace
 

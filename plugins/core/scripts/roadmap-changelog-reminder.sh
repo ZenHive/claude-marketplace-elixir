@@ -6,7 +6,12 @@
 set -euo pipefail
 
 # Get the file path from tool input
-FILE_PATH=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.file_path // .path // empty')
+TOOL_INPUT="${CLAUDE_TOOL_INPUT:-}"
+if [[ -z "$TOOL_INPUT" ]]; then
+  jq -n '{"suppressOutput": true}'
+  exit 0
+fi
+FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.file_path // .path // empty')
 
 # If no file path, suppress output
 if [[ -z "$FILE_PATH" ]]; then
@@ -45,11 +50,11 @@ fi
 
 # Check if we can detect a task being marked complete
 # Look for the new_string containing "- [x]" pattern
-NEW_STRING=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.new_string // empty')
+NEW_STRING=$(echo "$TOOL_INPUT" | jq -r '.new_string // empty')
 
 # For Write tool, check the content
 if [[ -z "$NEW_STRING" ]]; then
-  CONTENT=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.content // empty')
+  CONTENT=$(echo "$TOOL_INPUT" | jq -r '.content // empty')
   if [[ -n "$CONTENT" ]] && echo "$CONTENT" | grep -qE '^\s*-\s*\[x\]'; then
     # File has completed tasks, remind about maintenance
     jq -n '{

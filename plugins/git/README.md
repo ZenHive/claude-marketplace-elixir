@@ -7,14 +7,13 @@ Intelligent git commit workflow automation for Claude Code marketplace.
 ### From Marketplace (after publication)
 
 ```bash
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install git@deltahedge
 ```
 
 ### From Local Directory (development)
 
 ```bash
-/plugin marketplace add /path/to/claude-marketplace-elixir
 /plugin install git@deltahedge
 ```
 

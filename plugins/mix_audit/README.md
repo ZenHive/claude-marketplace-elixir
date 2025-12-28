@@ -7,7 +7,7 @@ Dependency security audit plugin for Claude Code that scans Mix dependencies for
 ### 1. Install the Claude Code plugin
 
 ```bash
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install mix_audit@deltahedge
 ```
 

@@ -9,7 +9,7 @@ This plugin automatically runs ExUnit tests before git commits, preventing broke
 ## Installation
 
 ```bash
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install ex_unit@deltahedge
 ```
 

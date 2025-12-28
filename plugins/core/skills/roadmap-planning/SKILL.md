@@ -394,13 +394,20 @@ Move the complete task description, implementation notes, and any learnings to `
 
 ### Step 2: Update the Summary table
 
-Change the task status indicator from incomplete to complete:
+Change the task status indicator to reflect progress:
+
+**Status Indicators:**
+| Indicator | Meaning |
+|-----------|---------|
+| ⬜ | Not started |
+| 🔶 | Partial / In progress |
+| ✅ | Complete |
 
 ```markdown
 | Phase | Tasks | Status | Focus |
 |-------|-------|--------|-------|
 | 1. Foundation | 3 | ⬜⬜⬜ → ✅✅✅ | Setup |
-| 2. Core | 4 | ⬜⬜⬜⬜ → ✅⬜⬜⬜ | Features |
+| 2. Core | 4 | ⬜⬜⬜⬜ → ✅🔶⬜⬜ | Features |
 ```
 
 ### Step 3: Update the Priority Order section
@@ -504,6 +511,9 @@ Completion reports are accurate when written, but if they stay in the roadmap th
 | High ROI | Priority 1.5-2.0 (🚀) |
 | Good ROI | Priority 1.0-1.5 (📋) |
 | Poor ROI | Priority < 1.0 (⚠️) |
+| Status: Not started | ⬜ |
+| Status: Partial | 🔶 |
+| Status: Complete | ✅ |
 | Difficulty scale | 1 (trivial) to 10 (major) |
 | Benefit scale | 1 (minimal) to 10 (transformative) |
 | Task completion | Move to CHANGELOG → Update Summary ✅ → Strike Priority Order → One-line in phase |

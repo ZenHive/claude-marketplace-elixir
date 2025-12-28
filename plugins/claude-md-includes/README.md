@@ -23,7 +23,7 @@ This plugin runs at session start and:
 
 Or from the marketplace:
 ```bash
-/plugin marketplace add github:ZenHive/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install claude-md-includes@deltahedge
 ```
 

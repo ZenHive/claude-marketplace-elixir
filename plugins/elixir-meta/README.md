@@ -23,7 +23,7 @@ Instead of creating workflow commands manually for each Elixir project, the elix
 ## Installation
 
 ```bash
-/plugin marketplace add github:bradleygolden/claude-marketplace-elixir
+/plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install elixir-meta@deltahedge
 ```
 
