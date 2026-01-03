@@ -247,4 +247,13 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("phoenix_template")) | not'
 
+# Test 28: Suggest test failed hook standalone tests
+echo ""
+echo "Running suggest-test-failed standalone tests..."
+if "$SCRIPT_DIR/suggest-test-failed-test/test.sh"; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+fi
+
 print_summary

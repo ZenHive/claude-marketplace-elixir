@@ -35,6 +35,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/reset-test-tracker.sh",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -45,6 +55,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/pre-commit-check.sh",
             "timeout": 45
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/suggest-test-failed.sh",
+            "timeout": 5
           }
         ]
       }

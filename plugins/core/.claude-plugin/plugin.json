@@ -1,6 +1,6 @@
 {
   "name": "core",
-  "version": "1.5.13",
+  "version": "1.5.14",
   "description": "Essential Elixir development support with hooks and automation",
   "author": {
     "name": "DeltaHedge",

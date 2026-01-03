@@ -31,6 +31,9 @@ claude
 **PreToolUse - Before git commits:**
 - ✅ **Pre-commit validation** - Ensures code is formatted, compiles, and has no unused deps before committing
 
+**PreToolUse - Before running tests:**
+- ✅ **Suggest --failed** - On 2nd consecutive `mix test`, suggests `--failed --trace` to speed up test-fix cycles
+
 **UserPromptSubmit - On user input:**
 - ✅ **Documentation recommendation** - Suggests using documentation skills when prompt mentions project dependencies
 
@@ -67,6 +70,8 @@ See [skills/usage-rules/SKILL.md](skills/usage-rules/SKILL.md) for details.
 | detect-hidden-failures | 10s | Pattern matching in test files |
 | recommend-docs-on-read | 10s | Dependency detection in file |
 | pre-commit-check | 45s | Format check + compile + unused deps |
+| suggest-test-failed | 5s | Counter check and JSON output |
+| reset-test-tracker | 5s | Check output for "0 failures" |
 | recommend-docs-lookup | 10s | Dependency matching in user prompt |
 
 ## Hooks Behavior
@@ -109,6 +114,18 @@ mix deps.unlock --check-unused
   2. Code compiles without warnings
   3. No unused dependencies
 - **Note**: Skips if project has a `precommit` alias (defers to precommit plugin)
+
+### Suggest --failed for Repeated Tests (Non-blocking)
+- Runs before `mix test` commands (without `--failed`)
+- On 2nd consecutive run, suggests optimization flags:
+  - `mix test --failed` - only runs previously failed tests
+  - `mix test --failed --trace` - adds detailed output
+  - `mix test --failed --seed 0` - deterministic order for debugging
+- Counter resets when:
+  - User runs `mix test --failed`
+  - Tests pass (0 failures in output)
+  - 10 minutes elapse between test runs
+- **Why this matters**: Running full test suite repeatedly while fixing failures wastes time
 
 ### Documentation Recommendation (Non-blocking)
 - Runs when user submits a prompt

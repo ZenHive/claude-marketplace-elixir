@@ -91,6 +91,15 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Hooks
 
+**Suggest --failed --trace for Repeated Test Runs**
+- PreToolUse hook tracks consecutive `mix test` calls
+- On 2nd run, suggests `--failed`, `--failed --trace`, `--failed --seed 0`
+- Resets counter when `--failed` is used or tests pass (0 failures)
+- 10-minute timeout resets counter for fresh sessions
+- Speeds up test-fix-test cycle by running only previously failed tests
+- Location: `plugins/core/scripts/suggest-test-failed.sh`, `plugins/core/scripts/reset-test-tracker.sh`
+- core: 1.5.13 → 1.5.14
+
 **Task 7: Strict Pre-commit Mode** [D:3/B:8]
 - Enhanced precommit plugin to run comprehensive quality gates when no `mix precommit` alias exists
 - Checks: `mix format --check-formatted`, `mix compile --warnings-as-errors`, `mix credo --strict`, `mix doctor`
