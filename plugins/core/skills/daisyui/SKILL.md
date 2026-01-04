@@ -16,6 +16,16 @@ Complete reference for daisyUI 5 on Tailwind CSS v4. daisyUI provides semantic c
 - Component syntax and modifiers
 - Debugging styling issues
 
+## Getting Code Snippets
+
+Use the **daisyUI MCP server** (`daisyUI-Snippets` tool) for:
+- Complete component code examples beyond this quick reference
+- Layout templates (bento grids, sidebars, navbars)
+- Full theme configurations
+- Component variations and examples
+
+This skill provides concepts and patterns; the MCP provides extensive code snippets.
+
 ## Setup (No tailwind.config.js)
 
 Tailwind v4 uses CSS-based configuration:
