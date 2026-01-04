@@ -471,6 +471,61 @@ Completion reports are accurate when written, but if they stay in the roadmap th
 - **Summary table provides quick status** overview
 - **Cross-referencing** connects roadmap to historical record
 
+### Cross-referencing with anchored links
+
+Use anchored links for precise navigation between ROADMAP and CHANGELOG:
+
+**In ROADMAP.md - Phase summaries:**
+```markdown
+## Phase 1: Foundation ✅
+
+> 5 tasks complete. See [CHANGELOG.md](CHANGELOG.md#phase-1-foundation) for details.
+> Built: Core infrastructure, signing patterns, HTTP client...
+
+## Phase 2: Core Features ✅
+
+> 8 tasks complete. See [CHANGELOG.md](CHANGELOG.md#phase-2-core-features) for details.
+> Built: User authentication, API endpoints, database layer...
+```
+
+**In ROADMAP.md - Header:**
+```markdown
+# Project Roadmap
+
+**Completed work:** See [CHANGELOG.md](CHANGELOG.md) for finished tasks.
+```
+
+**In CHANGELOG.md - Header:**
+```markdown
+# Changelog
+
+Completed roadmap tasks. For upcoming work, see [ROADMAP.md](ROADMAP.md).
+
+---
+
+## Phase 2: Core Features
+
+### Task 5: User Authentication
+**Completed** | [D:5/B:9 → Priority:1.8]
+...
+
+## Phase 1: Foundation
+
+### Task 1: Project Setup
+**Completed** | [D:2/B:7 → Priority:3.5]
+...
+```
+
+**Benefits:**
+- One click from roadmap summary → detailed completion notes
+- Bidirectional linking maintains context in both directions
+- Phase headers in CHANGELOG match anchors referenced in ROADMAP
+- Readers can navigate without searching
+
+**Anchor naming convention:**
+- Use kebab-case matching the phase header: `#phase-1-foundation`
+- CHANGELOG phase headers must match exactly for anchors to work
+
 ## Best practices
 
 ### Keep scores honest
@@ -517,3 +572,5 @@ Completion reports are accurate when written, but if they stay in the roadmap th
 | Difficulty scale | 1 (trivial) to 10 (major) |
 | Benefit scale | 1 (minimal) to 10 (transformative) |
 | Task completion | Move to CHANGELOG → Update Summary ✅ → Strike Priority Order → One-line in phase |
+| Phase anchor link | `[CHANGELOG.md](CHANGELOG.md#phase-1-name)` |
+| CHANGELOG header | "For upcoming work, see [ROADMAP.md](ROADMAP.md)" |
