@@ -1,10 +1,21 @@
 {
   "name": "elixir-lsp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Expert LSP integration for Elixir development - the official Elixir language server",
   "author": {
     "name": "DeltaHedge",
     "url": "https://github.com/ZenHive"
   },
-  "lspServers": "./.lsp.json"
+  "lspServers": {
+    "elixir": {
+      "command": "expert",
+      "args": [],
+      "extensionToLanguage": {
+        ".ex": "elixir",
+        ".exs": "elixir",
+        ".heex": "elixir",
+        ".leex": "elixir"
+      }
+    }
+  }
 }
