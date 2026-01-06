@@ -1,6 +1,6 @@
 {
   "name": "serena",
-  "version": "0.1.0",
-  "description": "Serena MCP integration - auto-activation, onboarding checks, and workflow helpers",
+  "version": "0.2.0",
+  "description": "Serena MCP integration - auto-activation, think tool reminders, memory management, and workflow helpers",
   "author": "deltahedge"
 }
