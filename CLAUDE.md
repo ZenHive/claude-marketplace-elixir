@@ -447,6 +447,50 @@ See `.claude/WORKFLOWS.md` for complete workflow documentation.
 
 **Elixir-meta Plugin**: The `elixir-meta` plugin can generate customized workflow commands for other Elixir projects via `/elixir-meta:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
 
+## Plugin Development Tools
+
+When creating or modifying plugins, hooks, skills, or agents in this marketplace, use these tools from the `plugin-dev` and `hookify` plugins:
+
+### plugin-dev Skills (Documentation & Guidance)
+
+| Skill | When to Use |
+|-------|-------------|
+| `/plugin-dev:plugin-structure` | Plugin directory layout, manifest configuration, component organization |
+| `/plugin-dev:hook-development` | Creating hooks (PreToolUse, PostToolUse, Stop, SessionStart, etc.) |
+| `/plugin-dev:command-development` | Slash command structure, YAML frontmatter, dynamic arguments |
+| `/plugin-dev:skill-development` | Skill structure, progressive disclosure, best practices |
+| `/plugin-dev:agent-development` | Agent frontmatter, system prompts, triggering conditions |
+| `/plugin-dev:mcp-integration` | MCP server integration, .mcp.json configuration |
+| `/plugin-dev:plugin-settings` | Plugin configuration via .local.md files |
+
+### plugin-dev Workflows & Validation
+
+| Tool | Purpose |
+|------|---------|
+| `/plugin-dev:create-plugin` | Guided end-to-end plugin creation workflow |
+| `plugin-dev:plugin-validator` (agent) | Validates plugin structure and plugin.json schema |
+| `plugin-dev:skill-reviewer` (agent) | Reviews skill quality and best practices |
+| `plugin-dev:agent-creator` (agent) | Creates autonomous agents for plugins |
+
+### hookify Tools (Hook Generation)
+
+| Tool | Purpose |
+|------|---------|
+| `/hookify:hookify` | Create hooks from conversation analysis or explicit instructions |
+| `/hookify:writing-rules` | Guidance on hookify rule syntax and patterns |
+| `/hookify:list` | List all configured hookify rules |
+| `/hookify:configure` | Enable or disable hookify rules interactively |
+| `/hookify:help` | Get help with the hookify plugin |
+| `hookify:conversation-analyzer` (agent) | Analyzes conversations to find behaviors worth preventing |
+
+### Recommended Workflow for Plugin Development
+
+1. **Start**: Run `/plugin-dev:create-plugin` for guided scaffolding
+2. **Learn patterns**: Use `/plugin-dev:hook-development`, `/plugin-dev:skill-development`, etc. for specific component guidance
+3. **Validate**: Use `plugin-dev:plugin-validator` agent to check structure
+4. **Review**: Use `plugin-dev:skill-reviewer` agent to review skill quality
+5. **Create hooks from behavior**: Use `/hookify:hookify` to generate hooks from unwanted behaviors
+
 ## Quality Gates
 
 Before pushing changes, run:
