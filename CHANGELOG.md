@@ -4,6 +4,67 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**New Plugin: notifications**
+- Native OS notifications when Claude Code needs attention
+- Triggers on `idle_prompt` (60+ seconds waiting) and `permission_prompt`
+- Cross-platform support: macOS (osascript), Linux (notify-send), Windows (PowerShell)
+- Works with any terminal (Ghostty, Alacritty, Kitty, etc.)
+- Location: `plugins/notifications/`
+
+**New Plugin: serena**
+- MCP auto-activation plugin for Serena language server integration
+- SessionStart hook detects Serena MCP and prompts project activation
+- Project mapping feature stores Serena project paths for directories
+- Think reminder hooks for collected information, task adherence, and completion
+- Commands: `/serena:status`, `/serena:memory`, `/serena:project-map`, `/serena:prep-handoff`
+- Location: `plugins/serena/`
+
+**New Skills**
+- **daisyui** (core@deltahedge): daisyUI 5 + Tailwind CSS v4 component library reference
+  - Semantic color system, theming, component patterns
+  - Location: `plugins/core/skills/daisyui/`
+- **nexus-template** (core@deltahedge): Nexus Phoenix admin template architecture
+  - Iconify icons, partials system, layout pipelines, Alpine.js
+  - Location: `plugins/core/skills/nexus-template/`
+- **phoenix-js** (core@deltahedge): Phoenix JavaScript patterns
+  - Client hooks, JS commands, channels, presence, optimistic UIs
+  - Location: `plugins/core/skills/phoenix-js/`
+- **integration-testing** (core@deltahedge): Integration testing patterns for Elixir
+  - Credential handling, external API testing, never skip silently
+  - Location: `plugins/core/skills/integration-testing/`
+
+**Documentation**
+- Plugin Development Tools section in CLAUDE.md
+- Roadmap maintenance guidelines with CHANGELOG anchoring
+- Task descriptions as prompts guidance (not implementation details)
+- Macro and API abstraction guidance in skills
+
+### Changed
+
+**hex-docs-search Skill Rewrite**
+- Changed from local-first to HexDocs-first search strategy
+- Replaced all `curl` commands with `web` command
+- Simplified search strategy from 6 steps to 4 steps
+- Added examples/sample-queries.md with common patterns
+- core: 1.7.0 → 1.8.0
+
+**Marketplace Version**
+- Bumped marketplace version: 1.0.1 → 1.0.2
+
+### Fixed
+
+- Fix serena plugin hooks.json schema format (keyed by event type)
+- Fix plugin.json author format to be object (not string)
+- Fix SessionStart hook to read cwd from stdin JSON (not env var)
+- Fix unbound variable bug in marketplace instructions
+- Exclude TODO/FIXME checks from Credo pre-commit hook
+
+---
+
+## [1.0.1] - 2025-01-05
+
 ### Changed
 
 **Version Bump (All Plugins)**
@@ -236,10 +297,9 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 | Category | Count |
 |----------|-------|
-| Plugins Added | 2 (claude-md-includes, doctor) |
-| Skills Added | 8 (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer, phoenix-patterns, popcorn, phoenix-scope) |
+| Plugins Added | 3 (claude-md-includes, doctor, serena) |
+| Skills Added | 12 (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer, phoenix-patterns, popcorn, phoenix-scope, daisyui, nexus-template, phoenix-js, integration-testing) |
 | Hooks Added | 2 (strict precommit, test failure detection) |
-| Tasks Completed | 19/22 (86%) |
 | Tests Passing | 93/93 |
 
 ## Attribution

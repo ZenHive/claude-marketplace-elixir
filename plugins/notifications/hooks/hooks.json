@@ -1,0 +1,17 @@
+{
+  "description": "Native OS notifications for Claude Code events",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "idle_prompt|permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

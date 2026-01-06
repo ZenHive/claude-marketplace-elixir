@@ -1,0 +1,8 @@
+{
+  "name": "notifications",
+  "version": "1.0.0",
+  "description": "Native OS notifications when Claude Code needs attention (idle, permission prompts)",
+  "author": {
+    "name": "DeltaHedge"
+  }
+}
