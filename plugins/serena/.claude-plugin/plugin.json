@@ -1,6 +1,11 @@
 {
   "name": "serena",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Serena MCP integration - auto-activation, think tool reminders, memory management, and workflow helpers",
-  "author": "deltahedge"
+  "author": {
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive"
+  },
+  "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+  "license": "MIT"
 }
