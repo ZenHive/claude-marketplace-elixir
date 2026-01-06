@@ -10,26 +10,6 @@
   "pluginRoot": "../plugins",
   "plugins": [
     {
-      "name": "elixir-lsp",
-      "source": "./plugins/elixir-lsp",
-      "description": "Expert LSP integration - the official Elixir language server",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "lspServers": {
-        "elixir": {
-          "command": "expert",
-          "args": ["--stdio"],
-          "extensionToLanguage": {
-            ".ex": "elixir",
-            ".exs": "elixir",
-            ".heex": "elixir",
-            ".leex": "elixir"
-          }
-        }
-      }
-    },
-    {
       "name": "core",
       "source": "./plugins/core",
       "description": "Essential Elixir development support with hooks and automation",
