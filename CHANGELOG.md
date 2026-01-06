@@ -6,6 +6,13 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**New Plugin: elixir-lsp**
+- Expert LSP integration - the official Elixir language server
+- Configures Claude Code's LSP tool for Elixir files (.ex, .exs, .heex, .leex)
+- Enables: go-to-definition, find-references, hover, document/workspace symbols
+- Expert is the merger of elixir-ls, Lexical, and Next LS
+- Location: `plugins/elixir-lsp/`
+
 **New Plugin: notifications**
 - Native OS notifications when Claude Code needs attention
 - Triggers on `idle_prompt` (60+ seconds waiting) and `permission_prompt`
