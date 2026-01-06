@@ -2,8 +2,14 @@
 # Serena auto-activation hook
 # Outputs context telling Claude to activate the Serena project for the current directory
 
-# Get current working directory
-CWD=$(pwd)
+# Read cwd from stdin JSON (hook input)
+INPUT=$(cat)
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
+
+# Fall back to pwd if stdin doesn't contain cwd
+if [[ -z "$CWD" ]]; then
+    CWD=$(pwd)
+fi
 
 # Config file location for project mappings
 CONFIG_FILE="$HOME/.claude/serena-projects.json"
