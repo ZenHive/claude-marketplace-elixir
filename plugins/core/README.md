@@ -24,6 +24,9 @@ claude
 - ✅ **Auto-format** - Automatically runs `mix format` on edited .ex/.exs files
 - ✅ **Compile check** - Runs `mix compile --warnings-as-errors` to catch errors immediately
 - ✅ **Hidden test failure detection** - Warns when test files contain patterns that silently pass on errors
+- ✅ **Private function docs check** - Warns when `defp` functions are missing `@doc false` or comments
+- ✅ **Typespec check** - Warns when public `def` functions are missing `@spec`
+- ✅ **Typedoc check** - Warns when type definitions are missing `@typedoc`
 
 **PostToolUse - After reading files:**
 - ✅ **Documentation recommendation on read** - Detects dependency usage in files and suggests documentation lookup
@@ -68,6 +71,9 @@ See [skills/usage-rules/SKILL.md](skills/usage-rules/SKILL.md) for details.
 | auto-format | 15s | Single file formatting is fast |
 | compile-check | 20s | Incremental compilation after edit |
 | detect-hidden-failures | 10s | Pattern matching in test files |
+| private-function-docs-check | 10s | Line-by-line pattern matching |
+| typespec-check | 10s | Line-by-line pattern matching |
+| typedoc-check | 10s | Line-by-line pattern matching |
 | recommend-docs-on-read | 10s | Dependency detection in file |
 | pre-commit-check | 45s | Format check + compile + unused deps |
 | suggest-test-failed | 5s | Counter check and JSON output |
@@ -100,6 +106,35 @@ mix compile --warnings-as-errors
 - Provides warning via `additionalContext` with correct alternatives
 - Non-blocking - warns but doesn't prevent edits
 - **Why this matters:** Tests should FAIL on unexpected errors. Silent passes hide bugs.
+
+### Private Function Docs Check (Non-blocking)
+- Runs after editing `.ex` files (skips test files)
+- Warns when `defp` functions are missing:
+  - `@doc false` - explicitly marks function as private
+  - Explanatory comment - describes what the function does
+- Handles multi-clause functions (only checks first clause)
+- Exempts one-liner functions from comment requirement
+- Non-blocking - provides context via `additionalContext`
+- **Why this matters:** `@doc false` signals intent; comments help future readers.
+
+### Typespec Check (Non-blocking)
+- Runs after editing `.ex` files (skips test files)
+- Warns when public `def` functions are missing `@spec`
+- Checks up to 5 lines above for matching `@spec function_name`
+- Exempts callback implementations (functions with `@impl true`)
+- Handles multi-clause functions (only checks first clause)
+- Non-blocking - provides context via `additionalContext`
+- **Why this matters:** Specs enable Dialyzer, improve documentation, and clarify types.
+
+### Typedoc Check (Non-blocking)
+- Runs after editing `.ex` files (skips test files)
+- Warns when type definitions are missing `@typedoc`:
+  - `@type` - public types
+  - `@typep` - private types
+  - `@opaque` - opaque types
+- Checks up to 3 lines above for `@typedoc`
+- Non-blocking - provides context via `additionalContext`
+- **Why this matters:** Typedocs explain what types represent and their structure.
 
 ### Pre-commit Validation (Blocking)
 ```bash
