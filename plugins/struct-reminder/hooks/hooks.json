@@ -1,0 +1,17 @@
+{
+  "description": "Suggests using defstruct when map patterns are detected in Elixir modules",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PLUGIN_ROOT/scripts/struct-check.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

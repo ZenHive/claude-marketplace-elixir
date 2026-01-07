@@ -1,0 +1,10 @@
+{
+  "name": "struct-reminder",
+  "version": "1.0.0",
+  "description": "Reminds Claude to consider using defstruct instead of plain maps in Elixir modules",
+  "author": {
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive/claude-marketplace-elixir"
+  },
+  "keywords": ["elixir", "struct", "defstruct", "code-quality", "best-practices"]
+}

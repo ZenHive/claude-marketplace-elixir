@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Elixir and BEAM ecosystem development tools for Claude Code",
-    "version": "1.0.4"
+    "version": "1.0.5"
   },
   "pluginRoot": "../plugins",
   "plugins": [
@@ -125,6 +125,14 @@
       "name": "notifications",
       "source": "./plugins/notifications",
       "description": "Native OS notifications when Claude Code needs attention (idle, permission prompts)",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+      "license": "MIT",
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
+    },
+    {
+      "name": "struct-reminder",
+      "source": "./plugins/struct-reminder",
+      "description": "Reminds Claude to consider using defstruct instead of plain maps in Elixir modules",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
