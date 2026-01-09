@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Output a prompt for Claude to sync project CLAUDE.md with global includes
+jq -n '{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "At the start of this session, check if the project'\''s CLAUDE.md needs updating:\n\n1. Read ~/.claude/CLAUDE.md to see the current global @include directives\n2. Read the project'\''s ./CLAUDE.md (if it exists)\n3. If the project is missing @include directives that are in the global file, update the project CLAUDE.md to match\n4. Consider project type (Elixir projects need elixir-*.md includes, Phoenix needs phoenix-*.md, etc.)\n5. Report what you updated, or confirm they'\''re in sync\n\nDo this silently unless there are changes to make."
+  }
+}'
