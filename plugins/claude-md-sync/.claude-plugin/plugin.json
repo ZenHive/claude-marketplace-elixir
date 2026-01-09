@@ -1,6 +1,6 @@
 {
   "name": "claude-md-sync",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Reminds Claude to sync project CLAUDE.md with global includes at session start",
   "author": {
     "name": "DeltaHedge",
