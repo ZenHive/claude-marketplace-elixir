@@ -1,0 +1,6 @@
+{
+  "name": "claude-md-sync",
+  "version": "1.0.0",
+  "description": "Reminds Claude to sync project CLAUDE.md with global includes at session start",
+  "author": "deltahedge"
+}

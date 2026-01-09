@@ -38,6 +38,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/typedoc-check.sh",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/mixexs-check.sh",
+            "timeout": 5
           }
         ]
       },
@@ -74,6 +79,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/suggest-test-failed.sh",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/phx-new-check.sh",
             "timeout": 5
           }
         ]

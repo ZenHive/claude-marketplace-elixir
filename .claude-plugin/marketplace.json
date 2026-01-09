@@ -136,6 +136,14 @@
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
+    },
+    {
+      "name": "claude-md-sync",
+      "source": "./plugins/claude-md-sync",
+      "description": "Syncs project CLAUDE.md with global includes at session start",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+      "license": "MIT",
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     }
   ]
 }
