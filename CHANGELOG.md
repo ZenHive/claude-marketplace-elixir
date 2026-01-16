@@ -6,6 +6,19 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Fixed
 
+**Pre-commit hook suppressOutput**
+- Fixed `pre-commit-unified.sh` not emitting `{"suppressOutput": true}` for non-commit commands
+- Hooks should always emit proper JSON output, not exit silently
+- elixir: 1.13.3 → 1.13.4
+
+**Test Suite for Consolidated Hooks**
+- Updated test suite to use consolidated hooks instead of deprecated scripts
+- Replaced references to `auto-format.sh`, `compile-check.sh`, `pre-commit-check.sh`
+- Now tests `post-edit-check.sh` and `pre-commit-unified.sh`
+- Removed broken reference to non-existent `precommit-test-pass` fixture
+- Updated test README with all 9 active hook scripts and their behaviors
+- 30 tests passing
+
 **Plugin Cache Shared Library Bug**
 - Fixed post-edit hooks failing in cached plugins due to missing `_shared/` directory
 - Changed `post-edit-check.sh` and `ash-codegen-check.sh` to use local `../lib/` instead of `../../_shared/`

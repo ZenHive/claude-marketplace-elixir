@@ -25,8 +25,8 @@ source "$SCRIPT_DIR/../lib/precommit-utils.sh"
 # =============================================================================
 
 read_hook_input
-parse_precommit_input || exit 0
-is_git_commit_command "$HOOK_COMMAND" || exit 0
+parse_precommit_input || { emit_suppress_json; exit 0; }
+is_git_commit_command "$HOOK_COMMAND" || { emit_suppress_json; exit 0; }
 
 GIT_DIR=$(extract_git_dir "$HOOK_COMMAND" "$HOOK_CWD")
 PROJECT_ROOT=$(find_mix_project_root_from_dir "$GIT_DIR") || { emit_suppress_json; exit 0; }
@@ -103,9 +103,9 @@ fi
 # -----------------------------------------------------------------------------
 
 if [ -d "$PROJECT_ROOT/test" ]; then
-  TEST_OUTPUT=$(mix test --stale 2>&1)
+  TEST_OUTPUT=$(mix test.json --quiet --stale 2>&1)
   if [ $? -ne 0 ]; then
-    TEST_OUTPUT=$(truncate_output "$TEST_OUTPUT" 30 "mix test --stale")
+    TEST_OUTPUT=$(truncate_output "$TEST_OUTPUT" 30 "mix test.json --quiet --stale")
     ERRORS="${ERRORS}## Test Failures\n${TEST_OUTPUT}\n\n"
   fi
 fi

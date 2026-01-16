@@ -24,42 +24,45 @@ This directory contains automated tests for the elixir plugin hooks.
 The elixir plugin has three test projects with intentional issues to verify hook behavior:
 
 ### 1. autoformat-test/
-- **Purpose**: Tests the auto-format hook (PostToolUse, non-blocking)
+- **Purpose**: Tests format checking in post-edit hook
 - **Contains**: Badly formatted Elixir files
-- **Expected behavior**: Files automatically formatted after editing
+- **Expected behavior**: Format issues detected after editing
 
 ### 2. compile-test/
-- **Purpose**: Tests the compile check hook (PostToolUse, informational)
-- **Contains**: Elixir code with compilation errors (`undefined_var`)
-- **Expected behavior**: Compilation errors provided as context to Claude without blocking edits
+- **Purpose**: Tests compile check and dependency detection
+- **Contains**:
+  - Elixir code with various module usages (Jason, Ecto, Phoenix)
+  - Files for testing dependency detection accuracy
+- **Expected behavior**: Compilation errors and module usage detected
 
 ### 3. precommit-test/
-- **Purpose**: Tests the pre-commit validation hook (PreToolUse, blocking)
+- **Purpose**: Tests the pre-commit unified validation hook
 - **Contains**:
   - `lib/unformatted.ex` - Unformatted code
   - `lib/compilation_error.ex` - Compilation errors
+  - No credo/sobelow/doctor deps (tests required dep detection)
 - **Expected behavior**: Blocks git commits when validation fails
 
 ## Test Coverage
 
-The automated test suite includes 27 tests:
+The automated test suite includes 30 tests:
 
-**Auto-format hook**:
-- Formats .ex files
-- Formats .exs files
+**Post-edit check hook** (`post-edit-check.sh`):
 - Ignores non-Elixir files
+- Errors when required deps (credo, sobelow, doctor) missing
+- Suppresses when not in an Elixir project
 
-**Compile check hook**:
-- Detects compilation errors
-- Ignores non-Elixir files
-
-**Pre-commit hook**:
-- Blocks on unformatted code
-- Shows compilation errors
+**Pre-commit unified hook** (`pre-commit-unified.sh`):
 - Ignores non-commit git commands
 - Ignores non-git commands
+- Blocks on format issues
+- Shows format issues in permissionDecisionReason
+- Requires credo dependency
+- Uses git -C directory instead of CWD
+- Falls back to CWD when -C path is invalid
+- Suppresses when not in Elixir project
 
-**Documentation recommendation hook**:
+**Documentation recommendation hook** (`recommend-docs-lookup.sh`):
 - Detects capitalized dependency names ("Ecto")
 - Detects lowercase dependency names ("jason")
 - Detects multiple dependencies in one prompt
@@ -67,7 +70,7 @@ The automated test suite includes 27 tests:
 - Handles non-Elixir projects gracefully
 - Recommends using hex-docs-search skill
 
-**Documentation recommendation on Read hook**:
+**Documentation recommendation on Read hook** (`recommend-docs-on-read.sh`):
 - Detects dependencies from direct module usage (Jason.decode, Ecto.Query.from)
 - Ignores non-Elixir files
 - Returns empty when file has no dependency references
@@ -76,36 +79,84 @@ The automated test suite includes 27 tests:
 - Matches both base and specific dependencies (Phoenix.LiveView -> phoenix, phoenix_live_view)
 - Excludes unrelated dependencies with similar names (Phoenix.LiveView used but not phoenix_html, phoenix_pubsub, phoenix_template)
 
+**Suggest test failed hook** (`suggest-test-failed.sh`):
+- First call suppresses output
+- Second call suggests --failed flag
+- Using --failed resets counter
+- Non-mix-test commands ignored
+- Passing tests reset counter
+
 ## Hook Implementation
 
-The elixir plugin implements consolidated hooks:
+The elixir plugin implements **consolidated hooks** for efficiency:
 
-1. **Auto-format** (`scripts/auto-format.sh`)
+### PostToolUse Hooks (Edit/Write/MultiEdit)
+
+1. **Post-edit check** (`scripts/post-edit-check.sh`)
    - Trigger: After Edit/Write tools on .ex/.exs files
-   - Action: Runs `mix format {{file_path}}`
-   - Blocking: No
+   - Action: Runs format, compile, credo, sobelow, doctor, struct hints, hidden failure detection, mixexs check
+   - Blocking: No (provides context on issues)
+   - **Requires**: credo, sobelow, doctor dependencies
+   - Timeout: 60s
 
-2. **Compile check** (`scripts/compile-check.sh`)
-   - Trigger: After Edit/Write tools on .ex/.exs files
-   - Action: Runs `mix compile --warnings-as-errors`
-   - Blocking: No (provides context on errors)
+2. **Ash codegen check** (`scripts/ash-codegen-check.sh`)
+   - Trigger: After Edit/Write tools on .ex/.exs files (only if Ash dependency exists)
+   - Action: Runs `mix ash.codegen --check`
+   - Blocking: No (provides context on out-of-sync codegen)
+   - Timeout: 30s
 
-3. **Pre-commit validation** (`scripts/pre-commit-check.sh`)
-   - Trigger: Before `git commit` commands
-   - Action: Validates formatting, compilation, and unused deps
-   - Blocking: Yes (exit 0 with JSON permissionDecision: "deny" on failures)
+### PostToolUse Hooks (Read)
 
-4. **Documentation recommendation** (`scripts/recommend-docs-lookup.sh`)
-   - Trigger: On user prompt submission
-   - Action: Detects dependencies mentioned in prompt, recommends using hex-docs-search or usage-rules skills
-   - Blocking: No (provides helpful context)
-   - Caching: Dependency list cached in `.hex-docs/deps-cache.txt`, invalidates when `mix.lock` changes
-
-5. **Documentation recommendation on Read** (`scripts/recommend-docs-on-read.sh`)
+3. **Documentation recommendation on Read** (`scripts/recommend-docs-on-read.sh`)
    - Trigger: After reading .ex/.exs files
    - Action: Detects dependency module references in file, recommends using hex-docs-search or usage-rules skills
    - Blocking: No (provides helpful context)
    - Caching: Shares dependency cache with UserPromptSubmit hook
+   - Timeout: 10s
+
+### PostToolUse Hooks (Bash)
+
+4. **Reset test tracker** (`scripts/reset-test-tracker.sh`)
+   - Trigger: After Bash commands complete
+   - Action: Resets test failure tracking state after passing tests or --failed flag usage
+   - Blocking: No
+   - Timeout: 5s
+
+### PreToolUse Hooks (Bash)
+
+5. **Pre-commit unified** (`scripts/pre-commit-unified.sh`)
+   - Trigger: Before `git commit` commands
+   - Action: Runs format, compile, deps.unlock, credo, test, doctor, sobelow, dialyzer, mix_audit, ash.codegen, ex_doc (if deps exist)
+   - Blocking: Yes (JSON permissionDecision: "deny" on failures)
+   - **Defers to**: `mix precommit` if alias exists
+   - Timeout: 180s
+
+6. **Suggest test failed** (`scripts/suggest-test-failed.sh`)
+   - Trigger: Before `mix test` commands
+   - Action: Suggests `--failed` flag after repeated test failures
+   - Blocking: No (provides helpful suggestion)
+   - Timeout: 5s
+
+7. **Phoenix new check** (`scripts/phx-new-check.sh`)
+   - Trigger: Before `mix phx.new` commands
+   - Action: Detects Phoenix project generation
+   - Blocking: No (provides context)
+   - Timeout: 5s
+
+8. **Prefer test.json** (`scripts/prefer-test-json.sh`)
+   - Trigger: Before `mix test` commands
+   - Action: Recommends using `mix test.json` for AI-friendly output
+   - Blocking: No (provides helpful suggestion)
+   - Timeout: 5s
+
+### UserPromptSubmit Hooks
+
+9. **Documentation recommendation** (`scripts/recommend-docs-lookup.sh`)
+   - Trigger: On user prompt submission
+   - Action: Detects dependencies mentioned in prompt, recommends using hex-docs-search or usage-rules skills
+   - Blocking: No (provides helpful context)
+   - Caching: Dependency list cached in `.hex-docs/deps-cache.txt`, invalidates when `mix.lock` changes
+   - Timeout: 10s
 
 ## Prerequisites
 

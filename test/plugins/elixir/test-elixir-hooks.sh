@@ -7,101 +7,121 @@ echo "Testing Elixir Plugin Hooks"
 echo "================================"
 echo ""
 
-# Test 1: Auto-format hook on .ex file
-test_hook \
-  "Auto-format hook: Formats badly formatted .ex file" \
-  "plugins/elixir/scripts/auto-format.sh" \
-  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/autoformat-test/lib/badly_formatted.ex\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/autoformat-test\"}" \
-  0 \
-  ""
+# =============================================================================
+# Post-Edit Check Tests (post-edit-check.sh)
+# =============================================================================
+# The consolidated hook runs: format, compile, credo, sobelow, doctor, struct
+# hints, hidden failures, mixexs-check. Requires credo, sobelow, doctor deps.
 
-# Test 2: Auto-format hook on .exs file
-test_hook \
-  "Auto-format hook: Formats .exs files" \
-  "plugins/elixir/scripts/auto-format.sh" \
-  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/autoformat-test/test/test_helper.exs\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/autoformat-test\"}" \
-  0 \
-  ""
+echo "## Post-Edit Check Hook"
+echo ""
 
-# Test 3: Auto-format hook ignores non-Elixir files
-test_hook \
-  "Auto-format hook: Ignores non-Elixir files" \
-  "plugins/elixir/scripts/auto-format.sh" \
+# Test 1: Post-edit check ignores non-Elixir files
+test_hook_json \
+  "Post-edit: Ignores non-Elixir files (suppressOutput)" \
+  "plugins/elixir/scripts/post-edit-check.sh" \
   "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/README.md\"},\"cwd\":\"$REPO_ROOT\"}" \
-  0 \
-  ""
-
-# Test 4: Compile check on broken code provides context
-test_hook_json \
-  "Compile check: Detects compilation errors" \
-  "plugins/elixir/scripts/compile-check.sh" \
-  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/broken_code.ex\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\"}" \
-  0 \
-  ".hookSpecificOutput | has(\"additionalContext\")"
-
-# Test 5: Compile check on non-Elixir file is ignored
-test_hook \
-  "Compile check: Ignores non-Elixir files" \
-  "plugins/elixir/scripts/compile-check.sh" \
-  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/README.md\"},\"cwd\":\"$REPO_ROOT\"}" \
-  0 \
-  ""
-
-# Test 6: Pre-commit validation blocks on unformatted code with JSON
-test_hook_json \
-  "Pre-commit: Blocks on unformatted code with structured JSON" \
-  "plugins/elixir/scripts/pre-commit-check.sh" \
-  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
-  0 \
-  '.hookSpecificOutput.hookEventName == "PreToolUse" and .hookSpecificOutput.permissionDecision == "deny" and (.hookSpecificOutput.permissionDecisionReason | contains("Elixir plugin")) and .systemMessage != null'
-
-# Test 7: Pre-commit validation shows compilation errors in permissionDecisionReason
-test_hook_json \
-  "Pre-commit: Shows compilation errors in structured output" \
-  "plugins/elixir/scripts/pre-commit-check.sh" \
-  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
-  0 \
-  '.hookSpecificOutput.permissionDecisionReason | contains("Compilation failed")'
-
-# Test 8: Pre-commit validation skips when precommit alias exists
-test_hook_json \
-  "Pre-commit: Skips when precommit alias exists (defers to precommit plugin)" \
-  "plugins/elixir/scripts/pre-commit-check.sh" \
-  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/precommit/precommit-test-pass\"}" \
   0 \
   ".suppressOutput == true"
 
-# Test 9: Pre-commit validation ignores non-commit commands
-test_hook \
-  "Pre-commit: Ignores non-commit git commands" \
-  "plugins/elixir/scripts/pre-commit-check.sh" \
+# Test 2: Post-edit check errors when required deps missing
+test_hook_json \
+  "Post-edit: Errors when required deps (credo, sobelow, doctor) missing" \
+  "plugins/elixir/scripts/post-edit-check.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/precommit-test/lib/unformatted.ex\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
+  0 \
+  '.hookSpecificOutput.additionalContext | contains("Missing required deps")'
+
+# Test 3: Post-edit check suppresses when no project found
+test_hook_json \
+  "Post-edit: Suppresses when not in an Elixir project" \
+  "plugins/elixir/scripts/post-edit-check.sh" \
+  "{\"tool_input\":{\"file_path\":\"/tmp/random.ex\"},\"cwd\":\"/tmp\"}" \
+  0 \
+  ".suppressOutput == true"
+
+# =============================================================================
+# Pre-Commit Unified Tests (pre-commit-unified.sh)
+# =============================================================================
+# The unified pre-commit hook runs: format, compile, deps.unlock, credo, test,
+# doctor, sobelow, dialyzer, mix_audit, ash.codegen, ex_doc (if deps exist).
+
+echo ""
+echo "## Pre-Commit Unified Hook"
+echo ""
+
+# Test 4: Pre-commit ignores non-commit git commands
+test_hook_json \
+  "Pre-commit: Ignores non-commit git commands (git status)" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
   "{\"tool_input\":{\"command\":\"git status\"},\"cwd\":\"$REPO_ROOT\"}" \
   0 \
-  ""
+  ".suppressOutput == true"
 
-# Test 9: Pre-commit validation ignores non-git commands
-test_hook \
-  "Pre-commit: Ignores non-git commands" \
-  "plugins/elixir/scripts/pre-commit-check.sh" \
+# Test 5: Pre-commit ignores non-git commands
+test_hook_json \
+  "Pre-commit: Ignores non-git commands (ls -la)" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
   "{\"tool_input\":{\"command\":\"ls -la\"},\"cwd\":\"$REPO_ROOT\"}" \
   0 \
-  ""
+  ".suppressOutput == true"
 
-# Test 10: Pre-commit uses -C flag directory instead of CWD
+# Test 6: Pre-commit blocks on format issues (no credo installed)
+test_hook_json \
+  "Pre-commit: Blocks on format issues" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
+  0 \
+  '.hookSpecificOutput.hookEventName == "PreToolUse" and .hookSpecificOutput.permissionDecision == "deny"'
+
+# Test 7: Pre-commit shows format issues in reason
+test_hook_json \
+  "Pre-commit: Shows format issues in permissionDecisionReason" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecisionReason | contains("Format Check Failed")'
+
+# Test 8: Pre-commit requires credo dep
+test_hook_json \
+  "Pre-commit: Requires credo dependency" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecisionReason | contains("Missing Required Dependency: credo")'
+
+# Test 9: Pre-commit uses -C flag directory instead of CWD
 test_hook_json \
   "Pre-commit: Uses git -C directory instead of CWD" \
-  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
   "{\"tool_input\":{\"command\":\"git -C $REPO_ROOT/test/plugins/elixir/precommit-test commit -m 'test'\"},\"cwd\":\"$REPO_ROOT\"}" \
   0 \
-  '.hookSpecificOutput.permissionDecision == "deny" and (.hookSpecificOutput.permissionDecisionReason | contains("Elixir plugin"))'
+  '.hookSpecificOutput.permissionDecision == "deny"'
 
-# Test 11: Pre-commit falls back to CWD when -C path is invalid
+# Test 10: Pre-commit falls back to CWD when -C path is invalid
 test_hook_json \
   "Pre-commit: Falls back to CWD when -C path is invalid" \
-  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
   "{\"tool_input\":{\"command\":\"git -C /nonexistent/path commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
   0 \
   '.hookSpecificOutput.permissionDecision == "deny"'
+
+# Test 11: Pre-commit suppresses when not in Elixir project
+test_hook_json \
+  "Pre-commit: Suppresses when not in Elixir project" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"/tmp\"}" \
+  0 \
+  ".suppressOutput == true"
+
+# =============================================================================
+# Docs Recommendation Tests (recommend-docs-lookup.sh)
+# =============================================================================
+# UserPromptSubmit hook that detects dependency mentions in user prompts
+
+echo ""
+echo "## Docs Recommendation Hook (UserPromptSubmit)"
+echo ""
 
 # Test 12: Docs recommendation detects dependency mentions (capitalized)
 test_hook_json \
@@ -111,7 +131,7 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.hookEventName == "UserPromptSubmit" and (.hookSpecificOutput.additionalContext | contains("ecto"))'
 
-# Test 11: Docs recommendation detects lowercase dependency names
+# Test 13: Docs recommendation detects lowercase dependency names
 test_hook_json \
   "Docs recommendation: Detects 'jason' (lowercase) in prompt" \
   "plugins/elixir/scripts/recommend-docs-lookup.sh" \
@@ -119,7 +139,7 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.additionalContext | contains("jason")'
 
-# Test 12: Docs recommendation detects multiple dependencies
+# Test 14: Docs recommendation detects multiple dependencies
 test_hook_json \
   "Docs recommendation: Detects multiple dependencies" \
   "plugins/elixir/scripts/recommend-docs-lookup.sh" \
@@ -127,7 +147,7 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("ecto")) and (.hookSpecificOutput.additionalContext | contains("jason"))'
 
-# Test 13: Docs recommendation returns empty when no dependencies mentioned
+# Test 15: Docs recommendation returns empty when no dependencies mentioned
 test_hook_json \
   "Docs recommendation: Returns empty JSON when no dependencies mentioned" \
   "plugins/elixir/scripts/recommend-docs-lookup.sh" \
@@ -135,7 +155,7 @@ test_hook_json \
   0 \
   '. == {}'
 
-# Test 14: Docs recommendation works in non-Elixir projects (exits cleanly)
+# Test 16: Docs recommendation works in non-Elixir projects (exits cleanly)
 test_hook_json \
   "Docs recommendation: Handles non-Elixir projects gracefully" \
   "plugins/elixir/scripts/recommend-docs-lookup.sh" \
@@ -143,7 +163,7 @@ test_hook_json \
   0 \
   '. == {}'
 
-# Test 15: Docs recommendation recommends skills in output
+# Test 17: Docs recommendation recommends skills in output
 test_hook_json \
   "Docs recommendation: Recommends using hex-docs-search skill" \
   "plugins/elixir/scripts/recommend-docs-lookup.sh" \
@@ -151,7 +171,16 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.additionalContext | contains("hex-docs-search")'
 
-# Test 16: Read hook detects dependencies from direct module usage
+# =============================================================================
+# Read Hook Tests (recommend-docs-on-read.sh)
+# =============================================================================
+# PostToolUse hook that detects module usage in read files
+
+echo ""
+echo "## Read Hook (PostToolUse after Read)"
+echo ""
+
+# Test 18: Read hook detects dependencies from direct module usage
 test_hook_json \
   "Read hook: Detects dependencies from direct module usage (Jason.decode)" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -159,7 +188,7 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("jason")) and (.hookSpecificOutput.additionalContext | contains("ecto"))'
 
-# Test 17: Read hook ignores non-Elixir files
+# Test 19: Read hook ignores non-Elixir files
 test_hook_json \
   "Read hook: Ignores non-Elixir files" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -167,7 +196,7 @@ test_hook_json \
   0 \
   '. == {}'
 
-# Test 18: Read hook returns empty when file has no dependency references
+# Test 20: Read hook returns empty when file has no dependency references
 test_hook_json \
   "Read hook: Returns empty when no dependency references found" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -175,7 +204,7 @@ test_hook_json \
   0 \
   '. == {}'
 
-# Test 19: File using Jason.decode() matches jason dependency
+# Test 21: File using Jason.decode() matches jason dependency
 test_hook_json \
   "Read hook: Matches jason when file uses Jason.decode()" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -183,7 +212,7 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.additionalContext | contains("jason")'
 
-# Test 20: File using Jason does not match unrelated ecto dependency
+# Test 22: File using Jason does not match unrelated ecto dependency
 test_hook_json \
   "Read hook: Excludes ecto when file only uses Jason" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -191,7 +220,7 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("ecto")) | not'
 
-# Test 21: File using Jason does not match unrelated decimal dependency
+# Test 23: File using Jason does not match unrelated decimal dependency
 test_hook_json \
   "Read hook: Excludes decimal when file only uses Jason" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -199,7 +228,7 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("decimal")) | not'
 
-# Test 22: File using Jason does not match unrelated telemetry dependency
+# Test 24: File using Jason does not match unrelated telemetry dependency
 test_hook_json \
   "Read hook: Excludes telemetry when file only uses Jason" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -207,7 +236,7 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("telemetry")) | not'
 
-# Test 23: File importing Phoenix.LiveView matches both phoenix and phoenix_live_view
+# Test 25: File importing Phoenix.LiveView matches both phoenix and phoenix_live_view
 test_hook_json \
   "Read hook: Matches phoenix_live_view when file imports Phoenix.LiveView" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -215,7 +244,7 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.additionalContext | contains("phoenix_live_view")'
 
-# Test 24: File importing Phoenix.LiveView also matches base phoenix dependency
+# Test 26: File importing Phoenix.LiveView also matches base phoenix dependency
 test_hook_json \
   "Read hook: Matches phoenix when file imports Phoenix.LiveView" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -223,7 +252,7 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.additionalContext | test("\\bphoenix[,.]")'
 
-# Test 25: File importing Phoenix.LiveView does not match unrelated phoenix_html
+# Test 27: File importing Phoenix.LiveView does not match unrelated phoenix_html
 test_hook_json \
   "Read hook: Excludes phoenix_html when file imports Phoenix.LiveView" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -231,7 +260,7 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("phoenix_html")) | not'
 
-# Test 26: File importing Phoenix.LiveView does not match unrelated phoenix_pubsub
+# Test 28: File importing Phoenix.LiveView does not match unrelated phoenix_pubsub
 test_hook_json \
   "Read hook: Excludes phoenix_pubsub when file imports Phoenix.LiveView" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -239,7 +268,7 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("phoenix_pubsub")) | not'
 
-# Test 27: File importing Phoenix.LiveView does not match unrelated phoenix_template
+# Test 29: File importing Phoenix.LiveView does not match unrelated phoenix_template
 test_hook_json \
   "Read hook: Excludes phoenix_template when file imports Phoenix.LiveView" \
   "plugins/elixir/scripts/recommend-docs-on-read.sh" \
@@ -247,13 +276,22 @@ test_hook_json \
   0 \
   '(.hookSpecificOutput.additionalContext | contains("phoenix_template")) | not'
 
-# Test 28: Suggest test failed hook standalone tests
+# =============================================================================
+# Suggest Test Failed Tests
+# =============================================================================
+
 echo ""
+echo "## Suggest Test Failed Hook"
+echo ""
+
+# Test 30: Suggest test failed hook standalone tests
 echo "Running suggest-test-failed standalone tests..."
 if "$SCRIPT_DIR/suggest-test-failed-test/test.sh"; then
-  PASS_COUNT=$((PASS_COUNT + 1))
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  TESTS_RUN=$((TESTS_RUN + 1))
 else
-  FAIL_COUNT=$((FAIL_COUNT + 1))
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  TESTS_RUN=$((TESTS_RUN + 1))
 fi
 
 print_summary
