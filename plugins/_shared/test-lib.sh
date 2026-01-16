@@ -38,7 +38,7 @@ is_null_or_empty "value" && fail "non-empty value should return false" || pass "
 echo ""
 echo "find_mix_project_root_from_dir:"
 # Test with a known mix project (this repo's test fixtures)
-TEST_DIR="$SCRIPT_DIR/../../test/plugins/core/autoformat-test"
+TEST_DIR="$SCRIPT_DIR/../../test/plugins/elixir/autoformat-test"
 if [[ -d "$TEST_DIR" ]]; then
   RESULT=$(find_mix_project_root_from_dir "$TEST_DIR")
   if [[ "$RESULT" == "$TEST_DIR" ]] || [[ -f "$RESULT/mix.exs" ]]; then
@@ -56,7 +56,7 @@ RESULT=$(find_mix_project_root_from_dir "/tmp" 2>/dev/null) && fail "should fail
 # Test find_mix_project_root_from_file
 echo ""
 echo "find_mix_project_root_from_file:"
-TEST_FILE="$SCRIPT_DIR/../../test/plugins/core/autoformat-test/lib/test.ex"
+TEST_FILE="$SCRIPT_DIR/../../test/plugins/elixir/autoformat-test/lib/test.ex"
 if [[ -f "$TEST_FILE" ]]; then
   RESULT=$(find_mix_project_root_from_file "$TEST_FILE")
   if [[ -f "$RESULT/mix.exs" ]]; then

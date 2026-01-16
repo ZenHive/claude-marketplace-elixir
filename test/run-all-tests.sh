@@ -44,15 +44,7 @@ run_test_suite() {
 }
 
 
-run_test_suite "Core Plugin Tests" "$SCRIPT_DIR/plugins/core/test-core-hooks.sh" || true
-run_test_suite "Credo Plugin Tests" "$SCRIPT_DIR/plugins/credo/test-credo-hooks.sh" || true
-run_test_suite "Ash Plugin Tests" "$SCRIPT_DIR/plugins/ash/test-ash-hooks.sh" || true
-run_test_suite "Dialyzer Plugin Tests" "$SCRIPT_DIR/plugins/dialyzer/test-dialyzer-hooks.sh" || true
-run_test_suite "Sobelow Plugin Tests" "$SCRIPT_DIR/plugins/sobelow/test-sobelow-hooks.sh" || true
-run_test_suite "mix_audit Plugin Tests" "$SCRIPT_DIR/plugins/mix_audit/test-mix-audit-hooks.sh" || true
-run_test_suite "ExDoc Plugin Tests" "$SCRIPT_DIR/plugins/ex_doc/test-ex-doc-hooks.sh" || true
-run_test_suite "Precommit Plugin Tests" "$SCRIPT_DIR/plugins/precommit/test-precommit-hooks.sh" || true
-run_test_suite "Doctor Plugin Tests" "$SCRIPT_DIR/plugins/doctor/test-doctor-hooks.sh" || true
+run_test_suite "Elixir Plugin Tests" "$SCRIPT_DIR/plugins/elixir/test-elixir-hooks.sh" || true
 
 echo ""
 echo -e "${BLUE}================================${NC}"

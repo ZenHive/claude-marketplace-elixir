@@ -29,13 +29,16 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 - Archived 10 deprecated scripts to respective `_deprecated/` directories
 - core: 1.12.0 → 1.13.0
 
-### Planned
-
-**Plugin Consolidation (17 → 8 plugins)**
-- Task 5 added to review.md
-- Delete 10 empty shell plugins (credo, dialyzer, sobelow, ex_doc, mix_audit, ex_unit, precommit, doctor, ash, struct-reminder)
-- Rename 4 plugins for clarity: core→elixir, elixir-meta→elixir-workflows, git→git-commit, claude-md-includes→md-includes
-- 53% reduction in plugin count
+**Plugin Consolidation (17 → 7 plugins)**
+- Deleted 10 empty shell plugins (credo, dialyzer, sobelow, ex_doc, mix_audit, ex_unit, precommit, doctor, ash, struct-reminder)
+- Renamed 4 plugins for clarity:
+  - core → elixir (main Elixir hooks + skills)
+  - elixir-meta → elixir-workflows (workflow commands)
+  - git → git-commit (commit workflow)
+  - claude-md-includes → md-includes (include processing)
+- 59% reduction in plugin count
+- Updated all cross-references in CLAUDE.md, README.md, plugin READMEs, test files
+- Marketplace version: 1.0.5 → 1.0.6
 
 **scripts/clear-cache.sh**
 - Now also cleans orphaned `@deltahedge` entries from `~/.claude/settings.json` enabledPlugins

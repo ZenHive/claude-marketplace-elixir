@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Elixir and BEAM ecosystem development tools for Claude Code",
-    "version": "1.0.5"
+    "version": "1.0.6"
   },
   "pluginRoot": "../plugins",
   "plugins": [
     {
-      "name": "core",
-      "source": "./plugins/core",
+      "name": "elixir",
+      "source": "./plugins/elixir",
       "description": "Essential Elixir development support with hooks and automation",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
@@ -26,97 +26,25 @@
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
-      "name": "credo",
-      "source": "./plugins/credo",
-      "description": "Credo static code analysis for Elixir projects",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "ash",
-      "source": "./plugins/ash",
-      "description": "Ash Framework code generation validation and automation",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "dialyzer",
-      "source": "./plugins/dialyzer",
-      "description": "Dialyzer static type analysis for Elixir projects",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "sobelow",
-      "source": "./plugins/sobelow",
-      "description": "Sobelow security-focused static analysis for Phoenix and Elixir projects",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "ex_doc",
-      "source": "./plugins/ex_doc",
-      "description": "ExDoc documentation validation plugin that checks for documentation issues before commits",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "mix_audit",
-      "source": "./plugins/mix_audit",
-      "description": "Dependency security audit plugin that scans Mix dependencies for known vulnerabilities",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "ex_unit",
-      "source": "./plugins/ex_unit",
-      "description": "ExUnit testing automation with pre-commit test validation",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "precommit",
-      "source": "./plugins/precommit",
-      "description": "Phoenix precommit alias automation - runs mix precommit before git commits if alias exists",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "elixir-meta",
-      "source": "./plugins/elixir-meta",
+      "name": "elixir-workflows",
+      "source": "./plugins/elixir-workflows",
       "description": "Elixir development workflow plugin with planning, QA, reference commands, and interactive context gathering",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
-      "name": "git",
-      "source": "./plugins/git",
+      "name": "git-commit",
+      "source": "./plugins/git-commit",
       "description": "Intelligent git commit workflow automation",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
-      "name": "claude-md-includes",
-      "source": "./plugins/claude-md-includes",
+      "name": "md-includes",
+      "source": "./plugins/md-includes",
       "description": "Process @include directives in CLAUDE.md for composable instructions",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "doctor",
-      "source": "./plugins/doctor",
-      "description": "Mix Doctor documentation quality validation for Elixir projects",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -133,14 +61,6 @@
       "name": "notifications",
       "source": "./plugins/notifications",
       "description": "Native OS notifications when Claude Code needs attention (idle, permission prompts)",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "struct-reminder",
-      "source": "./plugins/struct-reminder",
-      "description": "Reminds Claude to consider using defstruct instead of plain maps in Elixir modules",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"

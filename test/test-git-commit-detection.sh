@@ -8,8 +8,8 @@
 # Example:
 #   source "$SCRIPT_DIR/../../test-git-commit-detection.sh"
 #   run_git_commit_detection_tests \
-#     "plugins/core/scripts/pre-commit-check.sh" \
-#     "$REPO_ROOT/test/plugins/core/precommit-test"
+#     "plugins/elixir/scripts/pre-commit-check.sh" \
+#     "$REPO_ROOT/test/plugins/elixir/precommit-test"
 
 # Requires test-hook.sh to be sourced first
 

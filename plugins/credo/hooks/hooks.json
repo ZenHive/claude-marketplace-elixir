@@ -1,4 +1,0 @@
-{
-  "description": "Credo static code analysis - functionality moved to core pre-commit-unified.sh",
-  "hooks": {}
-}

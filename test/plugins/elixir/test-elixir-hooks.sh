@@ -1,0 +1,259 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../test-hook.sh"
+
+echo "Testing Elixir Plugin Hooks"
+echo "================================"
+echo ""
+
+# Test 1: Auto-format hook on .ex file
+test_hook \
+  "Auto-format hook: Formats badly formatted .ex file" \
+  "plugins/elixir/scripts/auto-format.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/autoformat-test/lib/badly_formatted.ex\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/autoformat-test\"}" \
+  0 \
+  ""
+
+# Test 2: Auto-format hook on .exs file
+test_hook \
+  "Auto-format hook: Formats .exs files" \
+  "plugins/elixir/scripts/auto-format.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/autoformat-test/test/test_helper.exs\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/autoformat-test\"}" \
+  0 \
+  ""
+
+# Test 3: Auto-format hook ignores non-Elixir files
+test_hook \
+  "Auto-format hook: Ignores non-Elixir files" \
+  "plugins/elixir/scripts/auto-format.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/README.md\"},\"cwd\":\"$REPO_ROOT\"}" \
+  0 \
+  ""
+
+# Test 4: Compile check on broken code provides context
+test_hook_json \
+  "Compile check: Detects compilation errors" \
+  "plugins/elixir/scripts/compile-check.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/broken_code.ex\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\"}" \
+  0 \
+  ".hookSpecificOutput | has(\"additionalContext\")"
+
+# Test 5: Compile check on non-Elixir file is ignored
+test_hook \
+  "Compile check: Ignores non-Elixir files" \
+  "plugins/elixir/scripts/compile-check.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/README.md\"},\"cwd\":\"$REPO_ROOT\"}" \
+  0 \
+  ""
+
+# Test 6: Pre-commit validation blocks on unformatted code with JSON
+test_hook_json \
+  "Pre-commit: Blocks on unformatted code with structured JSON" \
+  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
+  0 \
+  '.hookSpecificOutput.hookEventName == "PreToolUse" and .hookSpecificOutput.permissionDecision == "deny" and (.hookSpecificOutput.permissionDecisionReason | contains("Elixir plugin")) and .systemMessage != null'
+
+# Test 7: Pre-commit validation shows compilation errors in permissionDecisionReason
+test_hook_json \
+  "Pre-commit: Shows compilation errors in structured output" \
+  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecisionReason | contains("Compilation failed")'
+
+# Test 8: Pre-commit validation skips when precommit alias exists
+test_hook_json \
+  "Pre-commit: Skips when precommit alias exists (defers to precommit plugin)" \
+  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/precommit/precommit-test-pass\"}" \
+  0 \
+  ".suppressOutput == true"
+
+# Test 9: Pre-commit validation ignores non-commit commands
+test_hook \
+  "Pre-commit: Ignores non-commit git commands" \
+  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "{\"tool_input\":{\"command\":\"git status\"},\"cwd\":\"$REPO_ROOT\"}" \
+  0 \
+  ""
+
+# Test 9: Pre-commit validation ignores non-git commands
+test_hook \
+  "Pre-commit: Ignores non-git commands" \
+  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "{\"tool_input\":{\"command\":\"ls -la\"},\"cwd\":\"$REPO_ROOT\"}" \
+  0 \
+  ""
+
+# Test 10: Pre-commit uses -C flag directory instead of CWD
+test_hook_json \
+  "Pre-commit: Uses git -C directory instead of CWD" \
+  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "{\"tool_input\":{\"command\":\"git -C $REPO_ROOT/test/plugins/elixir/precommit-test commit -m 'test'\"},\"cwd\":\"$REPO_ROOT\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny" and (.hookSpecificOutput.permissionDecisionReason | contains("Elixir plugin"))'
+
+# Test 11: Pre-commit falls back to CWD when -C path is invalid
+test_hook_json \
+  "Pre-commit: Falls back to CWD when -C path is invalid" \
+  "plugins/elixir/scripts/pre-commit-check.sh" \
+  "{\"tool_input\":{\"command\":\"git -C /nonexistent/path commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny"'
+
+# Test 12: Docs recommendation detects dependency mentions (capitalized)
+test_hook_json \
+  "Docs recommendation: Detects 'Ecto' in prompt" \
+  "plugins/elixir/scripts/recommend-docs-lookup.sh" \
+  "{\"prompt\":\"Help me write an Ecto query\",\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\",\"hook_event_name\":\"UserPromptSubmit\"}" \
+  0 \
+  '.hookSpecificOutput.hookEventName == "UserPromptSubmit" and (.hookSpecificOutput.additionalContext | contains("ecto"))'
+
+# Test 11: Docs recommendation detects lowercase dependency names
+test_hook_json \
+  "Docs recommendation: Detects 'jason' (lowercase) in prompt" \
+  "plugins/elixir/scripts/recommend-docs-lookup.sh" \
+  "{\"prompt\":\"I need to parse json with jason\",\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\",\"hook_event_name\":\"UserPromptSubmit\"}" \
+  0 \
+  '.hookSpecificOutput.additionalContext | contains("jason")'
+
+# Test 12: Docs recommendation detects multiple dependencies
+test_hook_json \
+  "Docs recommendation: Detects multiple dependencies" \
+  "plugins/elixir/scripts/recommend-docs-lookup.sh" \
+  "{\"prompt\":\"Use Ecto and Jason together\",\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\",\"hook_event_name\":\"UserPromptSubmit\"}" \
+  0 \
+  '(.hookSpecificOutput.additionalContext | contains("ecto")) and (.hookSpecificOutput.additionalContext | contains("jason"))'
+
+# Test 13: Docs recommendation returns empty when no dependencies mentioned
+test_hook_json \
+  "Docs recommendation: Returns empty JSON when no dependencies mentioned" \
+  "plugins/elixir/scripts/recommend-docs-lookup.sh" \
+  "{\"prompt\":\"Help me refactor this code\",\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\",\"hook_event_name\":\"UserPromptSubmit\"}" \
+  0 \
+  '. == {}'
+
+# Test 14: Docs recommendation works in non-Elixir projects (exits cleanly)
+test_hook_json \
+  "Docs recommendation: Handles non-Elixir projects gracefully" \
+  "plugins/elixir/scripts/recommend-docs-lookup.sh" \
+  "{\"prompt\":\"Some prompt\",\"cwd\":\"$REPO_ROOT\",\"hook_event_name\":\"UserPromptSubmit\"}" \
+  0 \
+  '. == {}'
+
+# Test 15: Docs recommendation recommends skills in output
+test_hook_json \
+  "Docs recommendation: Recommends using hex-docs-search skill" \
+  "plugins/elixir/scripts/recommend-docs-lookup.sh" \
+  "{\"prompt\":\"How do I use Ecto?\",\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\",\"hook_event_name\":\"UserPromptSubmit\"}" \
+  0 \
+  '.hookSpecificOutput.additionalContext | contains("hex-docs-search")'
+
+# Test 16: Read hook detects dependencies from direct module usage
+test_hook_json \
+  "Read hook: Detects dependencies from direct module usage (Jason.decode)" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/test_file.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '(.hookSpecificOutput.additionalContext | contains("jason")) and (.hookSpecificOutput.additionalContext | contains("ecto"))'
+
+# Test 17: Read hook ignores non-Elixir files
+test_hook_json \
+  "Read hook: Ignores non-Elixir files" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/README.md\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '. == {}'
+
+# Test 18: Read hook returns empty when file has no dependency references
+test_hook_json \
+  "Read hook: Returns empty when no dependency references found" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/broken_code.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '. == {}'
+
+# Test 19: File using Jason.decode() matches jason dependency
+test_hook_json \
+  "Read hook: Matches jason when file uses Jason.decode()" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/specific_deps_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '.hookSpecificOutput.additionalContext | contains("jason")'
+
+# Test 20: File using Jason does not match unrelated ecto dependency
+test_hook_json \
+  "Read hook: Excludes ecto when file only uses Jason" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/specific_deps_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '(.hookSpecificOutput.additionalContext | contains("ecto")) | not'
+
+# Test 21: File using Jason does not match unrelated decimal dependency
+test_hook_json \
+  "Read hook: Excludes decimal when file only uses Jason" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/specific_deps_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '(.hookSpecificOutput.additionalContext | contains("decimal")) | not'
+
+# Test 22: File using Jason does not match unrelated telemetry dependency
+test_hook_json \
+  "Read hook: Excludes telemetry when file only uses Jason" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/specific_deps_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '(.hookSpecificOutput.additionalContext | contains("telemetry")) | not'
+
+# Test 23: File importing Phoenix.LiveView matches both phoenix and phoenix_live_view
+test_hook_json \
+  "Read hook: Matches phoenix_live_view when file imports Phoenix.LiveView" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/phoenix_liveview_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '.hookSpecificOutput.additionalContext | contains("phoenix_live_view")'
+
+# Test 24: File importing Phoenix.LiveView also matches base phoenix dependency
+test_hook_json \
+  "Read hook: Matches phoenix when file imports Phoenix.LiveView" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/phoenix_liveview_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '.hookSpecificOutput.additionalContext | test("\\bphoenix[,.]")'
+
+# Test 25: File importing Phoenix.LiveView does not match unrelated phoenix_html
+test_hook_json \
+  "Read hook: Excludes phoenix_html when file imports Phoenix.LiveView" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/phoenix_liveview_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '(.hookSpecificOutput.additionalContext | contains("phoenix_html")) | not'
+
+# Test 26: File importing Phoenix.LiveView does not match unrelated phoenix_pubsub
+test_hook_json \
+  "Read hook: Excludes phoenix_pubsub when file imports Phoenix.LiveView" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/phoenix_liveview_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '(.hookSpecificOutput.additionalContext | contains("phoenix_pubsub")) | not'
+
+# Test 27: File importing Phoenix.LiveView does not match unrelated phoenix_template
+test_hook_json \
+  "Read hook: Excludes phoenix_template when file imports Phoenix.LiveView" \
+  "plugins/elixir/scripts/recommend-docs-on-read.sh" \
+  "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/test/plugins/elixir/compile-test/lib/phoenix_liveview_test.ex\"},\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Read\"}" \
+  0 \
+  '(.hookSpecificOutput.additionalContext | contains("phoenix_template")) | not'
+
+# Test 28: Suggest test failed hook standalone tests
+echo ""
+echo "Running suggest-test-failed standalone tests..."
+if "$SCRIPT_DIR/suggest-test-failed-test/test.sh"; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+fi
+
+print_summary

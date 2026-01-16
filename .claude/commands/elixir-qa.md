@@ -146,7 +146,7 @@ Read and parse settings.json to get enabled plugins:
 jq -r '.enabledPlugins | keys[]' .claude/settings.json 2>/dev/null || echo "{}"
 ```
 
-Extract plugin names (e.g., core@deltahedge, credo@deltahedge).
+Extract plugin names (e.g., elixir@deltahedge, credo@deltahedge).
 
 #### 0.3 Compare and Identify Missing Plugins
 

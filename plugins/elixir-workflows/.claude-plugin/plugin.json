@@ -1,0 +1,26 @@
+{
+  "name": "elixir-workflows",
+  "version": "1.0.3",
+  "description": "Elixir development workflow plugin with planning, QA, reference commands, and interactive context gathering",
+  "author": {
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive"
+  },
+  "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+  "license": "MIT",
+  "keywords": [
+    "elixir-meta",
+    "elixir",
+    "workflow",
+    "generator",
+    "scaffolding",
+    "project-agnostic",
+    "research",
+    "planning",
+    "implementation",
+    "qa",
+    "interview",
+    "context-gathering",
+    "interactive"
+  ]
+}

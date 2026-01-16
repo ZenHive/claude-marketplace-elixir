@@ -9,10 +9,9 @@ Run all tests:
 ./test/run-all-tests.sh
 ```
 
-Run tests for a specific plugin:
+Run tests for the elixir plugin:
 ```bash
-./test/plugins/core/test-core-hooks.sh
-./test/plugins/credo/test-credo-hooks.sh
+./test/plugins/elixir/test-elixir-hooks.sh
 ```
 
 ## Architecture
@@ -21,8 +20,7 @@ Run tests for a specific plugin:
 
 - `test-hook.sh` - Base testing framework with helper functions
 - `run-all-tests.sh` - Main test runner that executes all plugin tests
-- `plugins/core/test-core-hooks.sh` - Tests for core plugin hooks
-- `plugins/credo/test-credo-hooks.sh` - Tests for credo plugin hooks
+- `plugins/elixir/test-elixir-hooks.sh` - Tests for elixir plugin hooks
 
 ### How It Works
 
@@ -130,7 +128,7 @@ You can run tests in CI by adding to your workflow:
 
 Current tests cover:
 
-### Core Plugin
+### Elixir Plugin (consolidated hooks)
 - ✅ Auto-format on .ex files
 - ✅ Auto-format on .exs files
 - ✅ Auto-format ignores non-Elixir files
@@ -140,14 +138,8 @@ Current tests cover:
 - ✅ Pre-commit blocks on compilation errors
 - ✅ Pre-commit ignores non-commit git commands
 - ✅ Pre-commit ignores non-git commands
-
-### Credo Plugin
-- ✅ Post-edit check detects Credo violations
-- ✅ Post-edit check works on .exs files
-- ✅ Post-edit check ignores non-Elixir files
-- ✅ Pre-commit blocks on Credo violations
-- ✅ Pre-commit ignores non-commit git commands
-- ✅ Pre-commit ignores non-git commands
+- ✅ Documentation recommendation detects dependencies
+- ✅ Read hook detects module references
 
 ## Debugging Failed Tests
 

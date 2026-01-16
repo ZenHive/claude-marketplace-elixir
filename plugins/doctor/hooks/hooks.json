@@ -1,4 +1,0 @@
-{
-  "description": "Mix Doctor documentation validation - functionality moved to core pre-commit-unified.sh",
-  "hooks": {}
-}

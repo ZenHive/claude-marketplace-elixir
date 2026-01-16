@@ -20,29 +20,26 @@ claude
 ### Install Plugins
 
 ```bash
-/plugin install core@deltahedge
-/plugin install ash@deltahedge
-/plugin install credo@deltahedge
-/plugin install dialyzer@deltahedge
-/plugin install ex_doc@deltahedge
-/plugin install ex_unit@deltahedge
-/plugin install elixir-meta@deltahedge
-/plugin install mix_audit@deltahedge
-/plugin install precommit@deltahedge
-/plugin install sobelow@deltahedge
+/plugin install elixir@deltahedge           # Main Elixir hooks + skills
+/plugin install phoenix@deltahedge          # Phoenix-specific skills
+/plugin install elixir-workflows@deltahedge # Workflow commands (research, plan, implement, qa)
+/plugin install git-commit@deltahedge       # Commit workflow
+/plugin install md-includes@deltahedge      # @include directive processing
+/plugin install serena@deltahedge           # Serena MCP integration
+/plugin install notifications@deltahedge    # OS notifications
 ```
-## Available Plugins
 
-* [core](./plugins/core/README.md) - Essential Elixir development support (auto-formatting, compilation checks, pre-commit validation)
-* [ash](./plugins/ash/README.md) - Ash Framework code generation validation
-* [credo](./plugins/credo/README.md) - Static code analysis for code quality and style
-* [dialyzer](./plugins/dialyzer/README.md) - Static type analysis and discrepancy detection
-* [ex_doc](./plugins/ex_doc/README.md) - Documentation quality validation (This is still pre-release, it might be buggy!)
-* [ex_unit](./plugins/ex_unit/README.md) - ExUnit testing automation with smart pre-commit test validation
-* [elixir-meta](./plugins/elixir-meta/README.md) - Elixir development workflow plugin with planning, QA, and reference commands
-* [mix_audit](./plugins/mix_audit/README.md) - Dependency security audit for known vulnerabilities
-* [precommit](./plugins/precommit/README.md) - Phoenix 1.8+ precommit alias runner (coordinates with other plugins)
-* [sobelow](./plugins/sobelow/README.md) - Security-focused static analysis for Phoenix applications
+## Available Plugins (7)
+
+| Plugin | Description |
+|--------|-------------|
+| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + skills (hex-docs-search, usage-rules) |
+| [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns, LiveView, scope, JS hooks, daisyUI, Nexus template |
+| [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
+| [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
+| [md-includes](./plugins/md-includes/README.md) | Process @include directives in CLAUDE.md for composable instructions |
+| [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
+| [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
 
 ## License
 

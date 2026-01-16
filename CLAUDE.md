@@ -33,58 +33,38 @@ This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem devel
 └── marketplace.json          # Marketplace metadata and plugin registry
 
 plugins/
-├── core/                     # Core Elixir development plugin
+├── elixir/                   # Main Elixir development plugin (was: core)
 │   ├── .claude-plugin/
 │   │   └── plugin.json       # Plugin metadata
 │   ├── hooks/
 │   │   └── hooks.json        # Hook definitions
+│   ├── scripts/              # Consolidated hook scripts
 │   └── README.md             # Plugin documentation
-├── credo/                    # Credo static analysis plugin
+├── phoenix/                  # Phoenix-specific skills
 │   ├── .claude-plugin/
 │   │   └── plugin.json
-│   ├── hooks/
-│   │   └── hooks.json
-│   ├── scripts/
-│   │   ├── post-edit-check.sh
-│   │   └── pre-commit-check.sh
-│   └── README.md
-├── ash/                      # Ash Framework codegen plugin
+│   └── skills/               # Phoenix patterns, scope, JS, daisyUI, nexus
+├── elixir-workflows/         # Workflow commands (was: elixir-meta)
 │   ├── .claude-plugin/
 │   │   └── plugin.json
-│   ├── hooks/
-│   │   └── hooks.json
-│   ├── scripts/
-│   │   ├── post-edit-check.sh
-│   │   └── pre-commit-check.sh
-│   └── README.md
-└── dialyzer/                 # Dialyzer type analysis plugin
+│   ├── commands/             # Workflow slash commands
+│   └── skills/               # Workflow generator skill
+├── git-commit/               # Commit workflow (was: git)
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   └── commands/
+├── md-includes/              # Include processing (was: claude-md-includes)
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   └── hooks/                # SessionStart hook
+├── serena/                   # MCP integration
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   └── commands/
+└── notifications/            # OS notifications
     ├── .claude-plugin/
     │   └── plugin.json
-    ├── hooks/
-    │   └── hooks.json
-    ├── scripts/
-    │   └── pre-commit-check.sh
-    └── README.md
-
-test/plugins/
-├── core/                     # Core plugin tests
-│   ├── README.md
-│   ├── autoformat-test/
-│   ├── compile-test/
-│   └── precommit-test/
-├── credo/                    # Credo plugin tests
-│   ├── README.md
-│   ├── postedit-test/
-│   └── precommit-test/
-├── ash/                      # Ash plugin tests
-│   ├── README.md
-│   ├── postedit-test/
-│   ├── precommit-test/
-│   └── test-ash-hooks.sh
-└── dialyzer/                 # Dialyzer plugin tests
-    ├── README.md
-    ├── precommit-test/
-    └── test-dialyzer-hooks.sh
+    └── hooks/
 ```
 
 ### Key Concepts
@@ -99,23 +79,12 @@ test/plugins/
 
 ### Hook Implementation Details
 
-Each plugin implements workflows through hooks:
+The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2, 10 pre-commit hooks → 1):
 
-**Core plugin** - Universal Elixir development:
-1. **Auto-format** (non-blocking, PostToolUse): After editing `.ex`/`.exs` files, runs `mix format {{file_path}}`
-2. **Compile check** (informational, PostToolUse): After editing, runs `mix compile --warnings-as-errors` and provides compilation errors as context to Claude via `additionalContext`
-3. **Pre-commit validation** (blocking, PreToolUse): Before `git commit`, validates formatting, compilation, and unused deps, blocking commits on failures
-
-**Credo plugin** - Static code analysis:
-1. **Post-edit check** (non-blocking, PostToolUse): Runs `mix credo suggest --format=json` on edited files
-2. **Pre-commit check** (blocking, PreToolUse): Runs `mix credo --strict` before commits, blocks if issues found
-
-**Ash plugin** - Ash Framework code generation:
-1. **Post-edit check** (non-blocking, PostToolUse): Runs `mix ash.codegen --check` to detect when generated code is out of sync
-2. **Pre-commit validation** (blocking, PreToolUse): Blocks commits if `mix ash.codegen --check` fails
-
-**Dialyzer plugin** - Static type analysis:
-1. **Pre-commit check** (blocking, PreToolUse): Runs `mix dialyzer` before commits, blocks if type errors found. Uses 120s timeout due to potential analysis time.
+**Elixir plugin** - All Elixir development hooks:
+1. **post-edit-check.sh** (non-blocking, PostToolUse): After editing `.ex`/`.exs` files, runs format, compile, credo, sobelow, doctor, struct hints, hidden failure detection
+2. **ash-codegen-check.sh** (non-blocking, PostToolUse): Runs `mix ash.codegen --check` if Ash dependency exists
+3. **pre-commit-unified.sh** (blocking, PreToolUse): Before `git commit`, runs all quality checks (format, compile, credo, test, doctor, sobelow, dialyzer, mix_audit, ash.codegen, ex_doc). Defers to `mix precommit` if alias exists. Uses 180s timeout.
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
@@ -123,26 +92,26 @@ Hooks use `jq` to extract tool parameters and bash conditionals to match file pa
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
-**Core plugin** - Research and best practices skills:
-1. **hex-docs-search** (core@deltahedge): Searches Hex package documentation with progressive fetch strategy
+**Elixir plugin** - Research and best practices skills:
+1. **hex-docs-search** (elixir@deltahedge): Searches Hex package documentation with progressive fetch strategy
    - Searches local deps → fetched cache → fetches if needed → HexDocs API → web search
    - Stores fetched docs in `.hex-docs/` and source in `.hex-packages/`
    - Provides API documentation, function signatures, and usage examples
-   - See `plugins/core/skills/hex-docs-search/SKILL.md`
+   - See `plugins/elixir/skills/hex-docs-search/SKILL.md`
 
-2. **usage-rules** (core@deltahedge): Searches package-specific usage rules and best practices
+2. **usage-rules** (elixir@deltahedge): Searches package-specific usage rules and best practices
    - Searches local deps → fetched cache → fetches if needed
    - Stores fetched rules in `.usage-rules/<package>-<version>/`
    - Provides coding conventions, patterns, and good/bad examples
    - Context-aware section extraction based on coding context
-   - See `plugins/core/skills/usage-rules/SKILL.md`
+   - See `plugins/elixir/skills/usage-rules/SKILL.md`
 
-**Elixir-meta plugin** - Workflow generation skill:
-1. **workflow-generator** (elixir-meta@deltahedge): Generates project-specific workflow commands
+**Elixir-workflows plugin** - Workflow generation skill:
+1. **workflow-generator** (elixir-workflows@deltahedge): Generates project-specific workflow commands
    - Creates customized research, plan, implement, and QA commands
    - Asks questions about project structure and preferences
    - Outputs slash commands tailored to project needs
-   - See `plugins/elixir-meta/skills/workflow-generator/SKILL.md`
+   - See `plugins/elixir-workflows/skills/workflow-generator/SKILL.md`
 
 **Skill Composition**:
 Skills are designed to be **single-purpose** and **composed by agents/commands**:
@@ -158,7 +127,7 @@ Skills are designed to be **single-purpose** and **composed by agents/commands**
 ```bash
 # From Claude Code
 /plugin marketplace add ZenHive/claude-marketplace-elixir
-/plugin install core@deltahedge
+/plugin install elixir@deltahedge
 ```
 
 **Note**: Local directory marketplace loading (`/plugin marketplace add /path/to/dir`) has known bugs with cache/registry sync. Always use the GitHub format for reliable installation.
@@ -171,10 +140,10 @@ After making changes to marketplace or plugin JSON files, validate structure:
 cat .claude-plugin/marketplace.json | jq .
 
 # Check plugin.json is valid JSON
-cat plugins/core/.claude-plugin/plugin.json | jq .
+cat plugins/elixir/.claude-plugin/plugin.json | jq .
 
 # Check hooks.json is valid JSON
-cat plugins/core/hooks/hooks.json | jq .
+cat plugins/elixir/hooks/hooks.json | jq .
 ```
 
 ### Testing Plugin Hooks
@@ -186,15 +155,11 @@ The repository includes an automated test suite for plugin hooks:
 ./test/run-all-tests.sh
 
 # Run tests for a specific plugin
-./test/plugins/core/test-core-hooks.sh
-./test/plugins/credo/test-credo-hooks.sh
-./test/plugins/ash/test-ash-hooks.sh
-./test/plugins/dialyzer/test-dialyzer-hooks.sh
+./test/plugins/elixir/test-elixir-hooks.sh
 
 # Via Claude Code slash command
 /qa test                   # All plugins
-/qa test core              # Specific plugin
-/qa test ash               # Specific plugin
+/qa test elixir            # Specific plugin
 ```
 
 **Test Framework**:
@@ -223,28 +188,28 @@ See `test/README.md` for detailed documentation.
 {
   "plugins": [
     {
-      "name": "core",
-      "source": "./plugins/core"  // Correct: relative to repo root
+      "name": "elixir",
+      "source": "./plugins/elixir"  // Correct: relative to repo root
     }
   ]
 }
 ```
 
 **Common mistakes**:
-- `"source": "./core"` - Wrong: looks for `/repo-root/core` instead of `/repo-root/plugins/core`
+- `"source": "./elixir"` - Wrong: looks for `/repo-root/elixir` instead of `/repo-root/plugins/elixir`
 - `"source": "../plugins/core"` - Wrong: must start with `./`
 - Adding `"hooks": "./hooks/hooks.json"` to plugin.json - Wrong: causes duplicate hook error (hooks.json is loaded automatically)
 
 ### Troubleshooting Plugin Errors
 
 **"Plugin 'X' not found in marketplace 'Y'"**
-1. Check that `source` paths in marketplace.json start with `./` and include the full path (e.g., `./plugins/core`)
+1. Check that `source` paths in marketplace.json start with `./` and include the full path (e.g., `./plugins/elixir`)
 2. Run the cleanup script and re-add from GitHub:
    ```bash
    ./scripts/clear-cache.sh
    # Restart Claude Code, then:
    /plugin marketplace add ZenHive/claude-marketplace-elixir
-   /plugin install core@deltahedge
+   /plugin install elixir@deltahedge
    ```
 
 **"Plugin directory not found at path"**
@@ -258,8 +223,8 @@ See `test/README.md` for detailed documentation.
 
 **"Invalid schema: source must start with ./"**
 - All source paths must begin with `./` (not `../` or absolute paths)
-- Correct: `"source": "./plugins/core"`
-- Wrong: `"source": "../plugins/core"` or `"source": "/abs/path"`
+- Correct: `"source": "./plugins/elixir"`
+- Wrong: `"source": "../plugins/elixir"` or `"source": "/abs/path"`
 
 **Stale plugin references in settings**
 - Check `~/.claude/settings.json` for orphaned `enabledPlugins` entries
@@ -270,11 +235,11 @@ See `test/README.md` for detailed documentation.
 1. Run cleanup script: `./scripts/clear-cache.sh`
 2. Restart Claude Code completely (close and reopen)
 3. Re-add marketplace: `/plugin marketplace add ZenHive/claude-marketplace-elixir`
-4. Install plugins: `/plugin install core@deltahedge`
+4. Install plugins: `/plugin install elixir@deltahedge`
 
 ### Marketplace Namespace
 
-The marketplace uses the namespace `deltahedge` (defined in `marketplace.json`). Plugins are referenced as `<plugin-name>@deltahedge` (e.g., `core@deltahedge`).
+The marketplace uses the namespace `deltahedge` (defined in `marketplace.json`). Plugins are referenced as `<plugin-name>@deltahedge` (e.g., `elixir@deltahedge`).
 
 ### Hook Matcher Patterns
 
@@ -445,7 +410,7 @@ The marketplace includes a comprehensive workflow system for development:
 
 See `.claude/WORKFLOWS.md` for complete workflow documentation.
 
-**Elixir-meta Plugin**: The `elixir-meta` plugin can generate customized workflow commands for other Elixir projects via `/elixir-meta:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
+**Elixir-workflows Plugin**: The `elixir-workflows` plugin can generate customized workflow commands for other Elixir projects via `/elixir-workflows:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
 
 ## Plugin Development Tools
 

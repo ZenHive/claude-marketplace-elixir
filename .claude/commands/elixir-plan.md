@@ -351,7 +351,7 @@ Example: "Create a GenServer that manages WebSocket connections to Binance. It s
 
 **Process**:
 1. Research current auto-format hook implementation
-2. Analyze plugins/core/hooks/hooks.json and scripts
+2. Analyze plugins/elixir/hooks/hooks.json and scripts
 3. Plan modifications to:
    - Hook script to read .formatter.exs
    - Pass custom options to mix format

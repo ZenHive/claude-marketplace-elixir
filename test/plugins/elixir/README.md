@@ -1,0 +1,123 @@
+# Elixir Plugin Tests
+
+This directory contains automated tests for the elixir plugin hooks.
+
+## Running Tests
+
+### Run all elixir plugin tests:
+```bash
+./test/plugins/elixir/test-elixir-hooks.sh
+```
+
+### Run all marketplace tests:
+```bash
+./test/run-all-tests.sh
+```
+
+### Via Claude Code slash command:
+```
+/qa test elixir
+```
+
+## Test Projects
+
+The elixir plugin has three test projects with intentional issues to verify hook behavior:
+
+### 1. autoformat-test/
+- **Purpose**: Tests the auto-format hook (PostToolUse, non-blocking)
+- **Contains**: Badly formatted Elixir files
+- **Expected behavior**: Files automatically formatted after editing
+
+### 2. compile-test/
+- **Purpose**: Tests the compile check hook (PostToolUse, informational)
+- **Contains**: Elixir code with compilation errors (`undefined_var`)
+- **Expected behavior**: Compilation errors provided as context to Claude without blocking edits
+
+### 3. precommit-test/
+- **Purpose**: Tests the pre-commit validation hook (PreToolUse, blocking)
+- **Contains**:
+  - `lib/unformatted.ex` - Unformatted code
+  - `lib/compilation_error.ex` - Compilation errors
+- **Expected behavior**: Blocks git commits when validation fails
+
+## Test Coverage
+
+The automated test suite includes 27 tests:
+
+**Auto-format hook**:
+- Formats .ex files
+- Formats .exs files
+- Ignores non-Elixir files
+
+**Compile check hook**:
+- Detects compilation errors
+- Ignores non-Elixir files
+
+**Pre-commit hook**:
+- Blocks on unformatted code
+- Shows compilation errors
+- Ignores non-commit git commands
+- Ignores non-git commands
+
+**Documentation recommendation hook**:
+- Detects capitalized dependency names ("Ecto")
+- Detects lowercase dependency names ("jason")
+- Detects multiple dependencies in one prompt
+- Returns empty JSON when no dependencies mentioned
+- Handles non-Elixir projects gracefully
+- Recommends using hex-docs-search skill
+
+**Documentation recommendation on Read hook**:
+- Detects dependencies from direct module usage (Jason.decode, Ecto.Query.from)
+- Ignores non-Elixir files
+- Returns empty when file has no dependency references
+- Matches exact dependency names (Jason -> jason)
+- Excludes unrelated dependencies (Jason used but not ecto, decimal, telemetry)
+- Matches both base and specific dependencies (Phoenix.LiveView -> phoenix, phoenix_live_view)
+- Excludes unrelated dependencies with similar names (Phoenix.LiveView used but not phoenix_html, phoenix_pubsub, phoenix_template)
+
+## Hook Implementation
+
+The elixir plugin implements consolidated hooks:
+
+1. **Auto-format** (`scripts/auto-format.sh`)
+   - Trigger: After Edit/Write tools on .ex/.exs files
+   - Action: Runs `mix format {{file_path}}`
+   - Blocking: No
+
+2. **Compile check** (`scripts/compile-check.sh`)
+   - Trigger: After Edit/Write tools on .ex/.exs files
+   - Action: Runs `mix compile --warnings-as-errors`
+   - Blocking: No (provides context on errors)
+
+3. **Pre-commit validation** (`scripts/pre-commit-check.sh`)
+   - Trigger: Before `git commit` commands
+   - Action: Validates formatting, compilation, and unused deps
+   - Blocking: Yes (exit 0 with JSON permissionDecision: "deny" on failures)
+
+4. **Documentation recommendation** (`scripts/recommend-docs-lookup.sh`)
+   - Trigger: On user prompt submission
+   - Action: Detects dependencies mentioned in prompt, recommends using hex-docs-search or usage-rules skills
+   - Blocking: No (provides helpful context)
+   - Caching: Dependency list cached in `.hex-docs/deps-cache.txt`, invalidates when `mix.lock` changes
+
+5. **Documentation recommendation on Read** (`scripts/recommend-docs-on-read.sh`)
+   - Trigger: After reading .ex/.exs files
+   - Action: Detects dependency module references in file, recommends using hex-docs-search or usage-rules skills
+   - Blocking: No (provides helpful context)
+   - Caching: Shares dependency cache with UserPromptSubmit hook
+
+## Prerequisites
+
+Before running tests, ensure the test projects have dependencies installed:
+```bash
+cd test/plugins/elixir/autoformat-test && mix deps.get
+cd test/plugins/elixir/compile-test && mix deps.get
+cd test/plugins/elixir/precommit-test && mix deps.get
+```
+
+The elixir plugin must also be installed in Claude Code:
+```
+/plugin marketplace add ZenHive/claude-marketplace-elixir
+/plugin install elixir@deltahedge
+```

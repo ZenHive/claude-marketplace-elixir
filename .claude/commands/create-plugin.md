@@ -159,7 +159,7 @@ Used by: [list plugins]
 
 Example (inline approach):
 ```json
-// From .claude-plugin/plugins/core/hooks/hooks.json:7-10
+// From .claude-plugin/plugins/elixir/hooks/hooks.json:7-10
 {
   "matcher": "Edit|Write|MultiEdit",
   "hooks": [{
