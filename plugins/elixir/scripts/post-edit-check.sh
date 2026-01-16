@@ -122,7 +122,8 @@ CREDO_OUTPUT=$(mix credo "$HOOK_FILE_PATH" --ignore-checks Credo.Check.Design.Ta
 CREDO_EXIT=$?
 set -e
 
-if [[ $CREDO_EXIT -ne 0 ]] || echo "$CREDO_OUTPUT" | grep -qE '(issues|warnings|errors)'; then
+# Credo exits non-zero when issues found - don't grep for "issues" (matches "0 issues found")
+if [[ $CREDO_EXIT -ne 0 ]]; then
   CREDO_TRUNCATED=$(truncate_output "$CREDO_OUTPUT" 30 "mix credo \"$HOOK_FILE_PATH\"")
   add_section "Credo" "$CREDO_TRUNCATED"
 fi

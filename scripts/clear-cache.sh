@@ -1,47 +1,48 @@
 #!/usr/bin/env bash
 # Clear the deltahedge plugin cache and registry entries
 # Run this when plugins aren't updating properly or after major changes
+# Also cleans up legacy claude-code-elixir namespace
 
 set -e
 
-CACHE_DIR="$HOME/.claude/plugins/cache/deltahedge"
 INSTALLED_PLUGINS="$HOME/.claude/plugins/installed_plugins.json"
 
-# Clear cache directory
-if [ -d "$CACHE_DIR" ]; then
-  rm -rf "$CACHE_DIR"
-  echo "Cleared plugin cache: $CACHE_DIR"
-else
-  echo "Cache directory not found (already clean): $CACHE_DIR"
-fi
+# Namespaces to clean (current + legacy)
+NAMESPACES=("deltahedge" "claude-code-elixir")
 
-# Remove deltahedge from known_marketplaces.json
+# Clear cache directories for all namespaces
+for NS in "${NAMESPACES[@]}"; do
+  CACHE_DIR="$HOME/.claude/plugins/cache/$NS"
+  if [ -d "$CACHE_DIR" ]; then
+    rm -rf "$CACHE_DIR"
+    echo "Cleared plugin cache: $CACHE_DIR"
+  fi
+done
+
+# Remove namespaces from known_marketplaces.json
 KNOWN_MARKETPLACES="$HOME/.claude/plugins/known_marketplaces.json"
 if [ -f "$KNOWN_MARKETPLACES" ] && command -v jq &> /dev/null; then
-  if jq -e '.deltahedge' "$KNOWN_MARKETPLACES" > /dev/null 2>&1; then
-    jq 'del(.deltahedge)' "$KNOWN_MARKETPLACES" > /tmp/known_marketplaces_clean.json && \
-      mv /tmp/known_marketplaces_clean.json "$KNOWN_MARKETPLACES"
-    echo "Removed deltahedge from known_marketplaces.json"
-  else
-    echo "No deltahedge in known_marketplaces.json"
-  fi
+  for NS in "${NAMESPACES[@]}"; do
+    if jq -e ".[\"$NS\"]" "$KNOWN_MARKETPLACES" > /dev/null 2>&1; then
+      jq "del(.[\"$NS\"])" "$KNOWN_MARKETPLACES" > /tmp/known_marketplaces_clean.json && \
+        mv /tmp/known_marketplaces_clean.json "$KNOWN_MARKETPLACES"
+      echo "Removed $NS from known_marketplaces.json"
+    fi
+  done
 fi
 
-# Remove deltahedge entries from installed_plugins.json
+# Remove entries from installed_plugins.json for all namespaces
 # This prevents "already installed" errors with stale project paths
 if [ -f "$INSTALLED_PLUGINS" ] && command -v jq &> /dev/null; then
-  # Check if there are any deltahedge entries
-  COUNT=$(jq '[.plugins | keys[] | select(contains("deltahedge"))] | length' "$INSTALLED_PLUGINS" 2>/dev/null)
-
-  if [ "$COUNT" -gt 0 ]; then
-    # Filter out all deltahedge plugins in one jq call
-    jq '.plugins = (.plugins | with_entries(select(.key | contains("deltahedge") | not)))' \
-      "$INSTALLED_PLUGINS" > /tmp/installed_plugins_clean.json && \
-      mv /tmp/installed_plugins_clean.json "$INSTALLED_PLUGINS"
-    echo "Removed $COUNT deltahedge entries from installed_plugins.json"
-  else
-    echo "No deltahedge entries in installed_plugins.json"
-  fi
+  for NS in "${NAMESPACES[@]}"; do
+    COUNT=$(jq "[.plugins | keys[] | select(contains(\"$NS\"))] | length" "$INSTALLED_PLUGINS" 2>/dev/null)
+    if [ "$COUNT" -gt 0 ]; then
+      jq ".plugins = (.plugins | with_entries(select(.key | contains(\"$NS\") | not)))" \
+        "$INSTALLED_PLUGINS" > /tmp/installed_plugins_clean.json && \
+        mv /tmp/installed_plugins_clean.json "$INSTALLED_PLUGINS"
+      echo "Removed $COUNT $NS entries from installed_plugins.json"
+    fi
+  done
 else
   if [ ! -f "$INSTALLED_PLUGINS" ]; then
     echo "installed_plugins.json not found (nothing to clean)"
@@ -50,23 +51,22 @@ else
   fi
 fi
 
-# Remove deltahedge entries from enabledPlugins in settings.json
+# Remove entries from enabledPlugins in settings.json for all namespaces
 SETTINGS_FILE="$HOME/.claude/settings.json"
 if [ -f "$SETTINGS_FILE" ] && command -v jq &> /dev/null; then
-  # Check if there are any deltahedge entries in enabledPlugins
-  COUNT=$(jq '[.enabledPlugins // {} | keys[] | select(contains("deltahedge"))] | length' "$SETTINGS_FILE" 2>/dev/null)
-
-  if [ "$COUNT" -gt 0 ]; then
-    # Filter out all deltahedge plugins from enabledPlugins
-    jq '.enabledPlugins = (.enabledPlugins // {} | with_entries(select(.key | contains("deltahedge") | not)))' \
-      "$SETTINGS_FILE" > /tmp/settings_clean.json && \
-      mv /tmp/settings_clean.json "$SETTINGS_FILE"
-    echo "Removed $COUNT deltahedge entries from settings.json enabledPlugins"
-  else
-    echo "No deltahedge entries in settings.json enabledPlugins"
-  fi
+  for NS in "${NAMESPACES[@]}"; do
+    COUNT=$(jq "[.enabledPlugins // {} | keys[] | select(contains(\"$NS\"))] | length" "$SETTINGS_FILE" 2>/dev/null)
+    if [ "$COUNT" -gt 0 ]; then
+      jq ".enabledPlugins = (.enabledPlugins // {} | with_entries(select(.key | contains(\"$NS\") | not)))" \
+        "$SETTINGS_FILE" > /tmp/settings_clean.json && \
+        mv /tmp/settings_clean.json "$SETTINGS_FILE"
+      echo "Removed $COUNT $NS entries from settings.json enabledPlugins"
+    fi
+  done
 fi
 
+echo ""
+echo "Cleaned namespaces: ${NAMESPACES[*]}"
 echo ""
 echo "Next steps:"
 echo "  1. Restart Claude Code"
