@@ -1,18 +1,6 @@
 {
-  "description": "Sobelow security analysis with context-aware feedback",
+  "description": "Sobelow security analysis - pre-commit validation only (post-edit moved to core)",
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/post-edit-check.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",

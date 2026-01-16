@@ -4,6 +4,19 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**Post-Edit Hook Consolidation (12 → 2 hooks)**
+- Consolidated 12 post-edit hooks into 2 focused scripts (83% reduction)
+- New `post-edit-check.sh`: format, compile, credo, sobelow, doctor, struct-hint, hidden-failures, mixexs-check
+- New `ash-codegen-check.sh`: Ash codegen validation (only runs if Ash dep exists)
+- Doctor now replaces grep-based typespec/typedoc/private-docs checks (authoritative source)
+- **Fail loud**: Errors immediately if credo, sobelow, or doctor deps missing (required, not optional)
+- Dialyzer stays pre-commit only (too slow for post-edit at 2-10+ seconds)
+- Archived 8 deprecated scripts to `plugins/core/scripts/_deprecated/`
+- Updated hooks.json in: core, credo, sobelow, ash, struct-reminder
+- core: 1.11.0 → 1.12.0
+
 ### Added
 
 **New Plugin: elixir-lsp**

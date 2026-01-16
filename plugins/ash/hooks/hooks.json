@@ -1,18 +1,6 @@
 {
-  "description": "Ash Framework code generation validation and automation",
+  "description": "Ash Framework code generation - pre-commit validation only (post-edit moved to core)",
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/post-edit-check.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",

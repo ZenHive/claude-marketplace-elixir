@@ -1,18 +1,6 @@
 {
-  "description": "Credo static code analysis with context-aware feedback",
+  "description": "Credo static code analysis - pre-commit validation only (post-edit moved to core)",
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/post-edit-check.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
