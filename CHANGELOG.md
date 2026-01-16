@@ -4,6 +4,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Fixed
+
+**Plugin Cache Shared Library Bug**
+- Fixed post-edit hooks failing in cached plugins due to missing `_shared/` directory
+- Changed `post-edit-check.sh` and `ash-codegen-check.sh` to use local `../lib/` instead of `../../_shared/`
+- Elixir plugin is now fully self-contained and works correctly when cached
+- elixir: 1.13.0 → 1.13.1
+
 ### Changed
 
 **Post-Edit Hook Consolidation (12 → 2 hooks)**

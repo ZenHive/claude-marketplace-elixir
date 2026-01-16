@@ -6,8 +6,8 @@
 set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../_shared/lib.sh"
-source "$SCRIPT_DIR/../../_shared/postedit-utils.sh"
+source "$SCRIPT_DIR/../lib/lib.sh"
+source "$SCRIPT_DIR/../lib/postedit-utils.sh"
 
 # ============================================================================
 # Configuration

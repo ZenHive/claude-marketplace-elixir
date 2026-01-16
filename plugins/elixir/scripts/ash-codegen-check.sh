@@ -7,8 +7,8 @@
 set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../_shared/lib.sh"
-source "$SCRIPT_DIR/../../_shared/postedit-utils.sh"
+source "$SCRIPT_DIR/../lib/lib.sh"
+source "$SCRIPT_DIR/../lib/postedit-utils.sh"
 
 # Only run if project has Ash dependency
 postedit_setup_with_dep "ash" || { emit_suppress_json; exit 0; }
