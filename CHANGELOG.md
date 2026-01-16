@@ -31,6 +31,12 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**New Plugin: phoenix**
+- Extracted 5 Phoenix-specific skills from core plugin
+- Skills: phoenix-patterns, phoenix-scope, phoenix-js, daisyui, nexus-template
+- Non-Phoenix projects no longer see irrelevant skills
+- Location: `plugins/phoenix/`
+
 **New Plugin: elixir-lsp**
 - Expert LSP integration - the official Elixir language server
 - Configures Claude Code's LSP tool for Elixir files (.ex, .exs, .heex, .leex)

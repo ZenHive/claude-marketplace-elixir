@@ -18,6 +18,14 @@
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
+      "name": "phoenix",
+      "source": "./plugins/phoenix",
+      "description": "Phoenix framework patterns, LiveView, and UI component skills",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+      "license": "MIT",
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
+    },
+    {
       "name": "credo",
       "source": "./plugins/credo",
       "description": "Credo static code analysis for Elixir projects",

@@ -1,0 +1,12 @@
+{
+  "name": "phoenix",
+  "version": "1.0.0",
+  "description": "Phoenix framework patterns, LiveView, and UI component skills",
+  "author": {
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive"
+  },
+  "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+  "license": "MIT",
+  "keywords": ["phoenix", "liveview", "heex", "daisyui", "tailwind"]
+}

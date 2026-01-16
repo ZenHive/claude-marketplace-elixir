@@ -308,14 +308,25 @@ plugins/
 
 ---
 
-### Task 3: Create phoenix Plugin [D:3/B:5 → Priority:1.67] 🚀
+### Task 3: Create phoenix Plugin ✅ COMPLETED
 
-Extract from core:
-- phoenix-patterns
-- phoenix-scope
-- phoenix-js
-- daisyui (Phoenix-adjacent)
-- nexus-template (Phoenix admin template)
+**Result**: Extracted 5 Phoenix-specific skills from core to new phoenix plugin
+
+**Implemented**:
+
+| Skill | Description |
+|-------|-------------|
+| **phoenix-patterns** | Phoenix 1.8 framework patterns - templates, forms, LiveView, routing |
+| **phoenix-scope** | Scope patterns, user-scoped data, extending scope |
+| **phoenix-js** | Hooks, JS commands, event bindings, loading states |
+| **daisyui** | daisyUI 5 + Tailwind v4, semantic colors, component patterns |
+| **nexus-template** | Nexus Phoenix admin template, Iconify icons, partials |
+
+**Files changed**:
+- Created: `plugins/phoenix/.claude-plugin/plugin.json`
+- Created: `plugins/phoenix/README.md`
+- Moved: 5 skills from `plugins/core/skills/` to `plugins/phoenix/skills/`
+- Updated: `.claude-plugin/marketplace.json` (added phoenix plugin)
 
 **Benefits**:
 - Non-Phoenix projects don't see irrelevant skills
