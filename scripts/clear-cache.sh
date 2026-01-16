@@ -50,6 +50,23 @@ else
   fi
 fi
 
+# Remove deltahedge entries from enabledPlugins in settings.json
+SETTINGS_FILE="$HOME/.claude/settings.json"
+if [ -f "$SETTINGS_FILE" ] && command -v jq &> /dev/null; then
+  # Check if there are any deltahedge entries in enabledPlugins
+  COUNT=$(jq '[.enabledPlugins // {} | keys[] | select(contains("deltahedge"))] | length' "$SETTINGS_FILE" 2>/dev/null)
+
+  if [ "$COUNT" -gt 0 ]; then
+    # Filter out all deltahedge plugins from enabledPlugins
+    jq '.enabledPlugins = (.enabledPlugins // {} | with_entries(select(.key | contains("deltahedge") | not)))' \
+      "$SETTINGS_FILE" > /tmp/settings_clean.json && \
+      mv /tmp/settings_clean.json "$SETTINGS_FILE"
+    echo "Removed $COUNT deltahedge entries from settings.json enabledPlugins"
+  else
+    echo "No deltahedge entries in settings.json enabledPlugins"
+  fi
+fi
+
 echo ""
 echo "Next steps:"
 echo "  1. Restart Claude Code"

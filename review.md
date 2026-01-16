@@ -346,6 +346,68 @@ plugins/
 
 ---
 
+### Task 5: Consolidate Plugins (17 → 8) [D:3/B:7 → Priority:2.33] 🚀
+
+**Problem**: After hook consolidation, 9 plugins are empty shells with no functionality. They add complexity without value.
+
+**Delete these plugins** (hooks already in core, dependency detection is dynamic):
+
+| Plugin | Status | Reason for Deletion |
+|--------|--------|---------------------|
+| credo | Empty hooks.json | Functionality in core pre-commit-unified.sh |
+| dialyzer | Empty hooks.json | Functionality in core pre-commit-unified.sh |
+| sobelow | Empty hooks.json | Functionality in core pre-commit-unified.sh |
+| ex_doc | Empty hooks.json | Functionality in core pre-commit-unified.sh |
+| mix_audit | Empty hooks.json | Functionality in core pre-commit-unified.sh |
+| ex_unit | Empty hooks.json | Functionality in core pre-commit-unified.sh |
+| precommit | Empty hooks.json | Functionality in core pre-commit-unified.sh |
+| doctor | Empty hooks.json | Functionality in core pre-commit-unified.sh |
+| ash | Empty hooks.json | Functionality in core (ash-codegen-check.sh) |
+| struct-reminder | Empty hooks.json | Functionality in core post-edit-check.sh |
+
+**Keep and rename these plugins** (have actual functionality):
+
+| Current Name | New Name | Reason |
+|--------------|----------|--------|
+| core | **elixir** | More descriptive - this is the main Elixir plugin |
+| phoenix | phoenix | Keep as-is - clear purpose |
+| elixir-meta | **elixir-workflows** | More descriptive - contains workflow commands |
+| git | **git-commit** | More specific - it's about commit workflow |
+| serena | serena | Keep as-is - MCP integration |
+| notifications | notifications | Keep as-is - clear purpose |
+| claude-md-includes | **md-includes** | Shorter, still clear |
+| elixir-lsp | elixir-lsp | Keep as-is - clear purpose |
+
+**Final structure (8 plugins):**
+
+```
+plugins/
+├── elixir/              # Was: core - Main hooks, shared lib, essential skills
+├── phoenix/             # Phoenix-specific skills
+├── elixir-workflows/    # Was: elixir-meta - Workflow commands
+├── git-commit/          # Was: git - Commit workflow
+├── serena/              # MCP integration
+├── notifications/       # OS notifications
+├── md-includes/         # Was: claude-md-includes - Include processing
+└── elixir-lsp/          # LSP integration
+```
+
+**Implementation steps:**
+1. Delete 10 empty plugin directories
+2. Rename 4 plugins (core→elixir, elixir-meta→elixir-workflows, git→git-commit, claude-md-includes→md-includes)
+3. Update marketplace.json with new names and reduced plugin list
+4. Update any cross-references in READMEs
+5. Update scripts/clear-cache.sh with new namespace references
+6. Bump marketplace version
+
+**Benefits:**
+- 53% reduction in plugins (17 → 8)
+- Clearer naming convention
+- No empty shell plugins cluttering the marketplace
+- Simpler installation for users
+
+---
+
 ## Configuration System Recommendation
 
 Add a `quality-gates.config.json` file:
