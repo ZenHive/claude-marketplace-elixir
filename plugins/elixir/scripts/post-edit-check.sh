@@ -191,7 +191,7 @@ if [[ "$HOOK_FILE_PATH" =~ \.ex$ ]] && [[ ! "$HOOK_FILE_PATH" =~ _test\.exs$ ]] 
       fi
 
       # Heuristic 3: Repeated map patterns
-      MAP_KEYS=$(echo "$CONTENT" | grep -oE '%\{[^}]+\}' | sed 's/:[^,}]*//g' | sort | uniq -d)
+      MAP_KEYS=$(echo "$CONTENT" | grep -oE '%\{[^}]+\}' 2>/dev/null | sed 's/:[^,}]*//g' | sort | uniq -d || true)
       if [[ -n "$MAP_KEYS" ]]; then
         STRUCT_REASONS="${STRUCT_REASONS}- Found repeated map patterns with same keys\n"
       fi

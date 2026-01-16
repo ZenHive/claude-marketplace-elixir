@@ -6,6 +6,11 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Fixed
 
+**Post-edit struct hint grep failure**
+- Fixed `post-edit-check.sh` struct hint heuristic failing when no map patterns found
+- Added `|| true` to grep pipeline to handle empty matches with `set -eo pipefail`
+- elixir: 1.13.4 → 1.13.5
+
 **Pre-commit hook suppressOutput**
 - Fixed `pre-commit-unified.sh` not emitting `{"suppressOutput": true}` for non-commit commands
 - Hooks should always emit proper JSON output, not exit silently
