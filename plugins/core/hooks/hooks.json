@@ -43,8 +43,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/pre-commit-check.sh",
-            "timeout": 45
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/pre-commit-unified.sh",
+            "timeout": 180
           },
           {
             "type": "command",

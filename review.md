@@ -284,20 +284,27 @@ plugins/
 
 ---
 
-### Task 2: Create quality-gates Plugin [D:5/B:9 → Priority:1.8] 🚀
+### Task 2: Consolidate Pre-Commit Hooks ✅ COMPLETED
 
-Merge: credo, dialyzer, sobelow, ex_doc, mix_audit, ex_unit, precommit, doctor
+**Result**: 10 hooks → 1 hook (90% reduction)
 
-**Single pre-commit-check.sh that**:
-1. Checks for `mix precommit` alias first (defer if exists)
-2. Runs each tool based on `has_mix_dependency()`
-3. Aggregates all failures into one report
-4. Respects user config for which checks are enabled
+**Implemented**:
 
-**Benefits**:
-- 1 hook call instead of 9
-- Single source of truth for quality configuration
-- Users can disable checks they don't want
+| New Hook | Runs | Location |
+|----------|------|----------|
+| **pre-commit-unified.sh** | format, compile, deps.unlock, credo, test --stale, doctor, sobelow, dialyzer, mix_audit, ash.codegen, ex_doc | `plugins/core/scripts/` |
+
+**Key decisions**:
+- Defers to `mix precommit` alias if exists (Phoenix 1.8+ standard)
+- 180s timeout to accommodate dialyzer analysis time
+- Always runs: format, compile, deps.unlock, credo
+- Conditional: test (if test/ exists), others (if deps exist)
+
+**Files changed**:
+- Created: `plugins/core/scripts/pre-commit-unified.sh`
+- Updated: `plugins/core/hooks/hooks.json` (new script, 180s timeout)
+- Emptied: `plugins/{credo,dialyzer,sobelow,ex_doc,mix_audit,ex_unit,precommit,doctor,ash}/hooks/hooks.json`
+- Archived: 10 old scripts to respective `_deprecated/` directories
 
 ---
 

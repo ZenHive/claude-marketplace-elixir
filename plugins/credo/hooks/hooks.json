@@ -1,17 +1,4 @@
 {
-  "description": "Credo static code analysis - pre-commit validation only (post-edit moved to core)",
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/pre-commit-check.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  }
+  "description": "Credo static code analysis - functionality moved to core pre-commit-unified.sh",
+  "hooks": {}
 }

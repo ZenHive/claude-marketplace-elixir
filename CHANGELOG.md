@@ -17,6 +17,18 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 - Updated hooks.json in: core, credo, sobelow, ash, struct-reminder
 - core: 1.11.0 → 1.12.0
 
+**Pre-Commit Hook Consolidation (10 → 1 hook)**
+- Consolidated 10 pre-commit hooks into 1 unified script (90% reduction)
+- New `pre-commit-unified.sh` runs ALL quality checks in sequence:
+  - Always: format, compile, deps.unlock, credo
+  - If test/ exists: mix test --stale
+  - If deps exist: doctor, sobelow, dialyzer, mix_audit, ash.codegen, ex_doc
+- Defers to `mix precommit` alias if it exists (Phoenix 1.8+ standard)
+- 180s timeout to accommodate dialyzer analysis time
+- Emptied hooks in: credo, dialyzer, sobelow, ex_doc, mix_audit, ex_unit, precommit, doctor, ash
+- Archived 10 deprecated scripts to respective `_deprecated/` directories
+- core: 1.12.0 → 1.13.0
+
 ### Added
 
 **New Plugin: elixir-lsp**
