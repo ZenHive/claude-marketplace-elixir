@@ -103,9 +103,9 @@ fi
 # -----------------------------------------------------------------------------
 
 if [ -d "$PROJECT_ROOT/test" ]; then
-  TEST_OUTPUT=$(mix test.json --quiet --stale --summary-only 2>&1)
+  TEST_OUTPUT=$(mix test.json --quiet --stale --failures-only 2>&1)
   if [ $? -ne 0 ]; then
-    TEST_OUTPUT=$(truncate_output "$TEST_OUTPUT" 30 "mix test.json --quiet --stale --summary-only")
+    TEST_OUTPUT=$(truncate_output "$TEST_OUTPUT" 30 "mix test.json --quiet --stale --failures-only")
     ERRORS="${ERRORS}## Test Failures\n${TEST_OUTPUT}\n\n"
   fi
 fi
