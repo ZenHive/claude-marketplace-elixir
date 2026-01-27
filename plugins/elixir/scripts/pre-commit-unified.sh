@@ -91,9 +91,9 @@ if ! has_mix_dependency "credo" "$PROJECT_ROOT"; then
   ERRORS="${ERRORS}## Missing Required Dependency: credo\nAdd {:credo, \"~> 1.7\", only: [:dev, :test], runtime: false} to mix.exs\n\n"
 else
   # Exclude TODO/FIXME checks - these are intentional documentation
-  CREDO_OUTPUT=$(mix credo --strict --ignore-checks Credo.Check.Design.TagTODO,Credo.Check.Design.TagFIXME 2>&1)
+  CREDO_OUTPUT=$(mix credo --strict --format oneline --no-color --ignore-checks Credo.Check.Design.TagTODO,Credo.Check.Design.TagFIXME 2>&1)
   if [ $? -ne 0 ]; then
-    CREDO_OUTPUT=$(truncate_output "$CREDO_OUTPUT" 30 "mix credo --strict")
+    CREDO_OUTPUT=$(truncate_output "$CREDO_OUTPUT" 30 "mix credo --strict --format oneline --no-color")
     ERRORS="${ERRORS}## Credo Issues\n${CREDO_OUTPUT}\n\n"
   fi
 fi
@@ -115,9 +115,9 @@ fi
 # -----------------------------------------------------------------------------
 
 if has_mix_dependency "doctor" "$PROJECT_ROOT"; then
-  DOCTOR_OUTPUT=$(mix doctor 2>&1)
+  DOCTOR_OUTPUT=$(mix doctor --summary --failed 2>&1)
   if [ $? -ne 0 ]; then
-    DOCTOR_OUTPUT=$(truncate_output "$DOCTOR_OUTPUT" 20 "mix doctor")
+    DOCTOR_OUTPUT=$(truncate_output "$DOCTOR_OUTPUT" 20 "mix doctor --summary --failed")
     ERRORS="${ERRORS}## Doctor Issues\n${DOCTOR_OUTPUT}\n\n"
   fi
 fi

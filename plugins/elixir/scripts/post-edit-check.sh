@@ -118,13 +118,13 @@ fi
 
 set +e
 # Exclude TODO/FIXME checks - intentional documentation
-CREDO_OUTPUT=$(mix credo "$HOOK_FILE_PATH" --ignore-checks Credo.Check.Design.TagTODO,Credo.Check.Design.TagFIXME 2>&1)
+CREDO_OUTPUT=$(mix credo "$HOOK_FILE_PATH" --format oneline --no-color --ignore-checks Credo.Check.Design.TagTODO,Credo.Check.Design.TagFIXME 2>&1)
 CREDO_EXIT=$?
 set -e
 
 # Credo exits non-zero when issues found - don't grep for "issues" (matches "0 issues found")
 if [[ $CREDO_EXIT -ne 0 ]]; then
-  CREDO_TRUNCATED=$(truncate_output "$CREDO_OUTPUT" 30 "mix credo \"$HOOK_FILE_PATH\"")
+  CREDO_TRUNCATED=$(truncate_output "$CREDO_OUTPUT" 30 "mix credo \"$HOOK_FILE_PATH\" --format oneline --no-color")
   add_section "Credo" "$CREDO_TRUNCATED"
 fi
 
@@ -156,12 +156,12 @@ fi
 # ============================================================================
 
 set +e
-DOCTOR_OUTPUT=$(mix doctor 2>&1)
+DOCTOR_OUTPUT=$(mix doctor --summary --failed 2>&1)
 DOCTOR_EXIT=$?
 set -e
 
 if [[ $DOCTOR_EXIT -ne 0 ]]; then
-  DOCTOR_TRUNCATED=$(truncate_output "$DOCTOR_OUTPUT" 30 "mix doctor")
+  DOCTOR_TRUNCATED=$(truncate_output "$DOCTOR_OUTPUT" 30 "mix doctor --summary --failed")
   add_section "Doctor (docs/specs)" "$DOCTOR_TRUNCATED"
 fi
 

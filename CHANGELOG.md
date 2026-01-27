@@ -4,6 +4,15 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**Concise output for Credo and Doctor in hooks**
+- Added `--format oneline --no-color` to Credo commands for single-line output
+- Added `--summary --failed` to Doctor commands for focused failure reporting
+- Reduces noise in hook feedback, makes issues more actionable
+- Updated both `post-edit-check.sh` and `pre-commit-unified.sh`
+- elixir: 1.13.7 → 1.13.8
+
 ### Fixed
 
 **Post-edit struct hint grep failure**
