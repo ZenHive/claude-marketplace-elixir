@@ -4,6 +4,16 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**dialyzer_json Support**
+- New PreToolUse hook `prefer-dialyzer-json.sh` blocks `mix dialyzer` and redirects to `mix dialyzer.json`
+- Updated `pre-commit-unified.sh` to use `mix dialyzer.json --quiet` for AI-friendly JSON output
+- Filters for `fix_hint == "code"` warnings only (real bugs, not spec issues)
+- Projects without `dialyzer_json` dependency skip dialyzer check entirely (no fallback)
+- Provides installation instructions when blocked
+- elixir: 1.13.8 → 1.13.9
+
 ### Changed
 
 **Concise output for Credo and Doctor in hooks**

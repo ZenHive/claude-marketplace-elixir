@@ -36,6 +36,8 @@ claude
 
 **PreToolUse - Before running tests:**
 - ✅ **Suggest --failed** - On 2nd consecutive `mix test`, suggests `--failed --trace` to speed up test-fix cycles
+- ✅ **Prefer test.json** - Blocks `mix test` and redirects to `mix test.json` for AI-friendly output
+- ✅ **Prefer dialyzer.json** - Blocks `mix dialyzer` and redirects to `mix dialyzer.json` for AI-friendly output
 
 **UserPromptSubmit - On user input:**
 - ✅ **Documentation recommendation** - Suggests using documentation skills when prompt mentions project dependencies
@@ -79,6 +81,8 @@ See [skills/usage-rules/SKILL.md](skills/usage-rules/SKILL.md) for details.
 | suggest-test-failed | 5s | Counter check and JSON output |
 | reset-test-tracker | 5s | Check output for "0 failures" |
 | recommend-docs-lookup | 10s | Dependency matching in user prompt |
+| prefer-test-json | 5s | Command pattern matching |
+| prefer-dialyzer-json | 5s | Command pattern matching |
 
 ## Hooks Behavior
 
@@ -161,6 +165,18 @@ mix deps.unlock --check-unused
   - Tests pass (0 failures in output)
   - 10 minutes elapse between test runs
 - **Why this matters**: Running full test suite repeatedly while fixing failures wastes time
+
+### Prefer test.json (Blocking)
+- Intercepts `mix test` commands and blocks them
+- Allows `mix test.json` variants to pass through
+- Provides installation instructions for `ex_unit_json` if not installed
+- **Why this matters**: JSON output is easier for AI to parse and analyze
+
+### Prefer dialyzer.json (Blocking)
+- Intercepts `mix dialyzer` commands and blocks them
+- Allows `mix dialyzer.json` variants to pass through
+- Provides installation instructions for `dialyzer_json` if not installed
+- **Why this matters**: JSON output is easier for AI to parse and analyze
 
 ### Documentation Recommendation (Non-blocking)
 - Runs when user submits a prompt

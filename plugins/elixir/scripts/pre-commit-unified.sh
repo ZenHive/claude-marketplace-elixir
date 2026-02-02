@@ -141,13 +141,25 @@ fi
 
 # -----------------------------------------------------------------------------
 # Optional: Dialyzer (static type analysis) - SLOW but thorough
+# Requires dialyzer_json for AI-friendly output. Projects without it skip dialyzer.
 # -----------------------------------------------------------------------------
 
-if has_mix_dependency "dialyxir" "$PROJECT_ROOT"; then
-  DIALYZER_OUTPUT=$(mix dialyzer 2>&1)
-  if [ $? -ne 0 ]; then
-    DIALYZER_OUTPUT=$(truncate_output "$DIALYZER_OUTPUT" 20 "mix dialyzer")
-    ERRORS="${ERRORS}## Type Errors (Dialyzer)\n${DIALYZER_OUTPUT}\n\n"
+if has_mix_dependency "dialyzer_json" "$PROJECT_ROOT"; then
+  # Exit code 2 = warnings found (still valid JSON output)
+  DIALYZER_OUTPUT=$(mix dialyzer.json --quiet 2>&1)
+  DIALYZER_EXIT=$?
+
+  if [ $DIALYZER_EXIT -ne 0 ]; then
+    # Extract only "code" fix_hint warnings (real bugs, not spec issues)
+    # fix_hint values: "code" = real bug, "spec" = spec needs update, "pattern" = unreachable code
+    CODE_WARNINGS=$(echo "$DIALYZER_OUTPUT" | jq -r '.warnings // [] | map(select(.fix_hint == "code")) | length' 2>/dev/null || echo "0")
+
+    if [ "$CODE_WARNINGS" != "0" ] && [ "$CODE_WARNINGS" != "" ]; then
+      # Show only code warnings (real bugs)
+      FILTERED_OUTPUT=$(echo "$DIALYZER_OUTPUT" | jq -r '.warnings // [] | map(select(.fix_hint == "code")) | .[] | "\(.file):\(.line): \(.message)"' 2>/dev/null || echo "$DIALYZER_OUTPUT")
+      FILTERED_OUTPUT=$(truncate_output "$FILTERED_OUTPUT" 20 "mix dialyzer.json --quiet")
+      ERRORS="${ERRORS}## Type Errors (Dialyzer)\n${FILTERED_OUTPUT}\n\nShowing ${CODE_WARNINGS} real bugs (fix_hint=code). Run \`mix dialyzer.json --quiet\` for full output.\n\n"
+    fi
   fi
 fi
 
