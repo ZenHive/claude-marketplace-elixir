@@ -33,13 +33,52 @@ claude
 
 | Plugin | Description |
 |--------|-------------|
-| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + skills (hex-docs-search, usage-rules) |
+| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 15 skills |
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns, LiveView, scope, JS hooks, daisyUI, Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
 | [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
 | [md-includes](./plugins/md-includes/README.md) | Process @include directives in CLAUDE.md for composable instructions |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 | [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
+
+## Available Skills (22)
+
+**Elixir plugin** (15 skills):
+
+| Skill | Description |
+|-------|-------------|
+| hex-docs-search | Research Hex package API docs — function signatures, module docs, typespecs |
+| usage-rules | Package-specific coding conventions, patterns, and best practices |
+| api-consumer | Macro-based API client generation for REST APIs with 10+ endpoints |
+| development-commands | Mix commands reference — test.json, dialyzer.json, credo JSON, builds |
+| dialyzer-json | AI-friendly Dialyzer output with `mix dialyzer.json` |
+| ex-unit-json | AI-friendly test output with `mix test.json` |
+| elixir-setup | Standard project setup — Styler, Credo, Dialyxir, Doctor, Tidewave |
+| tidewave-guide | Tidewave MCP tools for runtime Elixir app interaction |
+| web-command | When to use `web` command vs `WebFetch` tool |
+| integration-testing | Integration testing patterns — credential handling, external APIs |
+| popcorn | Run Elixir in the browser via WebAssembly |
+| git-worktrees | Run multiple Claude Code sessions in parallel |
+| zen-websocket | ZenWebsocket library for WebSocket connections |
+| roadmap-planning | Prioritized roadmaps with D/B scoring |
+| meta-development | Elixir macros, code generators, DSLs — solve for N, not 1 |
+
+**Phoenix plugin** (6 skills):
+
+| Skill | Description |
+|-------|-------------|
+| daisyui | daisyUI 5 + Tailwind CSS v4 component patterns |
+| nexus-template | Nexus Phoenix admin dashboard template |
+| phoenix-js | Phoenix JavaScript — hooks, JS commands, channels, presence |
+| phoenix-patterns | Phoenix 1.8+ patterns — LiveView forms, streams, HEEx |
+| phoenix-scope | Phoenix 1.8+ Scope struct for authorization |
+| phoenix-setup | Phoenix project setup — phx.gen.auth, Sobelow, LiveDebugger |
+
+**Elixir-workflows plugin** (1 skill):
+
+| Skill | Description |
+|-------|-------------|
+| workflow-generator | Generate customized workflow commands for your project |
 
 ## License
 

@@ -16,8 +16,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @include ~/.claude/includes/elixir-patterns.md
 
-@include ~/.claude/includes/api-integration.md
-
 @include ~/.claude/includes/library-design.md
 
 ## Repository Purpose
@@ -88,37 +86,48 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills
+### Skills (22 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
-**Elixir plugin** - Research and best practices skills:
-1. **hex-docs-search** (elixir@deltahedge): Searches Hex package documentation with progressive fetch strategy
-   - Searches local deps → fetched cache → fetches if needed → HexDocs API → web search
-   - Stores fetched docs in `.hex-docs/` and source in `.hex-packages/`
-   - Provides API documentation, function signatures, and usage examples
-   - See `plugins/elixir/skills/hex-docs-search/SKILL.md`
+**Elixir plugin** (15 skills):
 
-2. **usage-rules** (elixir@deltahedge): Searches package-specific usage rules and best practices
-   - Searches local deps → fetched cache → fetches if needed
-   - Stores fetched rules in `.usage-rules/<package>-<version>/`
-   - Provides coding conventions, patterns, and good/bad examples
-   - Context-aware section extraction based on coding context
-   - See `plugins/elixir/skills/usage-rules/SKILL.md`
+| Skill | Description |
+|-------|-------------|
+| hex-docs-search | Research Hex package API docs — function signatures, module docs, typespecs |
+| usage-rules | Package-specific coding conventions, patterns, and best practices |
+| api-consumer | Macro-based API client generation for REST APIs with 10+ similar endpoints |
+| development-commands | Mix commands reference — test.json, dialyzer.json, credo JSON, builds |
+| dialyzer-json | AI-friendly Dialyzer output with `mix dialyzer.json` — fix hints, grouping |
+| ex-unit-json | AI-friendly test output with `mix test.json` — flags, workflows, jq patterns |
+| elixir-setup | Standard project setup — deps (Styler, Credo, Dialyxir, Doctor, Tidewave) |
+| tidewave-guide | Tidewave MCP tools for runtime Elixir app interaction |
+| web-command | When to use `web` command vs `WebFetch` tool for browsing |
+| integration-testing | Integration testing patterns — credential handling, external APIs |
+| popcorn | Popcorn: run Elixir in the browser via WebAssembly |
+| git-worktrees | Run multiple Claude Code sessions in parallel using git worktrees |
+| zen-websocket | ZenWebsocket library for WebSocket connections with reconnection |
+| roadmap-planning | Prioritized roadmaps with D/B scoring for task lists |
+| meta-development | Elixir macros, code generators, DSLs — solve for N, not 1 |
 
-**Elixir-workflows plugin** - Workflow generation skill:
-1. **workflow-generator** (elixir-workflows@deltahedge): Generates project-specific workflow commands
-   - Creates customized research, plan, implement, and QA commands
-   - Asks questions about project structure and preferences
-   - Outputs slash commands tailored to project needs
-   - See `plugins/elixir-workflows/skills/workflow-generator/SKILL.md`
+**Phoenix plugin** (6 skills):
 
-**Skill Composition**:
-Skills are designed to be **single-purpose** and **composed by agents/commands**:
-- `usage-rules` provides conventions and patterns (how to use correctly)
-- `hex-docs-search` provides API documentation (what's available)
-- Agents can invoke both for comprehensive guidance ("best practices + API")
-- Skills remain independent, composition happens through higher-level constructs
+| Skill | Description |
+|-------|-------------|
+| daisyui | daisyUI 5 + Tailwind CSS v4 component patterns for LiveView |
+| nexus-template | Nexus Phoenix admin dashboard template with Iconify icons |
+| phoenix-js | Phoenix JavaScript client-side patterns — hooks, JS commands, channels |
+| phoenix-patterns | Phoenix 1.8+ framework patterns — LiveView forms, streams, HEEx |
+| phoenix-scope | Phoenix 1.8+ Scope struct for authorization and user-scoped data |
+| phoenix-setup | Phoenix project setup — phx.gen.auth, Sobelow, LiveDebugger, formatter |
+
+**Elixir-workflows plugin** (1 skill):
+
+| Skill | Description |
+|-------|-------------|
+| workflow-generator | Generate customized workflow commands (research, plan, implement, qa) |
+
+**Skill Composition**: Skills are single-purpose and composed by agents/commands. `usage-rules` provides conventions (how to use correctly), `hex-docs-search` provides API docs (what's available). Agents can invoke both for comprehensive guidance.
 
 ## Development Commands
 
