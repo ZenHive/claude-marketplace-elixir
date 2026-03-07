@@ -1,6 +1,6 @@
 ---
 name: phoenix-scope
-description: Phoenix 1.8 Scope patterns for user-scoped data, authorization, and extending scope with custom fields like exchange capabilities.
+description: Phoenix 1.8+ Scope struct patterns for authorization and user-scoped data. Use when implementing user-scoped queries, role-based authorization, or extending Scope with custom fields (e.g., exchange capabilities, tenant context). Covers Scope creation, plug integration, and LiveView scope access.
 allowed-tools: Read
 ---
 

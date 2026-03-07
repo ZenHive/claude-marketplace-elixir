@@ -1,6 +1,6 @@
 ---
 name: roadmap-planning
-description: Create prioritized task lists and roadmaps with D/B (Difficulty/Benefit) scoring. Use when planning features, refactors, or any multi-task work. Provides ROI-based prioritization, phase organization, and dependency tracking.
+description: Create prioritized roadmaps and task lists with D/B (Difficulty/Benefit) scoring. Use when planning features, organizing refactors, prioritizing backlogs, or structuring any multi-task work. Provides ROI-based ordering, phase organization, dependency tracking, and status markers.
 allowed-tools: Read, Write
 ---
 

@@ -6,6 +6,49 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**AI-Coder-Docs Scope Sections (Task 25)**
+- Added `## Scope` (Does/Does Not) boundary sections to 8 skills: usage-rules, hex-docs-search, web-command, api-consumer, integration-testing, elixir-setup, tidewave-guide, workflow-generator
+- Added reciprocal scope section to phoenix-setup for elixir-setup cross-reference
+- Bidirectional cross-references between confused-pair skills (usage-rules ↔ hex-docs-search, elixir-setup ↔ phoenix-setup)
+
+### Changed
+
+**Sync Skills with Updated Includes (Task 27)**
+- Fixed `web-command` skill: Removed "NEVER use WebFetch" contradiction, aligned with canonical dual-tool guidance (WebFetch for read-only docs/articles, `web` for interactions/forms/JS/LiveView)
+- Updated `elixir-setup` skill: Added ex_unit_json, dialyzer_json, descripex deps; added cli/0 section; updated dep versions (styler ~> 1.4, ex_doc ~> 0.39, doctor ~> 0.22, bandit ~> 1.10); updated quality gates and quick reference commands
+- Fixed stale `core:phoenix-js` namespace references to `phoenix:phoenix-js` in user includes (phoenix-js.md, skills-awareness.md)
+- elixir: 1.13.11 -> 1.13.12, phoenix: 1.0.2 -> 1.0.3
+
+### Added
+
+**New Skills (Task 27)**
+- **ex-unit-json** (elixir@deltahedge): AI-friendly test output with `mix test.json` — flags, workflows, output schema, jq patterns, troubleshooting
+- **dialyzer-json** (elixir@deltahedge): AI-friendly Dialyzer output with `mix dialyzer.json` — fix hints (code/spec/pattern), grouping, filtering
+- **phoenix-setup** (phoenix@deltahedge): Phoenix project setup — critical `--live` flag for phx.gen.auth, Sobelow, LiveDebugger, formatter config, Tidewave endpoint plug
+- **development-commands** (elixir@deltahedge): Mix commands reference — test.json, dialyzer.json, credo JSON, Phoenix --binary-id, production builds
+
+### Changed
+
+**Progressive Disclosure for Oversized Skills (Task 23)**
+- Refactored 4 oversized skills by extracting detailed content to `references/` subdirectories
+- phoenix-js: 845 -> 316 lines (channels, presence, common patterns, attributes reference extracted)
+- workflow-generator: 842 -> 186 lines (command generation steps, WORKFLOWS.md template, usage instructions extracted)
+- api-consumer: 817 -> 237 lines (layered abstraction, sync/fixtures, OpenAPI generation extracted)
+- usage-rules: 624 -> 159 lines (5 detailed examples and troubleshooting extracted)
+- 11 reference files created across 4 skills (1,439 lines total)
+- Evaluated and kept 3 borderline skills as-is: roadmap-planning (576), popcorn (538), zen-websocket (528)
+- elixir: 1.13.10 -> 1.13.11, phoenix: 1.0.1 -> 1.0.2, elixir-workflows: 1.0.4 -> 1.0.5
+
+**Skill Description Optimization (Task 24)**
+- Rewrote all 17 skill YAML descriptions with pushy trigger language
+- Added "ALWAYS invoke" / "Use when" imperative triggers to combat undertriggering
+- Fixed web-command description contradiction ("NEVER use WebFetch" → correct guidance)
+- Added concrete trigger scenarios (e.g., "mix new", "IEx", "phx-hook", "to_form/2")
+- Added cross-references between confused pairs (usage-rules ↔ hex-docs-search)
+- elixir: 1.13.9 → 1.13.10, phoenix: 1.0.0 → 1.0.1, elixir-workflows: 1.0.3 → 1.0.4
+
+### Added
+
 **dialyzer_json Support**
 - New PreToolUse hook `prefer-dialyzer-json.sh` blocks `mix dialyzer` and redirects to `mix dialyzer.json`
 - Updated `pre-commit-unified.sh` to use `mix dialyzer.json --quiet` for AI-friendly JSON output

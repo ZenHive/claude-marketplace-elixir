@@ -1,6 +1,6 @@
 ---
 name: daisyui
-description: daisyUI 5 + Tailwind CSS v4 component library reference. Use when building UI with daisyUI components, semantic colors, theming, or component patterns.
+description: daisyUI 5 + Tailwind CSS v4 component patterns for Phoenix LiveView. Use when styling forms, buttons, modals, cards, or any UI component with daisyUI classes. Covers semantic color system, theme configuration, HEEx component styling, and responsive patterns.
 allowed-tools: Read, WebFetch
 ---
 

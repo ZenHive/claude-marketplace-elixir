@@ -1,6 +1,6 @@
 ---
 name: zen-websocket
-description: ZenWebsocket library patterns and usage. Use when implementing WebSocket connections, handling reconnection logic, integrating with trading APIs (Deribit, Binance), or troubleshooting WebSocket issues. Provides connection patterns, message handling, and platform-specific guidance.
+description: ZenWebsocket library for Elixir WebSocket connections. Use when implementing WebSocket clients, handling reconnection logic, or integrating with trading APIs (Deribit, Binance). Covers the 5 core functions (connect, send_message, subscribe, get_state, close), message handling, heartbeats, and platform-specific patterns.
 allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion
 ---
 

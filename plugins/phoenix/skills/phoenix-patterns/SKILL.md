@@ -1,6 +1,6 @@
 ---
 name: phoenix-patterns
-description: Phoenix 1.8 framework patterns reference. Use when working with Phoenix templates, forms, LiveView streams, auth routing, HEEx syntax, Tailwind v4, Elixir macros, or API integration patterns.
+description: Phoenix 1.8+ framework patterns reference. Use when working with LiveView forms (to_form/2), streams, HEEx templates, auth routing, Tailwind v4 setup, or Phoenix component patterns. Covers template wrappers, form handling, verified routes, and common pitfalls.
 allowed-tools: Read
 ---
 

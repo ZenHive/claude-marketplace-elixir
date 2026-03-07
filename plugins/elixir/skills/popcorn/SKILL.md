@@ -1,6 +1,6 @@
 ---
 name: popcorn
-description: Popcorn client-side Elixir guide for browser WebAssembly apps. Use when building offline-first tools, client-side calculators, or privacy-preserving analytics. Covers setup, JS interop, limitations, and example patterns.
+description: "Popcorn: run Elixir in the browser via WebAssembly. Use when building client-side Elixir apps, offline-first tools, browser-based calculators, or privacy-preserving analytics. Covers Popcorn setup, JavaScript interop, WASM limitations, and example patterns."
 allowed-tools: Read, Bash
 ---
 

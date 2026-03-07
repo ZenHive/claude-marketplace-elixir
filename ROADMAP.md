@@ -13,8 +13,9 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 4. Workflows | 1/1 ✅ | - |
 | 5. Documentation | 1/3 | Tasks 12-13 |
 | 6. New Skills | 1/1 ✅ | - |
+| 7. Skill Quality | 5/5 ✅ | - |
 
-**Total: 20/22 complete (91%) | 2 remaining**
+**Total: 25/27 complete (93%) | 2 remaining**
 
 ---
 
@@ -35,106 +36,107 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 
 ### High Priority (🎯 Priority > 3.0)
 
-#### Task 12: Update Project CLAUDE.md [D:2/B:7 → Priority:3.5] 🎯
+#### Task 12: Update Project CLAUDE.md [D:2/B:7/U:5 → Eff:3.0] 🎯
 
-**Goal:** Update the project's CLAUDE.md with new plugins, skills, and preferences.
+**Goal:** Update the project's CLAUDE.md to reflect the current marketplace state: 7 plugins, 17 skills, correct namespaces.
 
 **Updates needed:**
-1. Add claude-md-includes plugin documentation
-2. Add Doctor plugin documentation
-3. Add new skills documentation (web-command, git-worktrees, roadmap-planning, tidewave-guide, api-consumer)
+1. Document all 17 skills organized by plugin (elixir: 11, phoenix: 5, elixir-workflows: 1)
+2. Update plugin names (core → elixir, meta → elixir-workflows throughout)
+3. Add skills documentation section with trigger guidance
 4. Update ownership references
-5. Add D/B scoring explanation
+5. Add D/B/U scoring explanation
+6. Include Phase 7 skill quality improvements if completed
 
 **Files to modify:**
 - `CLAUDE.md`
 
 **Acceptance criteria:**
-- [ ] All new plugins documented
-- [ ] All new skills documented
-- [ ] D/B scoring format explained
+- [ ] All 7 plugins documented with current names
+- [ ] All 17 skills listed with descriptions
+- [ ] D/B/U scoring format explained
+- [ ] No stale references to old plugin names (core, meta)
 
 ---
 
-#### Task 13: Update README.md [D:2/B:6 → Priority:3.0] 🎯
+#### Task 13: Update README.md [D:2/B:6/U:5 → Eff:2.75] 🎯
 
-**Goal:** Update README with new features and fork attribution.
+**Goal:** Update README with current marketplace features and fork attribution.
 
 **Updates needed:**
 1. Attribution to original project (MIT license)
-2. New plugin list (claude-md-includes, Doctor)
-3. New skills list (web-command, git-worktrees, roadmap-planning, tidewave-guide)
-4. Installation instructions current
+2. Current plugin list (7 plugins: elixir, phoenix, elixir-workflows, git-commit, md-includes, serena, notifications)
+3. Current skills list (17 skills across 3 plugins)
+4. Installation instructions verified current
+5. Skill categories (Core Development, Phoenix/UI, Specialized, Workflow)
 
 **Files to modify:**
 - `README.md`
 
 **Acceptance criteria:**
 - [ ] Attribution clear and correct
-- [ ] All new features documented
+- [ ] All 7 plugins and 17 skills documented
 - [ ] Installation instructions current
+- [ ] No stale references to old plugin names
 
 ---
 
-### Lower Priority (📋 Priority < 2.0)
+### Phase 7: Skill Quality
 
-#### Task 9: Rename Meta Plugin & Update Templates [D:6/B:8 → Priority:1.33] 📋
+> **Methodology:** Informed by Anthropic's `document-skills:skill-creator` patterns — progressive disclosure, pushy descriptions, AI-coder-docs scope boundaries.
 
-**Goal:** Rename `meta` → `elixir-meta` and integrate all marketplace capabilities into workflow templates.
+#### Task 23: Progressive Disclosure for Oversized Skills ✅ [D:4/B:7/U:6 → Eff:1.63]
 
-**⚠️ Pre-work:** Consolidate `deferred/ELIXIR-META-ROADMAP.md` (25 micro-tasks) into session-sized tasks following this philosophy:
+Refactored 4 oversized skills with progressive disclosure pattern. Evaluated 3 borderline skills and kept as-is. See [CHANGELOG.md](CHANGELOG.md).
 
-> **Roadmap Philosophy:** Every task should fit into a Claude Code session and make full use of Claude Code's context window. Every task is a prompt.
+---
 
-**Session 1: Rename & Update References**
-1. Rename `plugins/meta/` → `plugins/elixir-meta/`
-2. Update `plugins/elixir-meta/.claude-plugin/plugin.json` (name field)
-3. Update `.claude-plugin/marketplace.json` (source path)
-4. Update all references (CLAUDE.md, README.md, commands, skills)
+#### Task 24: Skill Description Optimization ✅ [D:2/B:8/U:7 → Eff:3.75]
 
-**Session 2: Evaluate Workflow Commands**
-- Test if `/research`, `/plan`, `/implement`, `/qa` fit actual workflow
-- Actual workflow: Read ROADMAP.md → pick task → work in session → commit
-- Decision: Keep, simplify, or remove workflow-generator
+All 17 skill YAML descriptions rewritten with pushy trigger language. See [CHANGELOG.md](CHANGELOG.md).
 
-**Session 3: Migrate Useful Reference Commands**
-- Migrate commands actually used: `/elixir-code-review`, `/elixir-refactor`
-- Evaluate others: debug, gotchas, phoenix, performance, tdd, schema, explain
-- Commands become `/elixir-meta:<command>`
+---
 
-**Session 4: Align Templates with CLAUDE.md**
-- Integrate all new skills into templates
-- Add D/B scoring format to plan/QA outputs
-- Add Tidewave MCP tools to research phase
-- Add Finder/Analyzer pattern documentation
-- Replace WebFetch with `web` command
+#### Task 25: AI-Coder-Docs Patterns for Skills ✅ [D:3/B:6/U:5 → Eff:1.83]
 
-**Session 5: Polish & Validate**
-- Update README with all commands
-- Validate JSON files and command discovery
-- Optional: Remove migrated global commands
+Added Does/Does Not scope sections to 8 skills plus phoenix-setup cross-reference. See [CHANGELOG.md](CHANGELOG.md).
 
-**Detailed task breakdown:** See `deferred/ELIXIR-META-ROADMAP.md`
+---
 
-**Acceptance criteria:**
-- [x] Plugin renamed from `meta` to `elixir-meta`
-- [x] All references updated (marketplace.json, plugin.json)
-- [x] Workflow commands evaluated and decision documented
-- [x] Useful reference commands migrated (commands prefixed with elixir-)
-- [x] Templates aligned with global CLAUDE.md patterns
-- [x] D/B scoring format in plan and QA outputs
-- [x] `web` command usage instead of WebFetch
+#### Task 26: Update Tasks 12-13 for Current State [D:1/B:4/U:5 → Eff:4.50]
+
+**Goal:** Refresh the documentation tasks (12, 13) to reflect current marketplace state — they reference stale plugin names and incomplete skill lists.
+
+See updated Tasks 12 and 13 above (already updated in this roadmap revision).
+
+**Status:** ✅ Complete (updated inline)
+
+---
+
+#### Task 27: Sync Skills with Updated Includes ✅ [D:3/B:8/U:8 → Eff:2.67]
+
+Skills synced with canonical includes. See [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+### Completed (Phase 0-4, 6)
+
+#### Task 9: Rename Meta Plugin & Update Templates ✅
+
+Plugin renamed from `meta` to `elixir-workflows`. All references updated. Workflow commands evaluated. Templates aligned with CLAUDE.md patterns.
 
 ---
 
 ## Execution Order by ROI
 
-**Note:** Documentation tasks (12, 13) should be done AFTER all implementation is complete.
-
 | Order | Tasks | Rationale |
 |-------|-------|-----------|
-| 1 | 📋 9 (elixir-meta) | Integrate all skills + evaluate workflow |
-| 2 | 🎯 12 (CLAUDE.md), 13 (README) | Document everything at once |
+| 1 | ~~Task 26~~ ✅ | Updated tasks 12-13 inline |
+| ~~2a~~ | ~~Task 23 (progressive disclosure)~~ ✅ | Complete |
+| ~~2b~~ | ~~Task 24 (descriptions)~~ ✅ | Complete |
+| 2c | Task 27 (sync with includes) `[P]` | Independent — fix stale content + create new skills |
+| ~~3~~ | ~~Task 25 (AI-coder-docs)~~ ✅ | Complete |
+| 4 | Tasks 12, 13 (documentation) | Final, after all improvements |
 
 ---
 
@@ -149,11 +151,14 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 
 ## Future Scope (Post-Roadmap)
 
-| Plugin | Examples |
-|--------|----------|
-| TypeScript/JS | Phoenix frontends, LiveView hooks, Node services |
-| Go | Services, CLI tools, protocol implementations |
-| Rust | NIFs (Rustler), performance-critical modules |
+| Item | Description |
+|------|-------------|
+| TypeScript/JS plugin | Phoenix frontends, LiveView hooks, Node services |
+| Go plugin | Services, CLI tools, protocol implementations |
+| Rust plugin | NIFs (Rustler), performance-critical modules |
+| Skill eval infrastructure | evals.json with test prompts and assertions for objective skills (hex-docs-search, usage-rules, elixir-setup, web-command) |
+| Description optimization loop | Automated triggering tests using skill-creator's `run_loop.py` methodology |
+| Blind comparison framework | A/B testing between skill versions using skill-creator's comparator pattern |
 
 ---
 

@@ -1,12 +1,25 @@
 ---
 name: integration-testing
-description: Integration testing patterns for Elixir - credential handling, external API testing, never skip silently. Use when writing tests that require API keys, external services, or environment configuration.
+description: Integration testing patterns for Elixir — external API tests, credential handling, environment configuration. ALWAYS invoke when writing tests that call real APIs, need API keys, or connect to external services. Covers credential management, conditional test execution, and never-skip-silently patterns.
 allowed-tools: Read
 ---
 
 # Integration Testing Patterns
 
 Patterns for writing robust integration tests that require external credentials, API keys, or service access.
+
+## Scope
+
+WHAT THIS SKILL DOES:
+  ✓ Tests against real external services (APIs, databases)
+  ✓ Credential handling patterns (flunk with setup instructions)
+  ✓ Environment-specific test configuration
+  ✓ Never-skip-silently patterns
+
+WHAT THIS SKILL DOES NOT DO:
+  ✗ General ExUnit patterns or unit testing (→ CLAUDE.md testing rules)
+  ✗ Mocking/stubbing strategies (→ this skill advocates real-first)
+  ✗ Test output formatting (→ ex-unit-json skill)
 
 ## When to use this skill
 

@@ -1,6 +1,6 @@
 ---
 name: git-worktrees
-description: Run multiple Claude Code sessions in parallel using git worktrees. Use when working on multiple features/tasks simultaneously, running parallel refactors, or isolating experimental work. Prevents Claude sessions from conflicting.
+description: Run multiple Claude Code sessions in parallel using git worktrees. Use when working on multiple features simultaneously, running parallel refactors, or isolating experimental branches. Prevents Claude sessions from conflicting by giving each its own working directory.
 allowed-tools: Bash, Read
 ---
 

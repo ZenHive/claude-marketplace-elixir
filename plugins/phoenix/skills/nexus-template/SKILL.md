@@ -1,6 +1,6 @@
 ---
 name: nexus-template
-description: Nexus Phoenix admin template architecture, Iconify icons, partials system, layout pipelines, and Alpine.js interactivity patterns.
+description: Nexus Phoenix admin dashboard template. Use when building admin interfaces with Nexus, adding Iconify icons, creating layout pipelines, implementing partials, or adding Alpine.js interactivity. Covers Nexus architecture, routing, component organization, and theme configuration.
 allowed-tools: Read
 ---
 

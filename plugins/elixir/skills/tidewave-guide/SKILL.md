@@ -1,12 +1,24 @@
 ---
 name: tidewave-guide
-description: Tidewave MCP tools usage guide for Elixir development. Use when setting up Tidewave, exploring APIs with project_eval, querying databases, or following "explore before coding" workflow.
+description: Tidewave MCP tools for interacting with a running Elixir app. ALWAYS check before using project_eval, IEx-style evaluation, runtime code execution, database queries, or log viewing. Use when setting up Tidewave, exploring APIs at runtime, or following the "explore before coding" workflow.
 allowed-tools: Read
 ---
 
 # Tidewave Guide for Elixir Development
 
 Tidewave provides MCP tools that let Claude Code interact directly with your running Elixir application.
+
+## Scope
+
+WHAT THIS SKILL DOES:
+  ✓ Tidewave MCP tool usage (project_eval, database queries, log viewing)
+  ✓ Runtime exploration of running Elixir apps
+  ✓ "Explore before coding" workflow
+
+WHAT THIS SKILL DOES NOT DO:
+  ✗ General MCP server configuration (→ plugin-dev:mcp-integration)
+  ✗ Static code analysis or compilation (→ mix compile, Dialyzer)
+  ✗ Package API documentation lookup (→ hex-docs-search)
 
 ## When to use this skill
 

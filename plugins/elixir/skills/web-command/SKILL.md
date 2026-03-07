@@ -1,12 +1,29 @@
 ---
 name: web-command
-description: Use the `web` command for web browsing in Claude Code. Handles JavaScript, LiveView, forms, screenshots. Use when fetching web pages, submitting forms, or taking screenshots. NEVER use WebFetch.
+description: Web browsing in Claude Code using the `web` command. Use `web` for browser interactions: form submission, JavaScript execution, LiveView testing, screenshots, authenticated sessions. Use WebFetch for read-only content extraction (documentation, articles). Invoke when fetching pages, submitting forms, testing LiveView, or taking screenshots.
 allowed-tools: Bash, Read
 ---
 
-# Web Command for Claude Code
+# Web Browsing: `web` Command and `WebFetch`
 
-Shell-based web browser optimized for Claude Code. **ALWAYS use `web` instead of WebFetch** - it handles JavaScript, Phoenix LiveView, and authenticated sessions properly.
+**Use the right tool for the job:**
+
+- **`WebFetch` tool**: For read-only content extraction (docs, articles, data). Returns clean, summarized content.
+- **`web` command** (`/usr/local/bin/web`): For interactions requiring a real browser — forms, JS execution, LiveView, screenshots, sessions.
+
+**Why the distinction:** The `web` command launches a headless browser and dumps raw HTML-to-markdown, including navigation menus, sidebars, version dropdowns, and page chrome. For reading content, this noise often pushes actual content past truncation limits. `WebFetch` processes content through an LLM and returns only what you asked for.
+
+## Scope
+
+WHAT THIS SKILL DOES:
+  ✓ Browser interactions: forms, JS execution, LiveView, screenshots, sessions
+  ✓ Pages requiring JavaScript to render
+  ✓ Choosing between `web` command and `WebFetch` tool
+
+WHAT THIS SKILL DOES NOT DO:
+  ✗ Read-only content extraction from docs/articles (→ WebFetch tool)
+  ✗ API calls or data fetching (→ Req/HTTP client)
+  ✗ Hex package documentation lookup (→ hex-docs-search)
 
 ## When to use this skill
 
@@ -16,9 +33,30 @@ Use this skill when you need to:
 - Maintain authenticated sessions across requests
 - Take screenshots of web pages
 - Execute JavaScript on loaded pages
-- Work with any page requiring JavaScript execution
+- Understand when to use `web` vs `WebFetch`
 
-**NEVER use WebFetch** - the `web` command is more reliable and handles dynamic content.
+## When to use `web` vs `WebFetch`
+
+| Task | Tool | Why |
+|------|------|-----|
+| Read documentation | `WebFetch` | Clean extraction, no chrome noise |
+| Extract specific data from a page | `WebFetch` | Prompt-guided extraction |
+| Read articles/blog posts | `WebFetch` | Content-focused output |
+| Submit forms | `web` | Real browser, JS execution |
+| Phoenix LiveView pages | `web` | Waits for `.phx-connected` |
+| Take screenshots | `web` | `--screenshot` flag |
+| Execute JavaScript | `web` | `--js` flag |
+| Maintain login sessions | `web` | `--profile` for cookie persistence |
+| Page requires JS to render content | `web` | Real browser engine |
+
+## When to use `WebFetch`
+
+Use `WebFetch` (not `web`) for **read-only content extraction**:
+- Reading documentation pages (HexDocs, MDN, etc.)
+- Extracting specific data from articles or blog posts
+- Any page where you only need the content, not interaction
+
+**Why:** `WebFetch` processes content through an LLM and returns only what you asked for — no navigation menus, sidebars, or page chrome. The `web` command dumps everything, which often pushes actual content past truncation limits.
 
 ## Installation
 
@@ -179,30 +217,16 @@ web https://example.com --js "
 | `--js CODE` | Execute JavaScript after page loads |
 | `--profile NAME` | Named session profile for cookie persistence |
 
-## When to use `web` vs WebFetch
-
-| Scenario | Use |
-|----------|-----|
-| Any web browsing task | `web` (always try first) |
-| Phoenix LiveView pages | `web` (required - waits for connection) |
-| JavaScript-rendered content | `web` (executes JS) |
-| Form submission | `web` (handles CSRF, sessions) |
-| Authenticated sessions | `web` (profile persistence) |
-| Screenshots needed | `web` (only option) |
-| WebFetch tool available | Still use `web` |
-
-**Rule: ALWAYS use `web` for web browsing. WebFetch is a fallback only if `web` is unavailable.**
-
 ## Examples
 
-### Example 1: Fetch documentation
+### Example 1: Read documentation (use WebFetch)
 
-```bash
-# Fetch Phoenix documentation
-web https://hexdocs.pm/phoenix/Phoenix.html --truncate-after 20000
+```
+# Use WebFetch tool for clean content extraction
+WebFetch https://hexdocs.pm/phoenix/Phoenix.html
 ```
 
-### Example 2: Test a Phoenix application
+### Example 2: Test a Phoenix application (use `web`)
 
 ```bash
 # Create a profile and log in
@@ -275,9 +299,10 @@ web https://example.com/spa-page --js "
 
 ## Best practices
 
-1. **Always use `web` first** - It handles JavaScript and dynamic content automatically
-2. **Use profiles for auth workflows** - Maintains sessions across requests
-3. **Take screenshots for debugging** - Visual context helps identify issues
-4. **Truncate large pages** - Use `--truncate-after` to limit token usage
-5. **Check form IDs first** - Fetch with `--raw` to find correct form/input names
-6. **Use `--after-submit` for redirects** - Ensures you land on the expected page after form submission
+1. **Use `WebFetch` for reading docs/articles** - Cleaner output, no page chrome
+2. **Use `web` for interactions** - Forms, JS, LiveView, screenshots, sessions
+3. **Use profiles for auth workflows** - Maintains sessions across requests
+4. **Take screenshots for debugging** - Visual context helps identify issues
+5. **Truncate large pages** - Use `--truncate-after` to limit token usage
+6. **Check form IDs first** - Fetch with `--raw` to find correct form/input names
+7. **Use `--after-submit` for redirects** - Ensures you land on the expected page after form submission

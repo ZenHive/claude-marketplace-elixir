@@ -1,12 +1,25 @@
 ---
 name: hex-docs-search
-description: Research Hex packages (Sobelow, Phoenix, Ecto, Credo, Ash, etc). Use when investigating packages, understanding integration patterns, or finding module/function docs and usage examples.
+description: Research Hex package API documentation — function signatures, module docs, typespecs, and usage examples. ALWAYS invoke when you need to look up how a package works, find available functions, or check API details for Phoenix, Ecto, Ash, Credo, Sobelow, or any Hex dependency. This skill provides API DOCS, not conventions (use usage-rules for coding patterns).
 allowed-tools: Read, Grep, Glob, Bash, WebSearch, AskUserQuestion
 ---
 
 # Hex Documentation Search
 
 Search for Elixir and Erlang package documentation using HexDocs as the primary source, with local dependencies for version-specific needs.
+
+## Scope
+
+WHAT THIS SKILL DOES:
+  ✓ Function signatures, module docs, typespecs, API surface
+  ✓ Package investigation, dependency evaluation
+  ✓ Usage examples from official HexDocs documentation
+  ✓ Cascading search: HexDocs → local deps → codebase usage → web search
+
+WHAT THIS SKILL DOES NOT DO:
+  ✗ Coding conventions, best practices, good/bad patterns (→ usage-rules)
+  ✗ Runtime exploration of loaded modules (→ tidewave-guide)
+  ✗ General Elixir language documentation (→ elixir-lang.org)
 
 ## When to use this skill
 
