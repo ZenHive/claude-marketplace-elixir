@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Elixir and BEAM ecosystem development tools for Claude Code",
-    "version": "1.0.6"
+    "version": "1.0.7"
   },
   "pluginRoot": "../plugins",
   "plugins": [
@@ -37,14 +37,6 @@
       "name": "git-commit",
       "source": "./plugins/git-commit",
       "description": "Intelligent git commit workflow automation",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "md-includes",
-      "source": "./plugins/md-includes",
-      "description": "Process @include directives in CLAUDE.md for composable instructions",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"

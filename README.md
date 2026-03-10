@@ -24,12 +24,11 @@ claude
 /plugin install phoenix@deltahedge          # Phoenix-specific skills
 /plugin install elixir-workflows@deltahedge # Workflow commands (research, plan, implement, qa)
 /plugin install git-commit@deltahedge       # Commit workflow
-/plugin install md-includes@deltahedge      # @include directive processing
 /plugin install serena@deltahedge           # Serena MCP integration
 /plugin install notifications@deltahedge    # OS notifications
 ```
 
-## Available Plugins (7)
+## Available Plugins (6)
 
 | Plugin | Description |
 |--------|-------------|
@@ -37,7 +36,6 @@ claude
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns, LiveView, scope, JS hooks, daisyUI, Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
 | [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
-| [md-includes](./plugins/md-includes/README.md) | Process @include directives in CLAUDE.md for composable instructions |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 | [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
 

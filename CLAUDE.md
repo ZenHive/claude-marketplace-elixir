@@ -2,21 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-@include ~/.claude/includes/across-instances.md
+@~/.claude/includes/across-instances.md
 
-@include ~/.claude/includes/critical-rules.md
+@~/.claude/includes/critical-rules.md
 
-@include ~/.claude/includes/task-prioritization.md
+@~/.claude/includes/task-prioritization.md
 
-@include ~/.claude/includes/web-command.md
+@~/.claude/includes/web-command.md
 
-@include ~/.claude/includes/code-style.md
+@~/.claude/includes/code-style.md
 
-@include ~/.claude/includes/development-philosophy.md
+@~/.claude/includes/development-philosophy.md
 
-@include ~/.claude/includes/elixir-patterns.md
+@~/.claude/includes/elixir-patterns.md
 
-@include ~/.claude/includes/library-design.md
+@~/.claude/includes/library-design.md
 
 ## Repository Purpose
 
@@ -51,10 +51,6 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   └── commands/
-├── md-includes/              # Include processing (was: claude-md-includes)
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   └── hooks/                # SessionStart hook
 ├── serena/                   # MCP integration
 │   ├── .claude-plugin/
 │   │   └── plugin.json

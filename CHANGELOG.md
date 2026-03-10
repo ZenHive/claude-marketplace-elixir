@@ -4,6 +4,23 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Removed
+
+**md-includes Plugin (Retired)**
+- Removed md-includes plugin — Claude Code now natively supports `@path/to/file` imports in CLAUDE.md (added mid-2025)
+- The plugin was a workaround (`@include` syntax) that is no longer needed
+- Migrated project CLAUDE.md from `@include ~/.claude/includes/foo.md` to native `@~/.claude/includes/foo.md` syntax
+- See: https://code.claude.com/docs/en/memory#import-additional-files
+- Marketplace version: 1.0.6 → 1.0.7
+
+### Changed
+
+**Documentation Updates (Tasks 12 & 13)**
+- Updated CLAUDE.md skills section: expanded from 3 documented skills to all 21, organized by plugin with table format (elixir: 14, phoenix: 6, elixir-workflows: 1)
+- Added "Available Skills (21)" section to README.md with complete skill inventory grouped by plugin
+- Updated elixir plugin description in README.md to reference 14 skills
+- Roadmap: 27/27 tasks complete (100%)
+
 ### Added
 
 **AI-Coder-Docs Scope Sections (Task 25)**
