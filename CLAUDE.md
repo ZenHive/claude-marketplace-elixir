@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @~/.claude/includes/critical-rules.md
 
-@~/.claude/includes/skills-awareness.md
-
 @~/.claude/includes/task-prioritization.md
 
 @~/.claude/includes/task-writing.md
@@ -26,11 +24,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @~/.claude/includes/elixir-patterns.md
 
+@~/.claude/includes/elixir-setup.md
+
+@~/.claude/includes/development-commands.md
+
+@~/.claude/includes/ex-unit-json.md
+
+@~/.claude/includes/dialyzer-json.md
+
 @~/.claude/includes/library-design.md
+
+@~/.claude/includes/meta-development.md
 
 ## Repository Purpose
 
 This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem development. It provides automated development workflows through hooks that trigger on file edits and git operations.
+
+### Includes → Skills Sync
+
+**`~/.claude/includes/*.md` files are canonical.** Skill SKILL.md files are auto-synced from includes — never edit skill bodies directly. After editing an include, run:
+
+```bash
+./scripts/sync-skills-from-includes.sh          # sync all 15 mapped skills
+./scripts/sync-skills-from-includes.sh --dry-run # preview changes
+```
+
+The script preserves SKILL.md frontmatter (name, description, allowed-tools) and replaces the body with include content. See `scripts/sync-skills-from-includes.sh` for the full mapping.
 
 ## Architecture
 

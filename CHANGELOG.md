@@ -4,6 +4,17 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**Backport Skill Knowledge to Canonical Includes**
+- Rewrote 4 include files with condensed knowledge from skills + references, grounded in ccxt_ex/ccxt_client real-world patterns:
+  - `zen-websocket.md`: Added error categories, reconnection behavior, three-layer architecture, heartbeat types, common issues, DO NOT rules
+  - `meta-development.md`: Added macro decision tree, two-stage macro pattern, `Macro.escape`, `@external_resource`, function head dispatch, pattern-based architecture, introspection functions, debugging/testing macros
+  - `api-integration.md`: Added scope boundary, decision tree, declarative macro tuple format, shared dispatcher, layered abstraction, sync checking, fixture generation, compile-time test generation
+  - `phoenix-js.md`: Added Phoenix Channels, Presence tracking, DOM patching, debugging, modal focus trap, phx-* attributes reference, colocated hooks
+- Created `scripts/sync-skills-from-includes.sh`: Automated sync of 15 skill-include pairs (preserves SKILL.md frontmatter, replaces body)
+- Fixed stale `core:` namespace references → `elixir:` across 9 files (agents, hook scripts, workflow templates)
+
 ### Removed
 
 **md-includes Plugin (Retired)**

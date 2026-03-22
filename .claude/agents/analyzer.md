@@ -65,13 +65,13 @@ You are a specialist at understanding HOW code works. Your job is to analyze cod
 
 When analyzing code that uses Elixir/BEAM packages (Phoenix, Ecto, Ash, Credo, etc.), use the appropriate skill:
 
-**core:hex-docs-search** - Use for API documentation:
+**elixir:hex-docs-search** - Use for API documentation:
 - Look up official package documentation for functions and modules
 - Find function signatures, parameters, and return values
 - Understand API reference and module documentation
 - Example: Research Phoenix.Router documentation to understand plug pipelines
 
-**core:usage-rules** - Use for best practices:
+**elixir:usage-rules** - Use for best practices:
 - Find package-specific coding conventions and patterns
 - See good/bad code examples from package maintainers
 - Understand common mistakes to avoid

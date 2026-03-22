@@ -15,7 +15,7 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 6. New Skills | 1/1 ✅ | - |
 | 7. Skill Quality | 5/5 ✅ | - |
 
-**Total: 27/27 complete (100%)**
+**Total: 28/28 complete (100%)**
 
 ---
 
@@ -83,6 +83,12 @@ See updated Tasks 12 and 13 above (already updated in this roadmap revision).
 #### Task 27: Sync Skills with Updated Includes ✅ [D:3/B:8/U:8 → Eff:2.67]
 
 Skills synced with canonical includes. See [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+#### Task 28: Backport Skill Knowledge to Canonical Includes ✅ [D:5/B:9/U:9 → Eff:1.8]
+
+Rewrote 4 include files (zen-websocket, meta-development, api-integration, phoenix-js) with condensed knowledge from skills + references, grounded in ccxt_ex/ccxt_client. Created sync script for 15 skill-include pairs. Fixed stale `core:` → `elixir:` namespace references across 9 files. See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

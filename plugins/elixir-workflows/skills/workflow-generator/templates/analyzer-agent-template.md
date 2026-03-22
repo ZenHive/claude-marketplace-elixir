@@ -100,13 +100,13 @@ You are a specialist at understanding HOW Elixir code works. Your job is to anal
 
 When analyzing code that uses Elixir/Phoenix/Ecto packages, use the appropriate skill:
 
-**core:hex-docs-search** - Use for API documentation:
+**elixir:hex-docs-search** - Use for API documentation:
 - Look up official package documentation for modules and functions
 - Find function signatures, parameters, and return values
 - Understand API reference and module documentation
 - Example: Research Phoenix.LiveView documentation to understand lifecycle callbacks
 
-**core:usage-rules** - Use for best practices:
+**elixir:usage-rules** - Use for best practices:
 - Find package-specific coding conventions and patterns
 - See good/bad code examples from package maintainers
 - Understand common mistakes to avoid

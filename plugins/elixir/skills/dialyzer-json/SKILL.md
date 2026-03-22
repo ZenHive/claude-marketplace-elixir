@@ -4,18 +4,13 @@ description: AI-friendly Dialyzer output with `mix dialyzer.json`. This skill sh
 allowed-tools: Read, Bash
 ---
 
-# DialyzerJSON - AI-Friendly Dialyzer Output
+<!-- Auto-synced from ~/.claude/includes/dialyzer-json.md — do not edit manually -->
+
+## DialyzerJSON - AI-Friendly Dialyzer Output
 
 Use `mix dialyzer.json` instead of `mix dialyzer` for structured JSON output that's easy to parse and prioritize.
 
-## When to use this skill
-
-- Running Dialyzer type analysis in any Elixir project
-- Analyzing and prioritizing type warnings
-- Setting up dialyzer_json in a new project
-- Understanding fix_hint categories (code/spec/pattern)
-
-## Quick Start
+### Quick Start
 
 ```bash
 # Basic JSON output (clean for piping)
@@ -31,7 +26,7 @@ mix dialyzer.json --quiet --group-by-file
 mix dialyzer.json --quiet --filter-type no_return --filter-type call
 ```
 
-## Installation
+### Installation
 
 Add to `mix.exs`:
 
@@ -51,7 +46,7 @@ def cli do
 end
 ```
 
-## Key Flags
+### Key Flags
 
 | Flag | Purpose |
 |------|---------|
@@ -64,7 +59,7 @@ end
 | `--output FILE` | Write to file instead of stdout. |
 | `--ignore-exit-status` | Don't fail on warnings (exit 0). |
 
-## Fix Hints (Prioritization)
+### Fix Hints (Prioritization)
 
 Each warning includes a `fix_hint` to help prioritize:
 
@@ -75,7 +70,7 @@ Each warning includes a `fix_hint` to help prioritize:
 | `"pattern"` | Common safe-to-ignore | Often intentional - third-party behaviours |
 | `"unknown"` | Unrecognized warning | Investigate manually |
 
-## Recommended Workflows
+### Recommended Workflows
 
 **1. Quick health check**
 ```bash
@@ -102,7 +97,7 @@ mix dialyzer.json --quiet --filter-type no_return
 mix dialyzer.json --quiet | jq '.summary.by_type | to_entries | sort_by(-.value)'
 ```
 
-## Output Structure
+### Output Structure
 
 ```json
 {
@@ -128,6 +123,7 @@ mix dialyzer.json --quiet | jq '.summary.by_type | to_entries | sort_by(-.value)
   ],
   "summary": {
     "total": 5,
+    "skipped": 0,
     "by_type": {"no_return": 2, "call": 3},
     "by_fix_hint": {"code": 4, "spec": 1}
   }
@@ -139,14 +135,14 @@ mix dialyzer.json --quiet | jq '.summary.by_type | to_entries | sort_by(-.value)
 - `message` uses dialyxir's friendly formatting when available
 - `raw_message` is dialyzer's original message
 
-## Exit Codes
+### Exit Codes
 
 | Code | Meaning |
 |------|---------|
 | 0 | No warnings found |
 | 2 | Warnings found (JSON still valid) |
 
-## Using with jq
+### Using with jq
 
 For piping to jq, use `MIX_QUIET=1` to suppress compilation messages:
 
@@ -159,7 +155,7 @@ mix dialyzer.json --quiet --output /tmp/dialyzer.json
 jq '.warnings[] | select(.fix_hint == "code")' /tmp/dialyzer.json
 ```
 
-## Tips
+### Tips
 
 - **Always use `--quiet`** - Compilation output pollutes JSON
 - **Check `fix_hint` first** - "code" hints are likely real bugs

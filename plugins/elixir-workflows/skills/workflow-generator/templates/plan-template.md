@@ -35,7 +35,7 @@ Use Task tool to spawn agents that will inform your plan:
    - Understand current architecture and design
    - Trace how similar features are implemented
 
-3. **Skill** (core:hex-docs-search):
+3. **Skill** (elixir:hex-docs-search):
    - Research relevant Hex packages if needed
    - Understand framework patterns (Phoenix, Ecto, etc.)
    - Find official documentation for libraries

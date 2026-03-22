@@ -211,7 +211,7 @@ Structure output to show the repository map:
 - Checking directory structure
 
 ### Use Skill For
-- Phoenix documentation (core:hex-docs-search)
+- Phoenix documentation (elixir:hex-docs-search)
 - Ecto documentation
 - Elixir standard library
 - Other Hex packages used in project

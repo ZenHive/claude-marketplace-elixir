@@ -174,7 +174,7 @@ Structure output to show the repository map:
 - Checking directory structure
 
 ### Use Skill For
-- Package documentation (core:hex-docs-search)
+- Package documentation (elixir:hex-docs-search)
 - Understanding framework conventions
 - Learning about packages before finding usage
 - Example: Research Phoenix patterns, then find Phoenix files

@@ -4,119 +4,11 @@ description: Phoenix JavaScript client-side patterns — LiveView hooks (phx-hoo
 allowed-tools: Read
 ---
 
-# Phoenix JavaScript Patterns Reference
+<!-- Auto-synced from ~/.claude/includes/phoenix-js.md — do not edit manually -->
 
-Quick reference for Phoenix client-side JavaScript patterns including LiveView hooks, JS commands, and optimistic UI techniques.
+## Phoenix LiveView Client-Side JavaScript
 
-## When to use this skill
-
-- Creating client hooks with `phx-hook`
-- Using `Phoenix.LiveView.JS` commands
-- Building optimistic UIs
-- Working with Phoenix channels/sockets
-- Handling server-pushed events
-- Managing presence (who's online)
-- DOM patching and lifecycle events
-- Event bindings (click, focus, key, form events)
-- Rate limiting with debounce/throttle
-
-## Event Bindings
-
-LiveView bindings connect DOM events to server-side handlers.
-
-### Click Events
-
-```heex
-<%# Basic click %>
-<button phx-click="increment">+1</button>
-
-<%# Click with value %>
-<button phx-click="delete" phx-value-id={@item.id}>Delete</button>
-
-<%# Multiple values %>
-<button phx-click="move" phx-value-id={@id} phx-value-direction="up">Move Up</button>
-
-<%# Target specific component %>
-<button phx-click="save" phx-target={@myself}>Save</button>
-
-<%# Click away (close on outside click) %>
-<div phx-click-away="close_dropdown">Dropdown content</div>
-```
-
-Server handler receives values as string map:
-
-```elixir
-def handle_event("delete", %{"id" => id}, socket) do
-  # id is a string, convert if needed
-  {:noreply, socket}
-end
-```
-
-### Focus, Blur, and Key Events
-
-```heex
-<%# Element focus/blur %>
-<input phx-focus="field_focused" phx-blur="field_blurred" />
-
-<%# Window focus/blur (tab visibility) %>
-<div phx-window-focus="user_returned" phx-window-blur="user_left">Content</div>
-
-<%# Key events on element %>
-<input phx-keyup="search" phx-keydown="handle_key" />
-
-<%# Filter to specific key %>
-<input phx-keydown="submit" phx-key="Enter" />
-<div phx-window-keydown="escape_pressed" phx-key="Escape">Modal</div>
-```
-
-### Debounce and Throttle
-
-```heex
-<%# Debounce: Wait for pause in events (good for search) %>
-<input phx-keyup="search" phx-debounce="300" />
-
-<%# Blur debounce: Fire on blur if pending %>
-<input phx-change="validate" phx-debounce="blur" />
-
-<%# Throttle: Max one event per interval (good for scroll) %>
-<div phx-scroll="scroll_position" phx-throttle="100">Scrollable content</div>
-```
-
-- `phx-debounce="300"` - Wait 300ms after last event before firing
-- `phx-debounce="blur"` - Fire immediately on blur if change pending
-- `phx-throttle="100"` - Fire at most once per 100ms
-
-## Form Bindings
-
-```heex
-<.form for={@form} phx-change="validate" phx-submit="save">
-  <.input field={@form[:name]} type="text" />
-  <.input field={@form[:email]} type="email" />
-  <button type="submit" phx-disable-with="Saving...">Save</button>
-</.form>
-```
-
-```elixir
-def handle_event("validate", %{"user" => params}, socket) do
-  changeset = User.changeset(%User{}, params) |> Map.put(:action, :validate)
-  {:noreply, assign(socket, form: to_form(changeset))}
-end
-
-def handle_event("save", %{"user" => params}, socket) do
-  case Users.create(params) do
-    {:ok, user} -> {:noreply, push_navigate(socket, to: ~p"/users/#{user}")}
-    {:error, changeset} -> {:noreply, assign(socket, form: to_form(changeset))}
-  end
-end
-```
-
-Form recovery: `phx-auto-recover="ignore"` or `phx-auto-recover="recover_form"`.
-
-## Client Hooks via phx-hook
-
-Hooks allow client-side JavaScript to interact with LiveView elements.
-
-### Hook Structure
+### Client Hooks (phx-hook)
 
 ```javascript
 // assets/js/app.js
@@ -124,10 +16,12 @@ let Hooks = {}
 
 Hooks.MyHook = {
   mounted() {
-    this.el              // The DOM element
+    this.el              // DOM element
     this.pushEvent       // Push event to server
     this.pushEventTo     // Push to specific component
     this.handleEvent     // Handle server-pushed events
+    this.upload          // Upload files
+    this.liveSocket      // LiveSocket instance
 
     this.el.addEventListener("click", () => {
       this.pushEvent("clicked", {value: this.el.dataset.value})
@@ -137,11 +31,11 @@ Hooks.MyHook = {
       document.getElementById(id).classList.add("highlight")
     })
   },
-  updated() { /* Re-initialize after DOM update */ },
-  beforeDestroy() { /* Cleanup: remove listeners, cancel timers */ },
-  destroyed() { /* Final cleanup */ },
-  disconnected() { /* Handle offline state */ },
-  reconnected() { /* Restore online state */ }
+  updated() { },        // Element updated by LiveView
+  beforeDestroy() { },  // Before removal (cleanup timers/listeners)
+  destroyed() { },      // Element removed
+  disconnected() { },   // WebSocket disconnected
+  reconnected() { }     // WebSocket reconnected
 }
 
 let liveSocket = new LiveSocket("/live", Socket, {
@@ -150,39 +44,22 @@ let liveSocket = new LiveSocket("/live", Socket, {
 })
 ```
 
-**Requirements:** Element MUST have unique `id` attribute. Hook name must match exactly (case-sensitive).
-
-### Hook Properties and Methods
-
-```javascript
-this.el           // DOM element
-this.liveSocket   // LiveSocket instance
-this.viewName     // LiveView module name
-
-this.pushEvent(event, payload, callback)
-this.pushEventTo(selector, event, payload, callback)
-this.handleEvent(event, callback)
-this.upload(name, files)
-this.uploadTo(selector, name, files)
+```heex
+<%# Element MUST have unique id %>
+<div id="my-element" phx-hook="MyHook" data-value="123">
+  Hook content
+</div>
 ```
 
-### Push with Reply
-
+**Push with reply:**
 ```javascript
 this.pushEvent("validate", {data: value}, (reply, ref) => {
-  if (reply.valid) {
-    this.el.classList.add("valid")
-  } else {
-    this.el.classList.add("invalid")
-  }
+  if (reply.valid) this.el.classList.add("valid")
+  else this.el.classList.add("invalid")
 })
 ```
 
-## Phoenix.LiveView.JS Commands
-
-Client-side commands that run without server round-trip.
-
-### Quick Reference
+### JS Commands (No Server Round-Trip)
 
 ```elixir
 # Show/Hide/Toggle
@@ -195,11 +72,6 @@ JS.add_class("active", to: "#tab")
 JS.remove_class("active", to: "#tab")
 JS.toggle_class("open", to: "#menu")
 
-# Attributes
-JS.set_attribute({"aria-expanded", "true"}, to: "#dropdown")
-JS.remove_attribute("disabled", to: "#button")
-JS.toggle_attribute({"aria-hidden", "true", "false"}, to: "#panel")
-
 # Push event to server
 JS.push("save", value: %{id: @item.id})
 JS.push("delete", target: "#component-id")
@@ -208,11 +80,17 @@ JS.push("delete", target: "#component-id")
 JS.navigate(~p"/users/#{@user}")
 JS.patch(~p"/users?page=2")
 
-# Focus
+# Focus management
 JS.focus(to: "#input")
 JS.focus_first(to: "#modal")
 JS.push_focus()
 JS.pop_focus()
+
+# Attributes (v1.1+)
+JS.set_attribute({"aria-expanded", "true"}, to: "#menu")
+JS.remove_attribute("disabled", to: "#btn")
+JS.toggle_attribute({"aria-hidden", "true", "false"}, to: "#panel")
+JS.ignore_attributes(["style", "class"], to: "#chart")  # prevent LV patching
 
 # Transitions
 JS.transition({"fade-in", "opacity-0", "opacity-100"}, to: "#el")
@@ -223,13 +101,18 @@ JS.dispatch("my-event", detail: %{foo: "bar"})
 
 # Run stored JS from data attribute
 JS.exec("data-cancel", to: "#modal")
-
-# Ignore attributes during patching (v1.1+)
-JS.ignore_attributes(["class"], to: "#animated")
 ```
 
-### Composing Commands
+**DOM selectors:**
+```elixir
+JS.hide(to: "#id")                    # By ID
+JS.hide(to: ".class")                 # By class
+JS.hide(to: "[data-role=modal]")      # By attribute
+JS.hide(to: {:closest, ".parent"})    # Closest ancestor
+JS.hide(to: {:inner, "#container"})   # All descendants
+```
 
+**Composing commands:**
 ```elixir
 def hide_modal(js \\ %JS{}) do
   js
@@ -243,74 +126,293 @@ end
 <button phx-click={JS.push("save") |> hide_modal()}>Save & Close</button>
 ```
 
-### DOM Selectors
-
-```elixir
-JS.hide(to: "#specific-id")
-JS.hide(to: ".all-matching-class")
-JS.hide(to: "[data-role=modal]")
-JS.hide(to: {:closest, ".parent"})    # Closest ancestor
-JS.hide(to: {:inner, "#container"})   # All descendants
-```
-
-## Server-Pushed Events
-
-```elixir
-# Server side - push event to client hooks
-def handle_event("save", params, socket) do
-  {:noreply, push_event(socket, "saved", %{id: 123})}
-end
-```
-
-```javascript
-// Client side - receive in hook
-Hooks.MyHook = {
-  mounted() {
-    this.handleEvent("saved", ({id}) => {
-      console.log("Item saved:", id)
-      this.el.classList.add("saved")
-    })
-  }
-}
-```
-
-## Optimistic UIs
-
-### Via Loading Classes
+### Event Bindings
 
 ```heex
-<%# phx-click-loading added during server round-trip %>
-<button phx-click="save" class="phx-click-loading:opacity-50">Save</button>
+<%# Click with values %>
+<button phx-click="delete" phx-value-id={@item.id}>Delete</button>
+<button phx-click="save" phx-target={@myself}>Save</button>
 
-<%# Form submission loading %>
+<%# Click away (close on outside click) %>
+<div phx-click-away="close_dropdown">Dropdown</div>
+
+<%# Focus/blur %>
+<input phx-focus="field_focused" phx-blur="field_blurred" />
+<div phx-window-focus="user_returned" phx-window-blur="user_left">Content</div>
+
+<%# Key events %>
+<input phx-keyup="search" phx-keydown="handle_key" />
+<input phx-keydown="submit" phx-key="Enter" />
+<div phx-window-keydown="escape" phx-key="Escape">Modal</div>
+
+<%# Debounce/Throttle %>
+<input phx-keyup="search" phx-debounce="300" />
+<input phx-change="validate" phx-debounce="blur" />
+<div phx-scroll="scroll_pos" phx-throttle="100">Scrollable</div>
+```
+
+- `phx-debounce="300"` — Wait 300ms after last event before firing
+- `phx-debounce="blur"` — Fire immediately on blur if change pending
+- `phx-throttle="100"` — Fire at most once per 100ms
+
+### Form Bindings
+
+```heex
+<.form for={@form} phx-change="validate" phx-submit="save">
+  <.input field={@form[:name]} type="text" />
+  <button type="submit" phx-disable-with="Saving...">Save</button>
+</.form>
+```
+
+Form recovery: `phx-auto-recover="ignore"` or `phx-auto-recover="recover_form"`.
+
+### Loading State Classes
+
+Applied automatically during server round-trips:
+
+```heex
+<button phx-click="save" class="phx-click-loading:opacity-50">Save</button>
 <.form phx-submit="create" class="phx-submit-loading:pointer-events-none">
   <button class="phx-submit-loading:animate-pulse">Submit</button>
 </.form>
 ```
 
-Available: `phx-click-loading`, `phx-submit-loading`, `phx-change-loading`, `phx-page-loading`.
+| Class | Applied When |
+|-------|--------------|
+| `phx-click-loading` | During click event |
+| `phx-submit-loading` | During form submit |
+| `phx-change-loading` | During form change |
+| `phx-page-loading` | During navigation |
 
-### Via Hooks (Full Control)
+### Server-Pushed Events
+
+```elixir
+# Server: push event to client hooks
+{:noreply, push_event(socket, "saved", %{id: 123})}
+```
 
 ```javascript
-Hooks.OptimisticDelete = {
+// Client: handle in hook
+this.handleEvent("saved", ({id}) => {
+  this.el.classList.add("saved")
+})
+```
+
+### Common Hook Patterns
+
+```javascript
+// Infinite scroll
+Hooks.InfiniteScroll = {
+  mounted() {
+    this.observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) this.pushEvent("load-more", {})
+    })
+    this.observer.observe(this.el)
+  },
+  destroyed() { this.observer.disconnect() }
+}
+
+// Copy to clipboard
+Hooks.CopyToClipboard = {
   mounted() {
     this.el.addEventListener("click", () => {
-      this.el.closest("tr").style.opacity = "0.5"
-      this.pushEvent("delete", {id: this.el.dataset.id}, (reply) => {
-        if (reply.error) {
-          this.el.closest("tr").style.opacity = "1"
-        }
-      })
+      navigator.clipboard.writeText(this.el.dataset.value)
+        .then(() => this.pushEvent("copied", {}))
     })
   }
 }
+
+// Flash auto-dismiss
+Hooks.Flash = {
+  mounted() {
+    this.timer = setTimeout(() => {
+      this.pushEvent("lv:clear-flash", {key: this.el.dataset.key})
+    }, 5000)
+  },
+  destroyed() { clearTimeout(this.timer) }
+}
 ```
 
-## References
+### Modal with Focus Trap
 
-For detailed patterns and advanced techniques, consult:
+```elixir
+def show_modal(js \\ %JS{}, id) do
+  js
+  |> JS.show(to: "##{id}")
+  |> JS.show(to: "##{id}-backdrop", transition: "fade-in")
+  |> JS.push_focus()
+  |> JS.focus_first(to: "##{id}-content")
+end
 
-- **`references/channels-presence.md`** - Phoenix Channels (non-LiveView real-time) and Presence tracking
-- **`references/advanced-patterns.md`** - Colocated Hooks (LiveView 1.1+), DOM patching, debugging, and common patterns (modal, dropdown, flash, clipboard, infinite scroll)
-- **`references/attributes-reference.md`** - Complete phx-* attributes quick reference tables
+def hide_modal(js \\ %JS{}, id) do
+  js
+  |> JS.hide(to: "##{id}-backdrop", transition: "fade-out")
+  |> JS.hide(to: "##{id}", transition: "fade-out-scale")
+  |> JS.pop_focus()
+end
+```
+
+### Colocated Hooks (v1.1+)
+
+Write hook JS inline with your component — no separate files needed:
+
+```elixir
+alias Phoenix.LiveView.ColocatedHook
+
+def phone_input(assigns) do
+  ~H"""
+  <input type="text" id={@id} value={@value} phx-hook=".PhoneFormat" />
+  <script :type={ColocatedHook} name=".PhoneFormat">
+    export default {
+      mounted() {
+        this.el.addEventListener("input", e => {
+          let match = this.el.value.replace(/\D/g, "").match(/^(\d{3})(\d{3})(\d{4})$/)
+          if (match) { this.el.value = `${match[1]}-${match[2]}-${match[3]}` }
+        })
+      }
+    }
+  </script>
+  """
+end
+```
+
+**Key rules:**
+- Hook names starting with `.` (dot) are auto-namespaced to the module at compile time
+- Import in app.js: `import {hooks as colocatedHooks} from "phoenix-colocated/my_app"`
+- Merge: `hooks: {...colocatedHooks, ...manualHooks}`
+- Requires Phoenix 1.8+ and esbuild config updates
+- Add `:phoenix_live_view` to compilers in mix.exs: `compilers: [:phoenix_live_view] ++ Mix.compilers()`
+
+**esbuild config** (config/config.exs):
+```elixir
+args: ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js
+  --external:/fonts/* --external:/images/* --alias:@=.),
+env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+```
+
+### JS.ignore_attributes (v1.1+)
+
+Prevent LiveView from overwriting attributes managed by 3rd-party JS libraries:
+
+```heex
+<div id="chart" phx-hook="Chart" {@rest}
+  phx-ignore-attributes={JS.ignore_attributes(["style", "width", "height"])}>
+</div>
+```
+
+Useful when external JS (charts, maps, rich editors) modifies DOM attributes that LiveView would normally reset on patch.
+
+### TypeScript Types (v1.1+)
+
+```javascript
+/** @type {import("phoenix_live_view").HooksOptions} */
+let Hooks = {}
+Hooks.MyHook = {
+  mounted() { /* this.el, this.pushEvent etc. have proper types */ }
+}
+```
+
+---
+
+### Phoenix Channels (Non-LiveView Real-Time)
+
+For real-time features outside LiveView:
+
+```javascript
+import {Socket} from "phoenix"
+
+let socket = new Socket("/socket", {params: {token: userToken}})
+socket.connect()
+
+let channel = socket.channel("room:lobby", {})
+channel.join()
+  .receive("ok", resp => console.log("Joined!", resp))
+  .receive("error", resp => console.log("Failed", resp))
+
+// Listen for events
+channel.on("new_msg", payload => console.log("New:", payload.body))
+
+// Push events
+channel.push("new_msg", {body: "Hello!"})
+  .receive("ok", resp => console.log("Sent"))
+  .receive("error", resp => console.log("Error", resp))
+  .receive("timeout", () => console.log("Timeout"))
+
+// Lifecycle
+channel.onError(() => console.log("Channel error"))
+channel.onClose(() => console.log("Channel closed"))
+channel.leave()
+```
+
+### Presence Tracking
+
+```javascript
+import {Presence} from "phoenix"
+
+let presence = new Presence(channel)
+
+presence.onSync(() => renderUsers(presence.list()))
+
+presence.onJoin((id, current, newPres) => {
+  if (!current) console.log("User joined:", id)
+})
+
+presence.onLeave((id, current, leftPres) => {
+  if (current.metas.length === 0) console.log("User left:", id)
+})
+
+// List with custom selector
+let users = presence.list((id, {metas: [first, ...rest]}) => {
+  return {id, name: first.name, count: rest.length + 1}
+})
+```
+
+---
+
+### DOM Patching
+
+```heex
+<%# Stream: Efficient list updates %>
+<div id="items" phx-update="stream">
+  <div :for={{id, item} <- @streams.items} id={id}>{item.name}</div>
+</div>
+
+<%# Ignore: Never update this element (managed by JS) %>
+<div id="static" phx-update="ignore">Content managed by JS</div>
+```
+
+**Lifecycle events:**
+```javascript
+window.addEventListener("phx:page-loading-start", info => { /* show spinner */ })
+window.addEventListener("phx:page-loading-stop", info => { /* hide spinner */ })
+element.addEventListener("phx:mounted", e => { /* element mounted */ })
+element.addEventListener("phx:updated", e => { /* element updated */ })
+```
+
+### Debugging
+
+```javascript
+// Enable debug logging
+let liveSocket = new LiveSocket("/live", Socket, {
+  logger: (kind, msg, data) => console.log(`${kind}: ${msg}`, data)
+})
+
+// In browser console:
+liveSocket.enableDebug()
+liveSocket.enableLatencySim(1000)  // Add 1000ms latency
+liveSocket.disableLatencySim()
+```
+
+---
+
+### phx-* Attributes Quick Reference
+
+**Event handlers:** `phx-click`, `phx-click-away`, `phx-blur`, `phx-focus`, `phx-keydown`, `phx-keyup`, `phx-key`, `phx-window-blur`, `phx-window-focus`, `phx-window-keydown`, `phx-window-keyup`, `phx-viewport-top`, `phx-viewport-bottom`
+
+**Form:** `phx-change`, `phx-submit`, `phx-feedback-for`, `phx-disable-with`, `phx-trigger-action`, `phx-auto-recover`
+
+**Modifiers:** `phx-value-*`, `phx-target`, `phx-debounce`, `phx-throttle`
+
+**DOM control:** `phx-update` ("stream", "ignore"), `phx-hook`, `phx-mounted`, `phx-remove`
+
+**Connection:** `phx-connected`, `phx-loading`, `phx-disconnected`

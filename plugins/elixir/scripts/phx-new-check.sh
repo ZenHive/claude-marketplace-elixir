@@ -17,7 +17,7 @@ if ! echo "$COMMAND" | grep -qE '\-\-live'; then
     "hookSpecificOutput": {
       "hookEventName": "PreToolUse",
       "permissionDecision": "deny",
-      "permissionDecisionReason": "BLOCKED: Missing --live flag!\n\nAlways use: mix phx.new <name> --live\n\nWithout --live, auth scoping is incomplete and future phx.gen.live commands won'\''t be user-scoped. This creates security vulnerabilities.\n\nSee: elixir-setup.md include or /core:elixir-setup skill for setup guidance."
+      "permissionDecisionReason": "BLOCKED: Missing --live flag!\n\nAlways use: mix phx.new <name> --live\n\nWithout --live, auth scoping is incomplete and future phx.gen.live commands won'\''t be user-scoped. This creates security vulnerabilities.\n\nSee: elixir-setup.md include or /elixir:elixir-setup skill for setup guidance."
     }
   }'
   exit 0

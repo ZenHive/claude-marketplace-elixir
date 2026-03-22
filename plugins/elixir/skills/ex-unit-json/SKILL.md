@@ -4,19 +4,13 @@ description: AI-friendly test output with `mix test.json`. This skill should be 
 allowed-tools: Read, Bash
 ---
 
-# ExUnitJSON - AI-Friendly Test Output
+<!-- Auto-synced from ~/.claude/includes/ex-unit-json.md — do not edit manually -->
+
+## ExUnitJSON - AI-Friendly Test Output
 
 Use `mix test.json` instead of `mix test` for structured JSON output that's easy to parse and process.
 
-## When to use this skill
-
-- Running tests in any Elixir project
-- Iterating on test failures (use `--failed` for speed)
-- Checking code coverage
-- Analyzing failure patterns in large test suites
-- Setting up ex_unit_json in a new project
-
-## Start Here (Default Workflow)
+### Start Here (Default Workflow)
 
 **v0.3.0+: Default shows only failures (AI-optimized)**
 
@@ -43,13 +37,14 @@ TIP: 3 previous failure(s) exist. Consider:
   mix test.json test/unit/ --failed
   mix test.json --only integration --failed
 ```
+This warning is automatic - no flag needed. Skipped when already focused (using `--failed`, targeting files/dirs, or using tag filters).
 
 **When NOT to use --failed:**
 - After changing test infrastructure, fixtures, or shared setup code
 - After adding new test files (new tests won't be in .mix_test_failures)
 - When you want to verify a full green suite
 
-## Installation
+### Installation
 
 Add to `mix.exs`:
 
@@ -71,11 +66,45 @@ end
 
 Without this, you'll get: `"mix test" is running in the "dev" environment`
 
-## Key Flags
+### Quick Reference
+
+```bash
+# First run - see failures directly (DEFAULT in v0.3.0+)
+mix test.json --quiet
+
+# Iterate on failures (fast - only runs previously failed tests)
+mix test.json --quiet --failed --first-failure
+
+# Verify all failures fixed
+mix test.json --quiet --failed --summary-only
+
+# See all tests (when needed)
+mix test.json --quiet --all
+
+# Analyze failure patterns (large suites)
+mix test.json --quiet --group-by-error --summary-only
+
+# Filter known issues
+mix test.json --quiet --filter-out "credentials" --filter-out "rate limit"
+
+# Full suite health check (when you need total counts)
+mix test.json --quiet --summary-only
+
+# Compact JSONL output (one line per test)
+mix test.json --quiet --compact
+
+# Code coverage
+mix test.json --quiet --cover
+
+# Coverage with threshold (fails if below 80%)
+mix test.json --quiet --cover --cover-threshold 80
+```
+
+### Key Flags
 
 | Flag | Purpose |
 |------|---------|
-| `--quiet` | **Always use.** Suppresses Logger noise for clean JSON. |
+| `--quiet` | **Default.** Suppresses Logger/warnings for clean JSON. Omit when debugging to see Logger output. |
 | `--failed` | Only re-run previously failed tests. Fast iteration. |
 | `--summary-only` | Just counts, no test details. Quick health check. |
 | `--all` | Include ALL tests (default shows only failures). |
@@ -89,49 +118,64 @@ Without this, you'll get: `"mix test" is running in the "dev" environment`
 | `--cover` | Enable code coverage collection. |
 | `--cover-threshold N` | Fail if overall coverage < N% (requires `--cover`). |
 
-## Recommended Workflows
+### Recommended Workflows
 
 **1. First run - see failures directly (default)**
 ```bash
 mix test.json --quiet
 ```
+Runs all tests, shows only failures (v0.3.0+ default). No extra flags needed.
 
 **2. Filter noise, see real issues**
 ```bash
 mix test.json --quiet --filter-out "credentials" --filter-out "rate limit"
 ```
+Remove expected failures (missing credentials, rate limits, etc.)
 
 **3. Analyze failure patterns (large suites)**
 ```bash
 mix test.json --quiet --group-by-error --summary-only
 ```
+Groups failures by error message. Use when you have many failures.
 
 **4. Fix one at a time**
 ```bash
 mix test.json --quiet --failed --first-failure
 ```
+Get the first failure, fix it, repeat until green.
 
 **5. Verify fix**
 ```bash
 mix test.json --quiet --failed --summary-only
 ```
+Quick check if failure count decreased.
 
 **6. See all tests (when needed)**
 ```bash
 mix test.json --quiet --all
 ```
+Show all tests including passing. Use when investigating test coverage or structure.
 
 **7. Check code coverage**
 ```bash
 mix test.json --quiet --cover
 ```
+Includes `coverage` object with per-module coverage and uncovered line numbers.
 
 **8. Enforce coverage threshold**
 ```bash
 mix test.json --quiet --cover --cover-threshold 80
 ```
+Fails (exit 2) if overall coverage drops below 80%.
 
-## Output Structure (Schema v1)
+**9. Debug with Logger/warnings visible**
+```bash
+mix test.json
+mix test.json --failed --first-failure
+```
+Omit `--quiet` when you need to see Logger output, warnings, or IO.inspect debug prints. Uses more context tokens but essential for diagnosing runtime behavior.
+
+### Output Structure (Schema v1)
 
 ```json
 {
@@ -171,12 +215,14 @@ mix test.json --quiet --cover --cover-threshold 80
       "example": {"file": "...", "line": 42, "name": "...", "module": "..."}
     }
   ],
-  "module_failures": [],
-  "tests": []
+  "module_failures": [...],
+  "tests": [...]
 }
 ```
 
 Notes:
+- `version` - Schema version (currently 1)
+- `seed` - Random seed used for test ordering
 - `coverage` only appears with `--cover`
 - `coverage.threshold` and `threshold_met` only appear with `--cover-threshold`
 - `filtered` in summary only appears with `--filter-out`
@@ -184,7 +230,7 @@ Notes:
 - `module_failures` only appears when setup_all failures occur
 - `tests` is omitted with `--summary-only`
 
-## Combining with ExUnit Flags
+### Combining with ExUnit Flags
 
 ExUnit flags work alongside ex_unit_json flags:
 
@@ -199,31 +245,40 @@ mix test.json test/my_test.exs --quiet --summary-only
 mix test.json --seed 12345 --quiet --failures-only
 ```
 
-## Using jq
+### Using jq
 
 For piping to jq, use `MIX_QUIET=1` to suppress compilation messages that would corrupt the JSON stream:
 
 ```bash
-# Summary - pipes fine
+# Summary - pipes fine (MIX_QUIET=1 prevents compile output from breaking jq)
 MIX_QUIET=1 mix test.json --quiet --summary-only | jq '.summary'
 MIX_QUIET=1 mix test.json --quiet --group-by-error --summary-only | jq '.error_groups | map({pattern, count})'
+MIX_QUIET=1 mix test.json --quiet --group-by-error --summary-only | jq '.error_groups[:5]'
 
 # Full test details - use file (avoids piping issues entirely)
 mix test.json --quiet --output /tmp/results.json
 jq '.tests[] | select(.state == "failed")' /tmp/results.json
 jq '.tests[].file' /tmp/results.json | sort -u
+jq '.tests | group_by(.file) | map({file: .[0].file, count: length})' /tmp/results.json
 ```
 
-## Exit Codes
+### Exit Codes
 
 | Code | Meaning |
 |------|---------|
 | 0 | All tests passed (and coverage threshold met, if specified) |
-| 2 | Test failures OR coverage below threshold (JSON still valid) |
+| 2 | Test failures OR coverage below threshold (JSON still valid, check `summary.result` and `coverage.threshold_met`) |
 
 Note: Exit code 2 may trigger shell error display. Use `2>&1` to capture both streams.
 
-## Strict Enforcement
+### Tips
+
+- **Use `--quiet` by default** - Saves context tokens. Omit when you need to see Logger warnings or debug output
+- **Use `--failed` for iteration** - Much faster than running all tests
+- **`--group-by-error` reveals patterns** - 50 "connection refused" errors = 1 root cause
+- **`--filter-out` is repeatable** - Add multiple patterns to exclude
+
+### Strict Enforcement
 
 For projects where forgetting `--failed` is particularly costly:
 
@@ -234,7 +289,7 @@ config :ex_unit_json, enforce_failed: true
 
 This blocks full test runs when failures exist, requiring `--failed` or focused runs.
 
-## Handling Large Output
+### Handling Large Output
 
 For large test suites, output may exceed context limits:
 
@@ -242,7 +297,14 @@ For large test suites, output may exceed context limits:
 2. **Write to file**: Use `--output /tmp/results.json` and read selectively with jq
 3. **Reduce noise first**: Use `--filter-out` patterns before requesting full output
 
-## Troubleshooting
+```bash
+# Example: selective reading from file
+mix test.json --quiet --output /tmp/results.json
+jq '.error_groups[:5]' /tmp/results.json  # First 5 groups
+jq '.tests | length' /tmp/results.json    # Just count
+```
+
+### Troubleshooting
 
 **jq parse errors**: If you get `jq: parse error`, compilation output may be mixing with JSON. Use `MIX_QUIET=1` when piping, or use `--output FILE` which avoids piping issues entirely.
 
@@ -250,10 +312,3 @@ For large test suites, output may exceed context limits:
 ```bash
 mix test.json --quiet --summary-only 2>&1
 ```
-
-## Tips
-
-- **Always use `--quiet`** - Logger output pollutes JSON
-- **Use `--failed` for iteration** - Much faster than running all tests
-- **`--group-by-error` reveals patterns** - 50 "connection refused" errors = 1 root cause
-- **`--filter-out` is repeatable** - Add multiple patterns to exclude

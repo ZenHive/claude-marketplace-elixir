@@ -54,7 +54,7 @@ fi
 jq -n --arg warnings "$WARNINGS" '{
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "mix.exs review:\n" + $warnings + "\nRun: mix deps.get after adding deps. See /core:elixir-setup for full setup guide."
+    "additionalContext": "mix.exs review:\n" + $warnings + "\nRun: mix deps.get after adding deps. See /elixir:elixir-setup for full setup guide."
   }
 }'
 exit 0
