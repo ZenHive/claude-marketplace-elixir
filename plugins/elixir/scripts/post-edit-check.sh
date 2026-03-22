@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Consolidated post-edit hook for Elixir files
-# Runs: format, compile, credo, sobelow, doctor, struct-reminder, hidden-failures, mixexs-check
-# Replaces 12 separate hooks with 1 consolidated hook (83% reduction)
+# Runs: format, compile, corresponding-test, credo, sobelow, doctor, struct-reminder, hidden-failures, mixexs-check
 
 set -eo pipefail
 
@@ -113,7 +112,35 @@ fi
 # Compile success is silent
 
 # ============================================================================
-# Check 3: Credo (static analysis)
+# Check 3: Corresponding Test (run matching test file)
+# ============================================================================
+
+# Map lib/foo.ex → test/foo_test.exs, or run the test file itself if editing a test
+CORRESPONDING_TEST=""
+if [[ "$HOOK_FILE_PATH" =~ _test\.exs$ ]]; then
+  # Editing a test file — run it directly
+  CORRESPONDING_TEST="$HOOK_FILE_PATH"
+elif [[ "$HOOK_FILE_PATH" =~ ^(.*/)?lib/(.+)\.ex$ ]]; then
+  # Editing a lib file — find corresponding test
+  RELATIVE_PATH="${BASH_REMATCH[2]}"
+  CANDIDATE="${PROJECT_ROOT}/test/${RELATIVE_PATH}_test.exs"
+  [[ -f "$CANDIDATE" ]] && CORRESPONDING_TEST="$CANDIDATE"
+fi
+
+if [[ -n "$CORRESPONDING_TEST" ]] && has_mix_dependency "ex_unit_json" "$PROJECT_ROOT"; then
+  set +e
+  TEST_OUTPUT=$(mix test.json "$CORRESPONDING_TEST" 2>&1)
+  TEST_EXIT=$?
+  set -e
+
+  if [[ $TEST_EXIT -ne 0 ]]; then
+    TEST_TRUNCATED=$(truncate_output "$TEST_OUTPUT" "$MAX_OUTPUT_LINES" "mix test.json \"$CORRESPONDING_TEST\"")
+    add_section "Test (${CORRESPONDING_TEST##*/})" "$TEST_TRUNCATED"
+  fi
+fi
+
+# ============================================================================
+# Check 4: Credo (static analysis)
 # ============================================================================
 
 set +e
@@ -129,7 +156,7 @@ if [[ $CREDO_EXIT -ne 0 ]]; then
 fi
 
 # ============================================================================
-# Check 4: Sobelow (security)
+# Check 5: Sobelow (security)
 # ============================================================================
 
 set +e
@@ -152,7 +179,7 @@ if [[ $SOBELOW_EXIT -ne 0 ]] || [[ "$HAS_FINDINGS" == "true" ]]; then
 fi
 
 # ============================================================================
-# Check 5: Doctor (moduledoc/spec coverage)
+# Check 6: Doctor (moduledoc/spec coverage)
 # ============================================================================
 
 set +e
@@ -166,7 +193,7 @@ if [[ $DOCTOR_EXIT -ne 0 ]]; then
 fi
 
 # ============================================================================
-# Check 6: Struct Reminder (only for .ex non-test files)
+# Check 7: Struct Reminder (only for .ex non-test files)
 # ============================================================================
 
 if [[ "$HOOK_FILE_PATH" =~ \.ex$ ]] && [[ ! "$HOOK_FILE_PATH" =~ _test\.exs$ ]] && [[ -f "$HOOK_FILE_PATH" ]]; then
@@ -204,7 +231,7 @@ if [[ "$HOOK_FILE_PATH" =~ \.ex$ ]] && [[ ! "$HOOK_FILE_PATH" =~ _test\.exs$ ]] 
 fi
 
 # ============================================================================
-# Check 7: Hidden Test Failures (only for _test.exs files)
+# Check 8: Hidden Test Failures (only for _test.exs files)
 # ============================================================================
 
 if [[ "$HOOK_FILE_PATH" =~ _test\.exs$ ]] && [[ -f "$HOOK_FILE_PATH" ]]; then
@@ -231,7 +258,7 @@ if [[ "$HOOK_FILE_PATH" =~ _test\.exs$ ]] && [[ -f "$HOOK_FILE_PATH" ]]; then
 fi
 
 # ============================================================================
-# Check 8: mix.exs Checks (only for mix.exs files)
+# Check 9: mix.exs Checks (only for mix.exs files)
 # ============================================================================
 
 if [[ "$HOOK_FILE_PATH" == *"mix.exs" ]] && [[ -f "$HOOK_FILE_PATH" ]]; then
@@ -258,7 +285,7 @@ if [[ "$HOOK_FILE_PATH" == *"mix.exs" ]] && [[ -f "$HOOK_FILE_PATH" ]]; then
   fi
 
   if [[ -n "$MIXEXS_WARNINGS" ]]; then
-    add_section "mix.exs Review" "${MIXEXS_WARNINGS}\nSee /core:elixir-setup for full setup guide."
+    add_section "mix.exs Review" "${MIXEXS_WARNINGS}\nSee /elixir:elixir-setup for full setup guide."
   fi
 fi
 

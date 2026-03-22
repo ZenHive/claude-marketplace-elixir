@@ -11,11 +11,11 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 2. New Plugins | 5/5 ✅ | - |
 | 3. Pre-commit | 2/2 ✅ | - |
 | 4. Workflows | 1/1 ✅ | - |
-| 5. Documentation | 1/3 | Tasks 12-13 |
+| 5. Documentation | 3/3 ✅ | - |
 | 6. New Skills | 1/1 ✅ | - |
 | 7. Skill Quality | 5/5 ✅ | - |
 
-**Total: 25/27 complete (93%) | 2 remaining**
+**Total: 27/27 complete (100%)**
 
 ---
 
@@ -36,48 +36,15 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 
 ### High Priority (🎯 Priority > 3.0)
 
-#### Task 12: Update Project CLAUDE.md [D:2/B:7/U:5 → Eff:3.0] 🎯
+#### Task 12: Update Project CLAUDE.md ✅ [D:2/B:7/U:5 → Eff:3.0]
 
-**Goal:** Update the project's CLAUDE.md to reflect the current marketplace state: 7 plugins, 17 skills, correct namespaces.
-
-**Updates needed:**
-1. Document all 17 skills organized by plugin (elixir: 11, phoenix: 5, elixir-workflows: 1)
-2. Update plugin names (core → elixir, meta → elixir-workflows throughout)
-3. Add skills documentation section with trigger guidance
-4. Update ownership references
-5. Add D/B/U scoring explanation
-6. Include Phase 7 skill quality improvements if completed
-
-**Files to modify:**
-- `CLAUDE.md`
-
-**Acceptance criteria:**
-- [ ] All 7 plugins documented with current names
-- [ ] All 17 skills listed with descriptions
-- [ ] D/B/U scoring format explained
-- [ ] No stale references to old plugin names (core, meta)
+Updated CLAUDE.md skills section to document all 21 skills organized by plugin (elixir: 14, phoenix: 6, elixir-workflows: 1). See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-#### Task 13: Update README.md [D:2/B:6/U:5 → Eff:2.75] 🎯
+#### Task 13: Update README.md ✅ [D:2/B:6/U:5 → Eff:2.75]
 
-**Goal:** Update README with current marketplace features and fork attribution.
-
-**Updates needed:**
-1. Attribution to original project (MIT license)
-2. Current plugin list (7 plugins: elixir, phoenix, elixir-workflows, git-commit, md-includes, serena, notifications)
-3. Current skills list (17 skills across 3 plugins)
-4. Installation instructions verified current
-5. Skill categories (Core Development, Phoenix/UI, Specialized, Workflow)
-
-**Files to modify:**
-- `README.md`
-
-**Acceptance criteria:**
-- [ ] Attribution clear and correct
-- [ ] All 7 plugins and 17 skills documented
-- [ ] Installation instructions current
-- [ ] No stale references to old plugin names
+Added "Available Skills (21)" section to README.md with complete skill inventory. Updated plugin table descriptions. See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -136,7 +103,7 @@ Plugin renamed from `meta` to `elixir-workflows`. All references updated. Workfl
 | ~~2b~~ | ~~Task 24 (descriptions)~~ ✅ | Complete |
 | 2c | Task 27 (sync with includes) `[P]` | Independent — fix stale content + create new skills |
 | ~~3~~ | ~~Task 25 (AI-coder-docs)~~ ✅ | Complete |
-| 4 | Tasks 12, 13 (documentation) | Final, after all improvements |
+| ~~4~~ | ~~Tasks 12, 13 (documentation)~~ ✅ | Complete |
 
 ---
 

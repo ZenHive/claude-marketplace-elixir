@@ -6,13 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @~/.claude/includes/critical-rules.md
 
+@~/.claude/includes/skills-awareness.md
+
 @~/.claude/includes/task-prioritization.md
+
+@~/.claude/includes/task-writing.md
 
 @~/.claude/includes/web-command.md
 
 @~/.claude/includes/code-style.md
 
 @~/.claude/includes/development-philosophy.md
+
+@~/.claude/includes/documentation-guidelines.md
+
+@~/.claude/includes/ai-coder-docs.md
+
+@~/.claude/includes/agent-economy.md
 
 @~/.claude/includes/elixir-patterns.md
 
