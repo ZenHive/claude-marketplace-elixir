@@ -4,6 +4,20 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**Prompt-based TODO Marker Check Hook** (elixir v1.16.0)
+- First prompt-based hook in the marketplace — uses LLM reasoning instead of bash scripts
+- PreToolUse hook on Edit/Write/MultiEdit checks for missing TODO/FIXME markers on temporary code comments
+- Catches patterns: "for now", "temporarily", "workaround", "hack", "in production this should", etc.
+- Language-agnostic: works across all comment syntaxes (`#`, `//`, `/* */`, `--`)
+- Smart: only flags comments, not string literals or documentation prose
+
+**Corresponding Test Execution in Post-Edit Hook** (elixir v1.15.0)
+- Post-edit hook now runs `mix test.json` on the matching test file after every edit
+- Maps `lib/foo.ex` → `test/foo_test.exs` automatically; runs test files directly when edited
+- Skips silently when no matching test exists or ex_unit_json is not installed
+
 ### Changed
 
 **Backport Skill Knowledge to Canonical Includes**

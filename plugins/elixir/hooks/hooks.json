@@ -39,6 +39,15 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if the code being written contains comments with temporary implementations, workarounds, or production references that lack TODO or FIXME markers. Look for comment patterns like 'for now', 'temporarily', 'currently we', 'in production this should', 'when deployed', 'workaround', 'hack', 'quick fix', 'need to revisit'. This applies to any comment syntax (# // /* */ --). Only flag comments missing a TODO/FIXME prefix — not variable names, string literals, or documentation prose. If found, list the problematic lines and suggest adding TODO: prefix for linter tracking. If no issues found, approve silently."
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
