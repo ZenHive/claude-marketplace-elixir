@@ -6,12 +6,13 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
-**Prompt-based TODO Marker Check Hook** (elixir v1.16.0)
+**Prompt-based Code Quality Hook** (elixir v1.17.0)
 - First prompt-based hook in the marketplace — uses LLM reasoning instead of bash scripts
-- PreToolUse hook on Edit/Write/MultiEdit checks for missing TODO/FIXME markers on temporary code comments
-- Catches patterns: "for now", "temporarily", "workaround", "hack", "in production this should", etc.
+- PreToolUse hook on Edit/Write/MultiEdit checks for two issues in a single pass:
+  1. **Missing TODO markers**: comments with temporary implementations, workarounds, or production references lacking TODO/FIXME prefix
+  2. **Stub functions**: functions that look complete but return hardcoded values, ignore parameters, or have placeholder comments as their only body
 - Language-agnostic: works across all comment syntaxes (`#`, `//`, `/* */`, `--`)
-- Smart: only flags comments, not string literals or documentation prose
+- Smart: only flags comments (not string literals) and distinguishes stubs from intentionally simple functions
 
 **Corresponding Test Execution in Post-Edit Hook** (elixir v1.15.0)
 - Post-edit hook now runs `mix test.json` on the matching test file after every edit
