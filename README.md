@@ -26,9 +26,10 @@ claude
 /plugin install git-commit@deltahedge       # Commit workflow
 /plugin install serena@deltahedge           # Serena MCP integration
 /plugin install notifications@deltahedge    # OS notifications
+/plugin install code-review@deltahedge     # Universal code review workflow
 ```
 
-## Available Plugins (6)
+## Available Plugins (7)
 
 | Plugin | Description |
 |--------|-------------|
@@ -38,8 +39,9 @@ claude
 | [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 | [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
+| [code-review](./plugins/code-review/README.md) | Universal code review workflow — bugs, extractions, TODOs, abstractions |
 
-## Available Skills (22)
+## Available Skills (23)
 
 **Elixir plugin** (15 skills):
 
@@ -77,6 +79,12 @@ claude
 | Skill | Description |
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands for your project |
+
+**Code-review plugin** (1 skill):
+
+| Skill | Description |
+|-------|-------------|
+| code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
 
 ## License
 

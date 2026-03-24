@@ -84,10 +84,14 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   └── commands/
-└── notifications/            # OS notifications
+├── notifications/            # OS notifications
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   └── hooks/
+└── code-review/              # Universal code review workflow
     ├── .claude-plugin/
     │   └── plugin.json
-    └── hooks/
+    └── skills/               # code-review skill
 ```
 
 ### Key Concepts
@@ -111,7 +115,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (22 total)
+### Skills (23 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
@@ -151,6 +155,12 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 | Skill | Description |
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands (research, plan, implement, qa) |
+
+**Code-review plugin** (1 skill):
+
+| Skill | Description |
+|-------|-------------|
+| code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
 
 **Skill Composition**: Skills are single-purpose and composed by agents/commands. `usage-rules` provides conventions (how to use correctly), `hex-docs-search` provides API docs (what's available). Agents can invoke both for comprehensive guidance.
 

@@ -6,6 +6,13 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**New Plugin: code-review** (code-review v1.0.0)
+- Universal code review workflow skill — language-agnostic, works with Elixir, Rust, Go, or any language
+- Reviews `git diff --staged` against 5 categories: bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ patterns), and actionable TODOs
+- Each finding rated 1-10 priority; actionable items fixed directly
+- Complements existing language-specific commands (`/elixir-code-review`, `/rust-code-review`) as deep-dive references
+- Marketplace version: 1.0.7 → 1.0.8
+
 **Prompt-based Code Quality Hook** (elixir v1.17.0)
 - First prompt-based hook in the marketplace — uses LLM reasoning instead of bash scripts
 - PreToolUse hook on Edit/Write/MultiEdit checks for two issues in a single pass:
