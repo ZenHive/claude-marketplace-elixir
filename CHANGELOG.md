@@ -6,7 +6,7 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
-**New Plugin: code-review** (code-review v1.0.0)
+**New Plugin: staged-review** (staged-review v1.0.0)
 - Universal code review workflow skill — language-agnostic, works with Elixir, Rust, Go, or any language
 - Reviews `git diff --staged` against 5 categories: bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ patterns), and actionable TODOs
 - Each finding rated 1-10 priority; actionable items fixed directly

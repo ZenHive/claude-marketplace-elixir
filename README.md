@@ -26,7 +26,7 @@ claude
 /plugin install git-commit@deltahedge       # Commit workflow
 /plugin install serena@deltahedge           # Serena MCP integration
 /plugin install notifications@deltahedge    # OS notifications
-/plugin install code-review@deltahedge     # Universal code review workflow
+/plugin install staged-review@deltahedge    # Universal code review workflow
 ```
 
 ## Available Plugins (7)
@@ -39,7 +39,7 @@ claude
 | [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 | [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
-| [code-review](./plugins/code-review/README.md) | Universal code review workflow — bugs, extractions, TODOs, abstractions |
+| [staged-review](./plugins/staged-review/README.md) | Universal code review workflow — bugs, extractions, TODOs, abstractions |
 
 ## Available Skills (23)
 
@@ -80,7 +80,7 @@ claude
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands for your project |
 
-**Code-review plugin** (1 skill):
+**Staged-review plugin** (1 skill):
 
 | Skill | Description |
 |-------|-------------|

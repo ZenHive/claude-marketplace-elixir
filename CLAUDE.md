@@ -88,7 +88,7 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   └── hooks/
-└── code-review/              # Universal code review workflow
+└── staged-review/            # Universal code review workflow
     ├── .claude-plugin/
     │   └── plugin.json
     └── skills/               # code-review skill
@@ -156,7 +156,7 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands (research, plan, implement, qa) |
 
-**Code-review plugin** (1 skill):
+**Staged-review plugin** (1 skill):
 
 | Skill | Description |
 |-------|-------------|

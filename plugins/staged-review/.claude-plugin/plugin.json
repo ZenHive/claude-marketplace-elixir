@@ -1,5 +1,5 @@
 {
-  "name": "code-review",
+  "name": "staged-review",
   "version": "1.0.0",
   "description": "Universal code review workflow — staged file review with bug detection, extraction analysis, TODO tracking, and abstraction opportunities",
   "author": {

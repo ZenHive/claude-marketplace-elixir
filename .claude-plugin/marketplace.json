@@ -58,8 +58,8 @@
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     },
     {
-      "name": "code-review",
-      "source": "./plugins/code-review",
+      "name": "staged-review",
+      "source": "./plugins/staged-review",
       "description": "Universal code review workflow — staged file review with bug detection, extraction analysis, TODO tracking, and abstraction opportunities",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
