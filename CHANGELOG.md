@@ -6,6 +6,11 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**Roadmap-planning skill: full doc update checklist** (elixir v1.17.4)
+- Added all 5 docs to the "When completing a task" checklist: ROADMAP.md, CHANGELOG.md, CLAUDE.md, README.md, and project-specific tracking docs
+- Previously only covered ROADMAP.md and CHANGELOG.md archiving
+- Synced from canonical include `~/.claude/includes/task-prioritization.md`
+
 **New Plugin: task-driver** (task-driver v1.0.0)
 - Roadmap-driven task execution workflow — reads ROADMAP.md, selects tasks by D/B efficiency, enters plan mode for user approval, implements with TodoWrite tracking
 - Adds `TODO(Task N):` markers for discovered work during implementation, with corresponding ROADMAP.md entries
