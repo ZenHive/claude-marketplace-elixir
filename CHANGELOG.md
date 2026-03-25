@@ -6,6 +6,13 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**New Plugin: task-driver** (task-driver v1.0.0)
+- Roadmap-driven task execution workflow — reads ROADMAP.md, selects tasks by D/B efficiency, enters plan mode for user approval, implements with TodoWrite tracking
+- Adds `TODO(Task N):` markers for discovered work during implementation, with corresponding ROADMAP.md entries
+- Updates all project docs after implementation: ROADMAP.md (status), CHANGELOG.md (entry), CLAUDE.md (if architecture changed), README.md (if user-facing)
+- Language-agnostic — works with any project that has a ROADMAP.md
+- Marketplace version: 1.0.8 → 1.0.9
+
 **New Plugin: staged-review** (staged-review v1.0.0)
 - Universal code review workflow skill — language-agnostic, works with Elixir, Rust, Go, or any language
 - Reviews `git diff --staged` against 5 categories: bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ patterns), and actionable TODOs

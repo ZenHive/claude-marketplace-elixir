@@ -27,9 +27,10 @@ claude
 /plugin install serena@deltahedge           # Serena MCP integration
 /plugin install notifications@deltahedge    # OS notifications
 /plugin install staged-review@deltahedge    # Universal code review workflow
+/plugin install task-driver@deltahedge     # Roadmap-driven task execution
 ```
 
-## Available Plugins (7)
+## Available Plugins (8)
 
 | Plugin | Description |
 |--------|-------------|
@@ -40,8 +41,9 @@ claude
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 | [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
 | [staged-review](./plugins/staged-review/README.md) | Universal code review workflow — bugs, extractions, TODOs, abstractions |
+| [task-driver](./plugins/task-driver/README.md) | Roadmap-driven task execution — select by efficiency, implement, update docs |
 
-## Available Skills (23)
+## Available Skills (24)
 
 **Elixir plugin** (15 skills):
 
@@ -85,6 +87,12 @@ claude
 | Skill | Description |
 |-------|-------------|
 | code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
+
+**Task-driver plugin** (1 skill):
+
+| Skill | Description |
+|-------|-------------|
+| task-driver | Roadmap-driven task execution — select by efficiency, implement, update all docs |
 
 ## License
 

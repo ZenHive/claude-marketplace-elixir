@@ -1,0 +1,12 @@
+{
+  "name": "task-driver",
+  "version": "1.0.0",
+  "description": "Roadmap-driven task execution — select tasks by efficiency, implement with TODO tracking, update all project documentation",
+  "author": {
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive"
+  },
+  "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+  "license": "MIT",
+  "keywords": ["roadmap", "tasks", "planning", "implementation", "todo", "changelog", "universal"]
+}

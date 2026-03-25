@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Elixir and BEAM ecosystem development tools for Claude Code",
-    "version": "1.0.8"
+    "version": "1.0.9"
   },
   "pluginRoot": "../plugins",
   "plugins": [
@@ -61,6 +61,14 @@
       "name": "staged-review",
       "source": "./plugins/staged-review",
       "description": "Universal code review workflow — staged file review with bug detection, extraction analysis, TODO tracking, and abstraction opportunities",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+      "license": "MIT",
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
+    },
+    {
+      "name": "task-driver",
+      "source": "./plugins/task-driver",
+      "description": "Roadmap-driven task execution — select tasks by efficiency, implement with TODO tracking, update all project documentation",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
