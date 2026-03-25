@@ -185,6 +185,8 @@ If during review you discover issues originating from **external dependencies** 
 
 You fix the code under review. The user fixes the upstream source. Then you continue.
 
+**After marking**: Switch to plan mode and present the upstream issues as a plan for the user to review. This gives the user a clear list of what needs fixing before the review can continue.
+
 **Examples:**
 - Generated code has wrong field names → `FIXME(upstream)`, don't rename downstream
 - Extractor output is missing data or malformed JSON → `FIXME(upstream)`, don't add nil guards
