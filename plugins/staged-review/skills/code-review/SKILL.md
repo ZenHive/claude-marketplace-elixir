@@ -171,17 +171,27 @@ After the table, summarize: X findings, Y fixed, Z flagged.
 
 ## Boundary Rule: Report Upstream Issues, Don't Patch Over Them
 
-If during review you discover issues originating from **external dependencies** — malformed output from a generator, wrong data shapes from an extractor, broken schemas from a build tool, unexpected API response formats — **STOP and report them to the user** rather than compensating in the reviewed code.
+If during review you discover issues originating from **external dependencies** — malformed output from a generator, wrong data shapes from an extractor, broken schemas from a build tool, unexpected API response formats — **STOP, mark it, and report to the user** rather than compensating in the reviewed code.
+
+**Mark with a FIXME comment** so Credo flags it as a warning:
+
+```elixir
+# FIXME(upstream): Generator output missing `exchange_id` field — fix in Go extractor, not here
+```
+
+- Use `FIXME` (not `TODO`) — Credo treats FIXME as higher priority than TODO
+- Include `(upstream)` tag to distinguish from regular code issues
+- Describe the source: which tool, which field, what's wrong
 
 You fix the code under review. The user fixes the upstream source. Then you continue.
 
 **Examples:**
-- Generated code has wrong field names → report, don't rename downstream
-- Extractor output is missing data or has malformed JSON → report, don't add nil guards
-- Build tool produces incorrect artifacts → report, don't compensate in application code
-- API response shape changed → report, don't silently adapt the parser
+- Generated code has wrong field names → `FIXME(upstream)`, don't rename downstream
+- Extractor output is missing data or malformed JSON → `FIXME(upstream)`, don't add nil guards
+- Build tool produces incorrect artifacts → `FIXME(upstream)`, don't compensate in application code
+- API response shape changed → `FIXME(upstream)`, don't silently adapt the parser
 
-**Why:** Compensating for upstream issues masks real bugs. The compensation ships, the root cause persists, and future code inherits the same problem. Catching it at review time is the cheapest fix.
+**Why:** Compensating for upstream issues masks real bugs. The compensation ships, the root cause persists, and future code inherits the same problem. A FIXME ensures Credo keeps it visible until the source is fixed.
 
 ## Common Mistakes
 
