@@ -169,6 +169,20 @@ Present findings as a table:
 
 After the table, summarize: X findings, Y fixed, Z flagged.
 
+## Boundary Rule: Report Upstream Issues, Don't Patch Over Them
+
+If during review you discover issues originating from **outside the staged code** — malformed output from a generator, wrong data shapes from an extractor, broken schemas from a build tool — **STOP and report them to the user** rather than compensating in the reviewed code.
+
+You fix the code under review. The user fixes the upstream source. Then you continue.
+
+**Examples:**
+- Generated code has wrong field names → report, don't rename downstream
+- Extractor output is missing data or has malformed JSON → report, don't add nil guards
+- Build tool produces incorrect artifacts → report, don't compensate in application code
+- API response shape changed → report, don't silently adapt the parser
+
+**Why:** Compensating for upstream issues masks real bugs. The compensation ships, the root cause persists, and future code inherits the same problem. Catching it at review time is the cheapest fix.
+
 ## Common Mistakes
 
 | Mistake | Fix |
