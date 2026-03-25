@@ -1,6 +1,6 @@
 {
   "name": "staged-review",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Universal code review workflow — staged file review with bug detection, extraction analysis, TODO tracking, and abstraction opportunities",
   "author": {
     "name": "DeltaHedge",

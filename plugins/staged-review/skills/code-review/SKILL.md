@@ -185,6 +185,21 @@ If during review you discover issues originating from **external dependencies** 
 
 You fix the code under review. The user fixes the upstream source. Then you continue.
 
+**After marking**: Write a prompt for a fresh Claude Code session in the upstream codebase. You don't need to investigate the full bug — give enough context for the expert agent to pick it up:
+
+```
+## Bug: [short description]
+
+**Symptom:** [what you observed in the downstream code]
+**Where observed:** [file:line in the code under review]
+**Expected:** [what the output should look like]
+**Actual:** [what you got instead]
+
+Investigate and fix. The downstream code at [file:line] depends on this.
+```
+
+Don't diagnose the root cause — describe the symptom and let the upstream expert do the analysis.
+
 **Examples:**
 - Generated code has wrong field names → `FIXME(upstream)`, don't rename downstream
 - Extractor output is missing data or malformed JSON → `FIXME(upstream)`, don't add nil guards
