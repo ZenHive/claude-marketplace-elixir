@@ -59,6 +59,10 @@ If yes → extend the meta-layer, not the instance.
 **Trap**: Reading types/schemas/docs to understand what something does.
 **Rule**: Observe what actually happens. Intercept real calls. Specs lie, runtime doesn't.
 
+#### 5. Gravitational Pull of Existing Code
+**Trap**: Extending existing classification patterns (e.g., `pattern_from_ast/1 → :hmac_sha256_query`) instead of questioning whether those patterns match the new data source.
+**Rule**: Old code shapes new code, even when the old code is wrong. When switching data sources (e.g., JS extraction → Go AST), delete and rebuild rather than adapt. Fresh instances that see existing atoms/patterns will naturally extend them instead of asking "what does the data actually contain?" This is a design principle for AI-authored codebases — if you want fresh thinking, remove the old scaffolding.
+
 ### The Reframe Questions
 
 1. "Am I solving for ONE instance, or for N?"

@@ -25,6 +25,18 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 - Complements existing language-specific commands (`/elixir-code-review`, `/rust-code-review`) as deep-dive references
 - Marketplace version: 1.0.7 → 1.0.8
 
+**Anti-Evasion Rules in critical-rules.md** (global include)
+- Added "No Evasion — Sit With The Hard Thing" section to `~/.claude/includes/critical-rules.md`
+- Documents evasion patterns: task abandonment, scope reduction, false completion, deflection to user
+- Provides "what to do instead" rules — stay with it, flag blockers, ask before deferring, never write workarounds silently
+- Fires at thinking time (preventive) — complements the reactive prompt hook and stop hook
+
+**Structural Stop Hook** (global hookify rule)
+- `~/.claude/hookify.unfinished-work.local.md` — blocks session stop when unfinished work exists
+- Checks for: incomplete tasks, unresolved TODOs, deferred/skipped work, unresolved test failures
+- Structural check (state-based), not phrase-matching — harder for Claude to evade
+- Global rule — applies across all projects
+
 **Prompt-based Code Quality Hook** (elixir v1.17.0)
 - First prompt-based hook in the marketplace — uses LLM reasoning instead of bash scripts
 - Blocking PreToolUse hook on Edit/Write/MultiEdit checks for three issues in a single pass:
