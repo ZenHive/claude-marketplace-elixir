@@ -171,7 +171,7 @@ After the table, summarize: X findings, Y fixed, Z flagged.
 
 ## Boundary Rule: Report Upstream Issues, Don't Patch Over Them
 
-If during review you discover issues originating from **outside the staged code** — malformed output from a generator, wrong data shapes from an extractor, broken schemas from a build tool — **STOP and report them to the user** rather than compensating in the reviewed code.
+If during review you discover issues originating from **external dependencies** — malformed output from a generator, wrong data shapes from an extractor, broken schemas from a build tool, unexpected API response formats — **STOP and report them to the user** rather than compensating in the reviewed code.
 
 You fix the code under review. The user fixes the upstream source. Then you continue.
 
