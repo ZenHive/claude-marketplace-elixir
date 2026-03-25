@@ -107,11 +107,20 @@ This system helps focus on high-impact, low-effort wins first — and the U scor
 
 Keep roadmaps focused on future work by archiving completed tasks:
 
-**When completing a task:**
-1. Move full task details to `CHANGELOG.md` (create if needed)
-2. Update summary table status (⬜ → ✅)
-3. Keep only a one-line reference in the roadmap phase section
-4. Strike through in priority order lists
+**When completing a task — update ALL affected docs:**
+
+1. **ROADMAP.md** — Mark status (⬜ → ✅), update phase summary, update "Current Focus" section
+2. **CHANGELOG.md** — Add entry under `## [Unreleased]` with what was done and key decisions (create if needed)
+3. **CLAUDE.md** — Update if repo structure, architecture, or conventions changed
+4. **README.md** — Update if user-facing features or setup instructions changed
+5. **Any project-specific tracking docs** (e.g., GO-INTEGRATION.md, DEX_ROADMAP.md) — Update if the task affected tracked work
+
+A task without updated docs is an incomplete task.
+
+**Archiving completed tasks in ROADMAP.md:**
+1. Move full task details to CHANGELOG.md
+2. Keep only a one-line reference in the roadmap phase section
+3. Strike through in priority order lists
 
 **ROADMAP.md structure (with Current Focus and phase summaries):**
 ```markdown
