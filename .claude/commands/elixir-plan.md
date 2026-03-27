@@ -146,17 +146,43 @@ status: draft
    - `CLAUDE.md`
    - Plugin-specific README.md
 
+## Acceptance Criteria
+
+**Every plan MUST include testable acceptance criteria.** These are specific, verifiable statements that a fresh QA session (`/elixir-qa`) can check without ambiguity.
+
+**Good criteria:**
+- "Hook returns deny JSON with permissionDecision when non-.ex file is edited"
+- "All 5 new tests pass with `mix test.json --quiet`"
+- "Plugin appears in `jq '.plugins[].name' .claude-plugin/marketplace.json`"
+
+**Bad criteria:**
+- "Works correctly"
+- "Handles edge cases"
+- "Is well tested"
+
+Format each as: concrete behavior + observable outcome. The QA phase checks against these — they are the contract between planner and evaluator.
+
+```markdown
+## Acceptance Criteria
+
+- [ ] [Specific verifiable outcome]
+- [ ] [Specific verifiable outcome]
+- [ ] [Specific verifiable outcome]
+```
+
+**Note:** This plan is a session artifact — a fresh implement session will read it from `.thoughts/plans/`. Keep deliverables clear but don't over-specify implementation details (errors cascade). Let the implementer research the codebase and figure out the path.
+
 ## Implementation Steps
 
-Use D/B scoring for prioritization: `[D:X/B:Y → Priority:Z]` where Priority = Benefit/Difficulty
-- Priority > 2.0: 🎯 Exceptional ROI - do immediately
-- Priority 1.5-2.0: 🚀 High ROI - do soon
-- Priority 1.0-1.5: 📋 Good ROI - plan carefully
-- Priority < 1.0: ⚠️ Poor ROI - reconsider or defer
+Use D/B/U scoring for prioritization: `[D:X/B:Y/U:Z → Eff:W]` where Eff = (B + U) / (2 x D)
+- Eff > 2.0: 🎯 Exceptional ROI - do immediately
+- Eff 1.5-2.0: 🚀 High ROI - do soon
+- Eff 1.0-1.5: 📋 Good ROI - plan carefully
+- Eff < 1.0: ⚠️ Poor ROI - reconsider or defer
 
 **CRITICAL**: Each step's description should be a **prompt for Claude Code to implement**, not implementation details. Claude Code will research the codebase and determine specifics at execution time.
 
-### Step 1: [Phase Name] [D:X/B:Y → Priority:Z] 🎯/🚀/📋/⚠️
+### Step 1: [Phase Name] [D:X/B:Y/U:Z → Eff:W] 🎯/🚀/📋/⚠️
 
 [Write a prompt describing WHAT to accomplish, not HOW to implement it]
 
@@ -166,7 +192,7 @@ Example: "Create a GenServer that manages WebSocket connections to Binance. It s
 - [ ] [Verifiable outcome]
 - [ ] [Verifiable outcome]
 
-### Step 2: [Phase Name] [D:X/B:Y → Priority:Z]
+### Step 2: [Phase Name] [D:X/B:Y/U:Z → Eff:W]
 [Continue for each implementation phase]
 
 ## Hook Implementation Details

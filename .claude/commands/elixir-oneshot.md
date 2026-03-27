@@ -360,10 +360,18 @@ Mark sixth todo as completed.
 - QA is mandatory - never skip validation
 
 ### When to Use /oneshot
-- **Use when**: You want complete automation from idea to implementation
+- **Use when**: Small-medium scope feature that can complete in one session
 - **Use when**: You're confident in the feature description
-- **Don't use when**: You want to iterate on research or planning separately
-- **Don't use when**: Implementation requires user input or decisions
+- **Don't use when**: Large features requiring multi-session work — use separate sessions with `.thoughts/` handoffs
+- **Don't use when**: You want to iterate on research or planning with the user between phases
+- **Don't use when**: Implementation requires user decisions at multiple points
+
+**Scope guidance:** Oneshot runs all phases (research, plan, implement, QA) in a single session. For large features, context fills up and quality degrades. If the feature involves 5+ files or multiple architectural decisions, prefer the session-per-phase model instead:
+```
+Session 1: /elixir-plan "feature"     → .thoughts/plans/
+Session 2: /elixir-implement "plan"   → code changes
+Session 3: /elixir-qa "plan"          → validation
+```
 
 ### Phase Dependencies
 - Planning depends on research findings

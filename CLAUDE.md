@@ -10,6 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @~/.claude/includes/task-writing.md
 
+@~/.claude/includes/workflow-philosophy.md
+
 @~/.claude/includes/web-command.md
 
 @~/.claude/includes/code-style.md
@@ -50,6 +52,19 @@ This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem devel
 ```
 
 The script preserves SKILL.md frontmatter (name, description, allowed-tools) and replaces the body with include content. See `scripts/sync-skills-from-includes.sh` for the full mapping.
+
+### Setup Guide Sync Check
+
+Verify `~/.claude/setup-guide.md` is in sync with actual includes on disk:
+
+```bash
+./scripts/check-setup-guide.sh          # report drift
+./scripts/check-setup-guide.sh --quiet  # exit code only (0=ok, 1=drift)
+```
+
+Reports undocumented includes (files on disk not in setup-guide) and missing includes (referenced but not on disk). Run after adding or removing includes.
+
+**Note:** A separate **SessionStart prompt hook** in `~/.claude/settings.json` handles per-project CLAUDE.md checks — it detects the project stack (Elixir, Phoenix, etc.) and flags missing includes against the setup-guide templates. That hook is user-level config, not part of this repo.
 
 ## Architecture
 

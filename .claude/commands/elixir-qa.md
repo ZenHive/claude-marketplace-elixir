@@ -27,11 +27,20 @@ This command provides comprehensive quality assurance for the Claude Code plugin
 ## Overview
 
 By default, `/qa` runs ALL quality checks:
-1. **Review**: Pre-push code review of all changes
+1. **Review**: Pre-push code review of all changes (invokes `staged-review:code-review` skill for code analysis)
 2. **Test**: Run full test suite for all plugins
 3. **Validate**: Validate all plugins in marketplace
+4. **Plan validation**: If a plan exists in `.thoughts/plans/`, check acceptance criteria
 
 Or run specific actions when you provide an argument.
+
+### Evaluator Separation
+
+This command is the **evaluator** in the generator-evaluator pattern. It runs in a separate session from implementation, providing independent judgment. The implementer should never grade its own work — that's what `/elixir-qa` is for.
+
+### Plan-Specific Validation
+
+When a plan name is provided (`/qa "plan-name"`), read the plan's `## Acceptance Criteria` section from `.thoughts/plans/` and verify each criterion. Report pass/fail per criterion with evidence.
 
 ---
 

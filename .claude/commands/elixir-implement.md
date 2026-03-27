@@ -17,6 +17,7 @@ When this command is invoked, the user provides a plan name as an argument (e.g.
    - If no plan name: List available plans in .thoughts/plans/ and ask user to choose
    - Parse the plan document frontmatter and sections
    - Extract implementation steps, file changes, and validation checklist
+   - **Note:** This is a fresh session reading a plan artifact from a previous planning session. The plan describes WHAT to accomplish — research the codebase to determine HOW.
 
 2. **Create implementation tracking:**
    - Use TodoWrite to create todos from plan's implementation steps (follow TodoWrite best practices from CLAUDE.md)
@@ -97,10 +98,20 @@ When this command is invoked, the user provides a plan name as an argument (e.g.
    - Validate JSON structure with jq
    - Follow existing plugin patterns
 
-8. **Update documentation:**
-   - Update marketplace README.md to list new plugin
-   - Update CLAUDE.md if architecture changes
-   - Ensure all documentation is consistent
+8. **Update all affected documentation:**
+   A task without updated docs is an incomplete task. Check and update:
+   - **ROADMAP.md** — Mark task status (⬜ → ✅), update phase summaries
+   - **CHANGELOG.md** — Add entry under `## [Unreleased]` describing what was done and key decisions
+   - **CLAUDE.md** — Update if repo structure, architecture, or conventions changed
+   - **README.md** — Update if user-facing features or setup instructions changed
+   - **Any project-specific tracking docs** — Update if the task affected tracked work
+
+   **Track discovered work during implementation:**
+   When you discover issues, edge cases, or missing capabilities that aren't the current task, add `TODO(Task N):` markers in code:
+   ```elixir
+   # TODO(Task 295): Handle rate limiting for batch requests — discovered during Task 274
+   ```
+   Each marker needs a corresponding entry in ROADMAP.md with D/B/U scoring.
 
 9. **Final validation checklist:**
    - Run through plan's validation checklist

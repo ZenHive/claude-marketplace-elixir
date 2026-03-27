@@ -20,27 +20,29 @@ claude
 
 ### Automatic Hooks
 
+Each hook is tagged as **convention** (permanent quality gate) or **model-limitation** (compensates for current model weaknesses — review when models improve). See [workflow philosophy](https://www.anthropic.com/engineering/harness-design-long-running-apps) for rationale.
+
 **PostToolUse - After file edits:**
-- ✅ **Auto-format** - Automatically runs `mix format` on edited .ex/.exs files
-- ✅ **Compile check** - Runs `mix compile --warnings-as-errors` to catch errors immediately
-- ✅ **Hidden test failure detection** - Warns when test files contain patterns that silently pass on errors
-- ✅ **Private function docs check** - Warns when `defp` functions are missing `@doc false` or comments
-- ✅ **Typespec check** - Warns when public `def` functions are missing `@spec`
-- ✅ **Typedoc check** - Warns when type definitions are missing `@typedoc`
+- ✅ **Auto-format** `[convention]` - Automatically runs `mix format` on edited .ex/.exs files
+- ✅ **Compile check** `[convention]` - Runs `mix compile --warnings-as-errors` to catch errors immediately
+- ✅ **Hidden test failure detection** `[convention]` - Warns when test files contain patterns that silently pass on errors
+- ✅ **Private function docs check** `[convention]` - Warns when `defp` functions are missing `@doc false` or comments
+- ✅ **Typespec check** `[convention]` - Warns when public `def` functions are missing `@spec`
+- ✅ **Typedoc check** `[convention]` - Warns when type definitions are missing `@typedoc`
 
 **PostToolUse - After reading files:**
-- ✅ **Documentation recommendation on read** - Detects dependency usage in files and suggests documentation lookup
+- ✅ **Documentation recommendation on read** `[model-limitation]` - Detects dependency usage in files and suggests documentation lookup
 
 **PreToolUse - Before git commits:**
-- ✅ **Pre-commit validation** - Ensures code is formatted, compiles, and has no unused deps before committing
+- ✅ **Pre-commit validation** `[convention]` - Ensures code is formatted, compiles, and has no unused deps before committing
 
 **PreToolUse - Before running tests:**
-- ✅ **Suggest --failed** - On 2nd consecutive `mix test`, suggests `--failed --trace` to speed up test-fix cycles
-- ✅ **Prefer test.json** - Blocks `mix test` and redirects to `mix test.json` for AI-friendly output
-- ✅ **Prefer dialyzer.json** - Blocks `mix dialyzer` and redirects to `mix dialyzer.json` for AI-friendly output
+- ✅ **Suggest --failed** `[model-limitation]` - On 2nd consecutive `mix test`, suggests `--failed --trace` to speed up test-fix cycles
+- ✅ **Prefer test.json** `[convention]` - Blocks `mix test` and redirects to `mix test.json` for AI-friendly output
+- ✅ **Prefer dialyzer.json** `[convention]` - Blocks `mix dialyzer` and redirects to `mix dialyzer.json` for AI-friendly output
 
 **UserPromptSubmit - On user input:**
-- ✅ **Documentation recommendation** - Suggests using documentation skills when prompt mentions project dependencies
+- ✅ **Documentation recommendation** `[model-limitation]` - Suggests using documentation skills when prompt mentions project dependencies
 
 ### Skills
 

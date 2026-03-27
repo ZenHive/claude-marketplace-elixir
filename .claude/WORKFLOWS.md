@@ -1,8 +1,53 @@
 # Claude Code Marketplace Workflows
 
-This project uses a standardized workflow system for research, planning, implementation, and quality assurance.
+This project uses a layered workflow system for research, planning, implementation, and quality assurance.
 
-## Generated for: Claude Code Plugin Marketplace
+## Architecture
+
+### Layered Model
+
+```
+Global Includes (workflow-philosophy.md, task-prioritization.md, etc.)
+    | loaded by all projects via CLAUDE.md @imports — language-agnostic
+    v
+Universal Skills (task-driver, staged-review:code-review)
+    | language-agnostic foundations — work for Elixir, Rust, Go, anything
+    v
+Elixir-Specific Commands (/elixir-plan, /elixir-qa, etc.)
+    | add domain concerns: mix format, hooks.json, plugin structure
+    v
+Elixir-Specific Hooks (post-edit-check.sh, pre-commit-unified.sh)
+    | automated real-time quality enforcement
+    v
+```
+
+**Universal plugins** (`staged-review`, `task-driver`) are language-agnostic foundations. They work for any project with a ROADMAP.md or staged git changes. The Elixir-specific commands add domain concerns on top.
+
+### Session-Per-Phase Model
+
+Each workflow phase runs in its own **fresh session**. File artifacts are the handoffs — no skill chains to the next phase.
+
+```
+Session 1: brainstorm/interview  → .thoughts/interview/
+Session 2: plan                  → .thoughts/plans/
+Session 3: implement             → code + ROADMAP.md updates
+Session 4: code-review           → staged-review:code-review (pre-commit)
+Session 5: QA                    → /elixir-qa (post-implementation)
+```
+
+**Oneshot** (`/elixir-oneshot`) runs all phases in one session — recommended for small-medium scope only. For large features, use separate sessions with `.thoughts/` handoffs.
+
+### When to Use What
+
+| Situation | Tool | Why |
+|-----------|------|-----|
+| Existing roadmap task | `task-driver` skill | Reads ROADMAP.md, selects by efficiency |
+| New feature from scratch | `/elixir-plan` → `/elixir-implement` | Generates plan with acceptance criteria |
+| Pre-commit review | `staged-review:code-review` skill | Reviews staged changes, any language |
+| Post-implementation validation | `/elixir-qa` | Validates against plan + Elixir checks |
+| Small-medium single-session feature | `/elixir-oneshot` | All phases in one session |
+
+**Key distinction:** `staged-review:code-review` is **pre-commit** (reviews staged changes only). `/elixir-qa` is **post-implementation** (full validation against acceptance criteria and Elixir-specific quality gates).
 
 ---
 

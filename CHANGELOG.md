@@ -6,6 +6,56 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**Setup Guide Sync Check Script**
+- Added `scripts/check-setup-guide.sh` — compares `~/.claude/setup-guide.md` against actual files in `~/.claude/includes/`, reports drift (undocumented or missing includes)
+- Supports `--quiet` flag for CI/scripting (exit code only)
+- Companion to `sync-skills-from-includes.sh` for marketplace maintenance
+
+**SessionStart Prompt Hook** (user settings, not in repo)
+- Added prompt-based SessionStart hook to `~/.claude/settings.json` that checks per-project CLAUDE.md includes against the project's detected stack
+
+**Workflow Philosophy Integration**
+- Created `~/.claude/includes/workflow-philosophy.md` — language-agnostic workflow principles derived from Anthropic's ["Harness Design for Long-Running Apps"](https://www.anthropic.com/engineering/harness-design-long-running-apps)
+- Session-per-phase model, acceptance criteria requirements, evaluator separation, model assumption tagging, workflow routing table, layered architecture diagram
+- Imported in project CLAUDE.md via `@~/.claude/includes/workflow-philosophy.md`
+
+### Changed
+
+**WORKFLOWS.md: Layered Architecture and Routing**
+- Added architecture section documenting the layered model (global includes → universal skills → Elixir commands → hooks)
+- Added session-per-phase model guidance with file handoff patterns
+- Added routing table: when to use task-driver vs elixir-plan vs code-review vs elixir-qa
+
+**README.md: Architecture and Plugin Organization**
+- Added "Architecture" section explaining layered model and workflow philosophy
+- Added "Workflow Model" section showing session-per-phase pattern
+- Reorganized plugin table into "Universal" (staged-review, task-driver, git-commit, notifications) and "Elixir/Phoenix" categories
+
+**Hook Rationale Tags** (elixir plugin README)
+- Tagged all hooks as `[convention]` (permanent quality gate) or `[model-limitation]` (review when models improve)
+- Convention: auto-format, compile check, hidden failure detection, typespec/typedoc checks, pre-commit validation, prefer-test-json, prefer-dialyzer-json
+- Model-limitation: documentation recommendation on read, suggest --failed, documentation recommendation on prompt
+
+**elixir-plan Command: Acceptance Criteria and D/B/U Scoring**
+- Added mandatory "Acceptance Criteria" section to plan template — specific, verifiable outcomes for QA validation
+- Fixed D/B scoring to use D/B/U formula: `[D:X/B:Y/U:Z → Eff:W]` where Eff = (B + U) / (2 x D)
+- Added note that plans are session artifacts read by fresh implement sessions
+
+**elixir-implement Command: Task-Driver Patterns**
+- Added doc update requirements (ROADMAP, CHANGELOG, CLAUDE.md, README) as mandatory implementation step
+- Added `TODO(Task N):` marker pattern for discovered work during implementation
+- Added note that implementation reads plan artifacts from `.thoughts/` as a fresh session
+
+**elixir-qa Command: Evaluator Role and Plan Validation**
+- Documented evaluator separation principle — QA is the evaluator, never let the implementer grade its own work
+- Added plan-specific validation: reads `.thoughts/plans/` acceptance criteria and checks each
+- Referenced `staged-review:code-review` skill for code analysis
+
+**elixir-oneshot Command: Scope Guidance**
+- Added scope guidance: recommended for small-medium tasks only
+- Added recommendation to use session-per-phase model for large features (5+ files, multiple architectural decisions)
+- Added concrete example of separate-session workflow
+
 **5 New Skills: OXC, QuickBEAM, npm_ex trilogy** (elixir plugin)
 - **oxc**: OXC Elixir bindings for parsing, transforming, bundling, and minifying JS/TS via Rust NIFs — ESTree AST navigation, class hierarchy extraction, code generation, walk/postwalk/collect traversal, patch_string
 - **quickbeam**: QuickBEAM JavaScript runtime for the BEAM — run JS libraries, npm packages, and async code inside Elixir GenServers via Zig NIFs. Covers start/eval/call lifecycle, handler pattern, Pool/ContextPool, correct browser global stub pattern

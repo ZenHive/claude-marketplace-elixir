@@ -30,18 +30,52 @@ claude
 /plugin install task-driver@deltahedge     # Roadmap-driven task execution
 ```
 
+## Architecture
+
+This marketplace uses a **layered architecture** inspired by Anthropic's [harness design for long-running apps](https://www.anthropic.com/engineering/harness-design-long-running-apps). The key insight: separate the agent doing the work from the agent judging it.
+
+```
+Global Includes (workflow-philosophy.md, task-prioritization.md, etc.)
+    → loaded by all projects — language-agnostic principles
+Universal Plugins (staged-review, task-driver)
+    → language-agnostic foundations — work for any project
+Elixir-Specific Plugins (elixir, phoenix, elixir-workflows)
+    → domain concerns: mix format, hooks.json, Elixir patterns
+Automated Hooks (post-edit-check.sh, pre-commit-unified.sh)
+    → real-time quality enforcement on every edit and commit
+```
+
+### Workflow Model
+
+Each phase runs in a **fresh session** with file-based handoffs (`.thoughts/` directory):
+
+1. **Interview/Brainstorm** → context docs
+2. **Plan** → implementation plan with acceptance criteria
+3. **Implement** → code + ROADMAP updates
+4. **Code Review** → `staged-review:code-review` (pre-commit, any language)
+5. **QA** → `/elixir-qa` (post-implementation, Elixir-specific)
+
+For small-medium features, `/elixir-oneshot` runs all phases in one session. See [WORKFLOWS.md](.claude/WORKFLOWS.md) for details.
+
 ## Available Plugins (8)
+
+**Universal plugins** (language-agnostic):
+
+| Plugin | Description |
+|--------|-------------|
+| [staged-review](./plugins/staged-review/README.md) | Universal code review workflow — bugs, extractions, TODOs, abstractions |
+| [task-driver](./plugins/task-driver/README.md) | Roadmap-driven task execution — select by efficiency, implement, update docs |
+| [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
+| [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
+
+**Elixir/Phoenix plugins**:
 
 | Plugin | Description |
 |--------|-------------|
 | [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 15 skills |
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns, LiveView, scope, JS hooks, daisyUI, Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
-| [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
-| [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
-| [staged-review](./plugins/staged-review/README.md) | Universal code review workflow — bugs, extractions, TODOs, abstractions |
-| [task-driver](./plugins/task-driver/README.md) | Roadmap-driven task execution — select by efficiency, implement, update docs |
 
 ## Available Skills (24)
 
