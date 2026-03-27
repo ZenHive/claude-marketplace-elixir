@@ -35,6 +35,11 @@ MAPPINGS=(
   "plugins/elixir/skills/elixir-setup/SKILL.md:elixir-setup.md"
   "plugins/elixir/skills/web-command/SKILL.md:web-command.md"
   "plugins/elixir/skills/roadmap-planning/SKILL.md:task-prioritization.md"
+  "plugins/elixir/skills/oxc/SKILL.md:oxc.md"
+  "plugins/elixir/skills/quickbeam/SKILL.md:quickbeam.md"
+  "plugins/elixir/skills/npm-ci-verify/SKILL.md:npm-ci-verify.md"
+  "plugins/elixir/skills/npm-security-audit/SKILL.md:npm-security-audit.md"
+  "plugins/elixir/skills/npm-dep-analysis/SKILL.md:npm-dep-analysis.md"
 )
 
 synced=0

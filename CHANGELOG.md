@@ -6,6 +6,19 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**5 New Skills: OXC, QuickBEAM, npm_ex trilogy** (elixir plugin)
+- **oxc**: OXC Elixir bindings for parsing, transforming, bundling, and minifying JS/TS via Rust NIFs — ESTree AST navigation, class hierarchy extraction, code generation, walk/postwalk/collect traversal, patch_string
+- **quickbeam**: QuickBEAM JavaScript runtime for the BEAM — run JS libraries, npm packages, and async code inside Elixir GenServers via Zig NIFs. Covers start/eval/call lifecycle, handler pattern, Pool/ContextPool, correct browser global stub pattern
+- **npm-ci-verify**: npm_ex CI/CD and installation verification — mix npm.ci, npm.check, npm.verify, npm.doctor, npm.shrinkwrap, --frozen flag
+- **npm-security-audit**: npm_ex security auditing and supply chain assessment — mix npm.audit, npm.licenses, npm.deprecations, CVE scanning, license compliance
+- **npm-dep-analysis**: npm_ex dependency graph analysis and size optimization — mix npm.stats, npm.size, npm.tree, npm.why, npm.dedupe, package quality scoring
+- All synced from canonical includes via `scripts/sync-skills-from-includes.sh`
+
+### Changed
+
+**Sync script updated for 5 new skill mappings**
+- Added oxc, quickbeam, npm-ci-verify, npm-security-audit, npm-dep-analysis to include-skill sync mappings (15 → 20 mappings)
+
 **Roadmap-planning skill: full doc update checklist** (elixir v1.17.4)
 - Added all 5 docs to the "When completing a task" checklist: ROADMAP.md, CHANGELOG.md, CLAUDE.md, README.md, and project-specific tracking docs
 - Previously only covered ROADMAP.md and CHANGELOG.md archiving
