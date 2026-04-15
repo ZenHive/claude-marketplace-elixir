@@ -103,6 +103,10 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   └── hooks/
+├── code-quality/             # Language-agnostic LLM code quality gate
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   └── hooks/                # PreToolUse prompt hook (TODO/workaround enforcement)
 ├── staged-review/            # Universal code review workflow
 │   ├── .claude-plugin/
 │   │   └── plugin.json
@@ -127,10 +131,13 @@ plugins/
 
 The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2, 10 pre-commit hooks → 1):
 
-**Elixir plugin** - All Elixir development hooks:
+**Elixir plugin** - Elixir-specific command hooks:
 1. **post-edit-check.sh** (non-blocking, PostToolUse): After editing `.ex`/`.exs` files, runs format, compile, credo, sobelow, doctor, struct hints, hidden failure detection
 2. **ash-codegen-check.sh** (non-blocking, PostToolUse): Runs `mix ash.codegen --check` if Ash dependency exists
 3. **pre-commit-unified.sh** (blocking, PreToolUse): Before `git commit`, runs all quality checks (format, compile, credo, test, doctor, sobelow, dialyzer, mix_audit, ash.codegen, ex_doc). Defers to `mix precommit` if alias exists. Uses 180s timeout.
+
+**Code-quality plugin** - Language-agnostic LLM gate (separate from Elixir plugin so it installs cleanly on Rust/Go/Python projects):
+1. **Code quality gate** (blocking, PreToolUse, `type: prompt`): Before Edit/Write/MultiEdit on source files (`.ex`, `.exs`, `.go`, `.rs`, `.js`, `.ts`, `.py`, `.rb`, `.java`, `.c`, `.cpp`, `.h`), the LLM itself evaluates the diff and denies untracked TODO/FIXME markers, unmarked deferred-work comments ("for now", "temporarily", …), stub functions, and silent workarounds. Markdown/config files bypass the check.
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 

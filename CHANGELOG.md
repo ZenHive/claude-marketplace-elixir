@@ -6,6 +6,12 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**code-quality Plugin** (extracted from elixir plugin)
+- New standalone plugin at `plugins/code-quality/` containing the language-agnostic LLM-based code quality gate (PreToolUse `type: prompt` hook)
+- Blocks untracked TODO/FIXME markers, unmarked deferred-work comments, stub functions, and silent workarounds on source files across Elixir, Go, Rust, JS/TS, Python, Ruby, Java, and C/C++
+- Can now be installed on non-Elixir projects without pulling in `mix`-based tooling
+- Marketplace bumped to 1.1.0 (new plugin); elixir plugin bumped to 1.19.0 (hook removed)
+
 **Setup Guide Sync Check Script**
 - Added `scripts/check-setup-guide.sh` — compares `~/.claude/setup-guide.md` against actual files in `~/.claude/includes/`, reports drift (undocumented or missing includes)
 - Supports `--quiet` flag for CI/scripting (exit code only)

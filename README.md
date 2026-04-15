@@ -26,6 +26,7 @@ claude
 /plugin install git-commit@deltahedge       # Commit workflow
 /plugin install serena@deltahedge           # Serena MCP integration
 /plugin install notifications@deltahedge    # OS notifications
+/plugin install code-quality@deltahedge     # Language-agnostic LLM code quality gate
 /plugin install staged-review@deltahedge    # Universal code review workflow
 /plugin install task-driver@deltahedge     # Roadmap-driven task execution
 ```
@@ -57,12 +58,13 @@ Each phase runs in a **fresh session** with file-based handoffs (`.thoughts/` di
 
 For small-medium features, `/elixir-oneshot` runs all phases in one session. See [WORKFLOWS.md](.claude/WORKFLOWS.md) for details.
 
-## Available Plugins (8)
+## Available Plugins (9)
 
 **Universal plugins** (language-agnostic):
 
 | Plugin | Description |
 |--------|-------------|
+| [code-quality](./plugins/code-quality) | LLM-based PreToolUse gate — blocks untracked TODOs, unmarked deferred work, stub functions, silent workarounds |
 | [staged-review](./plugins/staged-review/README.md) | Universal code review workflow — bugs, extractions, TODOs, abstractions |
 | [task-driver](./plugins/task-driver/README.md) | Roadmap-driven task execution — select by efficiency, implement, update docs |
 | [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
