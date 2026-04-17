@@ -236,6 +236,18 @@ Investigate and fix. The downstream code at [file:line] depends on this.
 
 **Why:** compensating for upstream issues masks real bugs. The compensation ships, the root cause persists, and future code inherits the same problem. A FIXME keeps it visible until the source is fixed.
 
+## Second-Opinion Reviewers (Codex, Other Claude Sessions)
+
+Do NOT auto-invoke a second reviewer as part of this skill's flow. Calibration observed in practice:
+
+- **Claude (self-review) under-flags.** The confidence filter in Category 1 ("only report if you can name the specific input that triggers the bug") suppresses real issues alongside noise. Expect genuine misses.
+- **Codex over-flags.** Codex frequently asserts things that look wrong in isolation but are correct in context (wrong imports, nonexistent functions, mis-stated invariants). Its reviews read authoritative but contain errors — per `critical-rules.md`, treat external reviews as *suggestions to investigate*, never facts to accept.
+
+**How to apply:**
+- Default flow is a single Claude review. One pass, applied via plan mode. Don't propose adding Codex unless the user asks or the diff is high-stakes (auth / crypto / money / migrations).
+- If Codex output is pasted into the session, verify each finding against the actual code before acting. Tag Codex-only findings as `discuss`-tier unless you've independently confirmed them.
+- When closing a review, it's honest to say: "single-reviewer pass — I may have missed things." Don't oversell coverage.
+
 ## Common Mistakes
 
 | Mistake | Fix |
