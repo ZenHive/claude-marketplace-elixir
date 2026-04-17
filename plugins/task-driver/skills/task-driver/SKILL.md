@@ -92,6 +92,8 @@ Wait for the user to pick. Do NOT proceed without approval.
 - Identify reuse opportunities — don't propose new code when a helper exists
 - Produce a concrete plan: files to modify, new modules, schema/contract changes, verification steps
 
+**Delegate the codebase survey to an Explore subagent** when the task needs more than ~3 searches across the repo. Keep design synthesis in the main session; push raw Grep/Glob work to Explore so it returns a compact report (file:line pairs, brief findings) instead of dumping 100+ raw matches into main context. Common trigger: a schema/contract bump that touches dozens of filename or version-string references — let Explore enumerate the call-sites, then build the plan from its summary.
+
 Exit plan mode with `ExitPlanMode` when the plan is ready for user approval.
 
 **Trivial task exception:** if the selected task is a one-line fix, a pure doc update, or otherwise has zero design decisions, skip plan mode and go straight to Step 5. When in doubt, plan.
