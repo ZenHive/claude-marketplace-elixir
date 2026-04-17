@@ -34,6 +34,7 @@ MAPPINGS=(
   "plugins/elixir/skills/npm-ci-verify/SKILL.md:npm-ci-verify.md"
   "plugins/elixir/skills/npm-security-audit/SKILL.md:npm-security-audit.md"
   "plugins/elixir/skills/npm-dep-analysis/SKILL.md:npm-dep-analysis.md"
+  "plugins/portfolio-strategy/skills/portfolio-strategy/SKILL.md:portfolio-strategy.md"
 )
 
 synced=0

@@ -80,6 +80,14 @@
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
+    },
+    {
+      "name": "portfolio-strategy",
+      "source": "./plugins/portfolio-strategy",
+      "description": "Power-law portfolio rule — cross-repo decision framework for starting, continuing, or killing projects. Classify normal vs power-law bets, check portfolio health, enforce kill criteria",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+      "license": "MIT",
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     }
   ]
 }
