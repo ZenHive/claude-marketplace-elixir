@@ -1,21 +1,22 @@
 ---
 name: code-review
-description: Use when reviewing staged files, performing code review, or before committing. Reviews `git diff --staged` for bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ similar patterns), and actionable TODOs. Presents a findings table, then fixes items the user approves. Language-agnostic.
-allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
+description: Use when reviewing staged files, performing code review, or before committing. Reviews `git diff --staged` for bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ similar patterns), and actionable TODOs. Presents a findings table, auto-applies rated fixes, and asks only about `discuss`-tier judgment calls. Language-agnostic.
+allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent, ExitPlanMode
 ---
 
 # Code Review — Staged Files Workflow
 
-Read the staged diff. Find real problems. Present them in a table. Fix what the user approves.
+Read the staged diff. Find real problems. Present them in a table. Auto-apply rated fixes. Ask only about judgment calls.
 
 ## Scope
 
 WHAT THIS SKILL DOES:
   - Review `git diff --staged` for bugs, extractions, TODOs, abstractions
   - Cross-reference ROADMAP.md for tracked task numbers
-  - Rate each finding 1-10 priority
-  - Present findings as a table
-  - Fix items the user approves
+  - Rate each finding 1-10 priority (or `discuss`)
+  - Present findings as a table (informational)
+  - Auto-apply fixes for anything rated 3-10 and actionable TODOs
+  - Ask the user only about `discuss`-tier findings
 
 WHAT THIS SKILL DOES NOT DO:
   - Comprehensive language-specific checklist (use `/elixir-code-review` or similar)
@@ -32,18 +33,21 @@ digraph code_review {
   rankdir=TB;
   node [shape=box];
 
-  staged  [label="1. git diff --staged\n(stop if nothing staged)"];
-  roadmap [label="2. Read ROADMAP.md\nCross-reference task numbers"];
-  review  [label="3. Apply 5 review categories\n(delegate survey to Explore if diff is large)"];
-  rate    [label="4. Rate each finding 1-10"];
-  present [label="5. Present findings table\nAwait user approval"];
-  fix     [label="6. Fix approved items"];
+  staged   [label="1. git diff --staged\n(stop if nothing staged)"];
+  roadmap  [label="2. Read ROADMAP.md\nCross-reference task numbers"];
+  review   [label="3. Apply 5 review categories\n(delegate survey to Explore if diff is large)"];
+  rate     [label="4. Rate each finding 1-10 or discuss"];
+  present  [label="5. Present findings table (informational, no plan mode)"];
+  planfix  [label="6. Enter plan mode\nLay out concrete edits for rated fixes\n(priority 3-10 + actionable)"];
+  apply    [label="7. Exit plan mode → all edits apply at once"];
+  discuss  [label="8. Ask ONLY about discuss-tier\n(skip if none)"];
+  summary  [label="9. Summarize what was applied"];
 
-  staged -> roadmap -> review -> rate -> present -> fix;
+  staged -> roadmap -> review -> rate -> present -> planfix -> apply -> discuss -> summary;
 }
 ```
 
-**No plan mode.** A code review is a report, not a design proposal — the findings table IS the artifact the user approves against. Plan mode would force a ceremony around a table you're going to read in two seconds. If any *individual* fix is large enough to need its own design, enter plan mode scoped to that one fix before applying it; don't blanket the whole review.
+**Plan mode is for the fix step, not the review step.** Presenting findings is a report — a plain table, no plan mode. But *applying* the fixes is the real design moment, and it deserves plan mode: concrete edits visible before anything is written, single exit-to-proceed approval for the whole batch, no cherry-picking ceremony. The user's approval is Claude Code's built-in "exit plan mode" UX — one click, all rated fixes applied. The `discuss`-tier gate stays separate and conversational; plan mode doesn't replace it.
 
 ### Step 1: Read Staged Changes
 
@@ -125,26 +129,26 @@ TODOs in the staged diff that are resolvable RIGHT NOW:
 - TODO says "extract to function" and the function boundary is obvious → do it
 - TODO references a task that's being completed in this diff → resolve it
 
-**Flag them as findings with priority, don't silently fix them.** The user's approval in Step 5 is what turns a finding into an edit. Don't defer what's already implementable — *and* don't skip the approval step.
+**List them in the findings table, then fix them in Step 6 with the rest of the rated findings.** Don't defer what's already implementable.
 
 ### Step 4: Rate Each Finding
 
 Use this scale. It collapses cleanly onto the priority bands the user actually cares about:
 
-| Priority | Band | Meaning | Default action if approved |
-|----------|------|---------|---------------------------|
-| 9-10 | critical | Bug that will crash or corrupt data | Fix before commit |
-| 7-8 | high | Logic error, security issue, or clear extraction win | Fix before commit |
-| 5-6 | medium | Missing extraction, worth-doing abstraction | Fix if quick, else flag as `TODO(Task N)` |
-| 3-4 | low | Missing TODO marker, minor cleanup | Add marker |
-| 1-2 | cosmetic | Style, naming nits | Skip unless trivial |
-| — | discuss | Judgment call, not a clear finding | Ask the user |
+| Priority | Band | Meaning | Default action |
+|----------|------|---------|----------------|
+| 9-10 | critical | Bug that will crash or corrupt data | **Auto-apply** |
+| 7-8 | high | Logic error, security issue, or clear extraction win | **Auto-apply** |
+| 5-6 | medium | Missing extraction, worth-doing abstraction | **Auto-apply** (or add `TODO(Task N)` if the fix needs scoping beyond this commit) |
+| 3-4 | low | Missing TODO marker, minor cleanup | **Auto-apply** |
+| 1-2 | cosmetic | Style, naming nits | List only; skip unless trivial |
+| — | discuss | Judgment call, not a clear finding | **Ask the user** |
 
-**"Discuss" is not a cop-out** — it's the honest category for "I'd lean this way, but it's a real design choice." Premature abstractions, architectural-flavor decisions, and subjective readability calls belong here, not in the 5-6 band.
+**"Discuss" is the one tier that gates on user input** — it's the honest category for "I'd lean this way, but it's a real design choice." Premature abstractions, architectural-flavor decisions, and subjective readability calls belong here, not in the 5-6 band. If you rated it numerically, you're committing to the fix; use `discuss` only when you genuinely can't.
 
-### Step 5: Present Findings Table
+### Step 5: Present Findings Table (Informational, No Plan Mode)
 
-Output a single table. No plan mode, no preamble — just the findings:
+Output a single table. No plan mode at this step — it's a report, not a design proposal. No preamble, no "Insight" blocks, no "Not flagged (verified clean)" appendix. Just the findings.
 
 ```
 | # | Pri | Category    | File:Line           | Description                          | Proposed action |
@@ -157,13 +161,43 @@ Output a single table. No plan mode, no preamble — just the findings:
 | 6 | —   | discuss     | lib/cache.ex:5      | TTL of 60s — aggressive? confirm     | Ask user |
 ```
 
-After the table, end with: "Which of these should I apply? (all / 1,3,5 / none)". **Wait for the user's reply** — do not apply fixes unprompted.
+**Keep descriptions terse** — 10 words max per cell, so the table renders. Long reasoning goes in a follow-up note if needed, not in the table.
 
-### Step 6: Fix Approved Items
+### Step 6: Enter Plan Mode with Concrete Edits
 
-For each approved finding, apply the fix directly. Use `Edit`/`MultiEdit`. After all fixes, re-run `git diff` (the reviewer's edits are unstaged — see below) and summarize: "X fixes applied across Y files. The remaining findings (flagged as TODOs / marked discuss) are: …"
+After the findings table, **enter plan mode** (`ExitPlanMode` is what you'll call once the plan is written). Inside the plan, lay out every rated fix (priority 3-10 and every `actionable` entry) as a concrete edit — not prose descriptions, actual file:line + before/after snippets or specific `Edit` operations.
+
+Skip priority 1-2 unless the fix is a single-line trivial edit.
+
+Do NOT include `discuss`-tier findings in the plan — those go to Step 8. Plan mode is for decided fixes only.
+
+The user's **single exit-to-proceed** approves the whole batch. No cherry-picking. If they want to drop individual items, they can say so before exiting plan mode and you revise the plan; the default is "all of it."
+
+### Step 7: Apply the Plan
+
+Once the user exits plan mode, apply every edit in the plan using `Edit`/`MultiEdit`. No further prompts.
 
 Do not run `git add` for the reviewer's own edits unless the user explicitly asks — let them stage the review changes themselves so the distinction between "author's work" and "reviewer's work" stays inspectable.
+
+### Step 8: Ask About `discuss`-Tier Findings
+
+If the findings table contains any rows with `discuss` in the priority column, ask the user about them **conversationally** — no plan mode, no table, just the judgment calls. If no `discuss` rows exist, skip this step.
+
+Format:
+```
+Discuss-tier calls I need your input on:
+- #6 (lib/cache.ex:5): TTL of 60s feels aggressive given upstream rate limits. Lower to 30s, raise to 300s, or leave as-is?
+```
+
+Wait for the user's decisions, then apply any approved discuss-tier changes directly (they're small by nature — one at a time is fine, no plan mode needed).
+
+### Step 9: Summarize
+
+After all auto-fixes and any approved discuss-tier fixes are applied, summarize:
+- "N fixes auto-applied across M files"
+- List of files touched (so the user can `git diff` them)
+- Any priority 1-2 items that were skipped
+- Any discuss-tier items that were declined or deferred
 
 ## Boundary Rule: Report Upstream Issues, Don't Patch Over Them
 
@@ -209,8 +243,10 @@ Investigate and fix. The downstream code at [file:line] depends on this.
 | Reviewing all files, not just staged | Always start with `git diff --staged` |
 | Skipping ROADMAP.md read | Read it BEFORE reviewing — task numbers matter |
 | Flagging without priority | Every finding gets a 1-10 rating (or "discuss") |
-| Fixing approved items before the user approves | Step 5 is the approval gate; Step 6 is where edits happen |
+| Asking the user to hand-pick "1, 2, 3" from the table | Rated findings auto-apply via plan mode; only `discuss`-tier gets a gate |
+| Entering plan mode to present the findings table | Step 5 is a report, not a plan — no plan mode there. Plan mode is Step 6 (concrete edits) |
 | Silently updating CHANGELOG/ROADMAP | Reviewer surfaces doc gaps; committer writes the entries |
 | Reporting "looks suspicious" | Name the triggering input or mark it "discuss" |
 | Running `grep`/`glob` all over a 40-file diff | Delegate the survey to an Explore subagent (Step 3) |
-| Entering plan mode for the review itself | Plan mode is for an individual large fix, not the review report |
+| Emitting `★ Insight` blocks or "Not flagged (verified clean)" appendices | The findings table is the entire deliverable — no headers, no afterword |
+| Using vertical `#: 1 / Pri: 4 / …` field lists instead of the table | Output MUST be a markdown table. Keep description cells ≤10 words so it renders |
