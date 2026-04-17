@@ -20,8 +20,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @~/.claude/includes/agent-economy.md
 
-@~/.claude/includes/elixir-patterns.md
-
 @~/.claude/includes/elixir-setup.md
 
 @~/.claude/includes/development-commands.md
@@ -29,10 +27,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 @~/.claude/includes/ex-unit-json.md
 
 @~/.claude/includes/dialyzer-json.md
-
-@~/.claude/includes/library-design.md
-
-@~/.claude/includes/meta-development.md
 
 ## Repository Purpose
 
@@ -137,17 +131,16 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (24 total)
+### Skills (23 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
-**Elixir plugin** (15 skills):
+**Elixir plugin** (18 skills):
 
 | Skill | Description |
 |-------|-------------|
 | hex-docs-search | Research Hex package API docs — function signatures, module docs, typespecs |
 | usage-rules | Package-specific coding conventions, patterns, and best practices |
-| api-consumer | Macro-based API client generation for REST APIs with 10+ similar endpoints |
 | development-commands | Mix commands reference — test.json, dialyzer.json, credo JSON, builds |
 | dialyzer-json | AI-friendly Dialyzer output with `mix dialyzer.json` — fix hints, grouping |
 | ex-unit-json | AI-friendly test output with `mix test.json` — flags, workflows, jq patterns |
@@ -159,17 +152,17 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 | git-worktrees | Run multiple Claude Code sessions in parallel using git worktrees |
 | zen-websocket | ZenWebsocket library for WebSocket connections with reconnection |
 | roadmap-planning | Prioritized roadmaps with D/B scoring for task lists |
-| meta-development | Elixir macros, code generators, DSLs — solve for N, not 1 |
+| oxc | OXC Rust NIF — parse/transform/bundle/minify JS and TS via ESTree AST |
+| quickbeam | QuickBEAM JS runtime on the BEAM — eval/call, pools, handler bridge |
+| npm-ci-verify | npm_ex CI/install verification — lockfile sync, frozen installs |
+| npm-security-audit | npm_ex security — CVE audit, license compliance, supply-chain risk |
+| npm-dep-analysis | npm_ex graph analysis — size, fan-in/out, dedup, package quality |
 
-**Phoenix plugin** (6 skills):
+**Phoenix plugin** (2 skills):
 
 | Skill | Description |
 |-------|-------------|
-| daisyui | daisyUI 5 + Tailwind CSS v4 component patterns for LiveView |
 | nexus-template | Nexus Phoenix admin dashboard template with Iconify icons |
-| phoenix-js | Phoenix JavaScript client-side patterns — hooks, JS commands, channels |
-| phoenix-patterns | Phoenix 1.8+ framework patterns — LiveView forms, streams, HEEx |
-| phoenix-scope | Phoenix 1.8+ Scope struct for authorization and user-scoped data |
 | phoenix-setup | Phoenix project setup — phx.gen.auth, Sobelow, LiveDebugger, formatter |
 
 **Elixir-workflows plugin** (1 skill):

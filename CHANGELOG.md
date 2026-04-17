@@ -4,6 +4,24 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Removed
+
+**Orphaned skills retired (Opus 4.7 selective-load philosophy)**
+- `~/.claude/includes/` was pruned for the Opus 4.7 (Jan 2026 cutoff) training window: generic Phoenix 1.8 / LiveView / daisyUI 5 / macro patterns now live in the model, so their corresponding includes were dropped from the canonical set. This marketplace hosted 6 skills whose source includes no longer exist, leaving them as self-asserting empty-shell discovery surfaces
+- Retired the following skills (last-existed at commit `56c950e`, resurrect via `git show 56c950e:<path>` if a model gap is later discovered):
+  - `plugins/elixir/skills/api-consumer` — generic REST API wrapper macro patterns (training-data covered)
+  - `plugins/elixir/skills/meta-development` — generic Elixir macros / code generators (hexdocs canonical, training-data covered)
+  - `plugins/phoenix/skills/phoenix-js` — Phoenix JS hooks, channels, presence (hexdocs verbatim, training-data covered)
+  - `plugins/phoenix/skills/phoenix-patterns` — Phoenix 1.8 / LiveView forms / streams / HEEx (training-data covered)
+  - `plugins/phoenix/skills/phoenix-scope` — Phoenix 1.8 Scope struct (training-data covered)
+  - `plugins/phoenix/skills/daisyui` — daisyUI 5 + Tailwind v4 component patterns (training-data covered)
+- Preserved 3 proprietary `references/` files (describing methodology for the sibling `ccxt_client` and `ccxt_extract` projects, not in any training corpus) to `docs/archive/ccxt/` — long-term these belong in the owning repos at `../ccxt_client` and `../ccxt_extract`
+- Removed the 6 corresponding mappings from `scripts/sync-skills-from-includes.sh`
+- Removed 3 broken `@` imports from marketplace `CLAUDE.md` (`elixir-patterns.md`, `library-design.md`, `meta-development.md` — retired from `~/.claude/includes/` in the same pruning pass)
+- Removed `daisyui` from `plugins/phoenix/.claude-plugin/plugin.json` keywords
+- `elixir` plugin bumped to 1.20.0; `phoenix` plugin bumped to 1.1.0. No marketplace-level version bump (catalog structure unchanged — no plugins added or removed)
+- Corrected a pre-existing skill-count undercount in `CLAUDE.md` and `README.md` tables (5 Elixir skills existed on disk but were absent from the tables: `oxc`, `quickbeam`, `npm-ci-verify`, `npm-security-audit`, `npm-dep-analysis`). New documented totals: Elixir **18**, Phoenix **2**, marketplace **23**
+
 ### Added
 
 **code-quality Plugin** (extracted from elixir plugin)

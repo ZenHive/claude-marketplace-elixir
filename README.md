@@ -74,20 +74,19 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 
 | Plugin | Description |
 |--------|-------------|
-| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 15 skills |
-| [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns, LiveView, scope, JS hooks, daisyUI, Nexus template |
+| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 18 skills |
+| [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns — setup and Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 
-## Available Skills (24)
+## Available Skills (23)
 
-**Elixir plugin** (15 skills):
+**Elixir plugin** (18 skills):
 
 | Skill | Description |
 |-------|-------------|
 | hex-docs-search | Research Hex package API docs — function signatures, module docs, typespecs |
 | usage-rules | Package-specific coding conventions, patterns, and best practices |
-| api-consumer | Macro-based API client generation for REST APIs with 10+ endpoints |
 | development-commands | Mix commands reference — test.json, dialyzer.json, credo JSON, builds |
 | dialyzer-json | AI-friendly Dialyzer output with `mix dialyzer.json` |
 | ex-unit-json | AI-friendly test output with `mix test.json` |
@@ -99,17 +98,17 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 | git-worktrees | Run multiple Claude Code sessions in parallel |
 | zen-websocket | ZenWebsocket library for WebSocket connections |
 | roadmap-planning | Prioritized roadmaps with D/B scoring |
-| meta-development | Elixir macros, code generators, DSLs — solve for N, not 1 |
+| oxc | OXC Rust NIF — parse/transform/bundle/minify JS and TS via ESTree AST |
+| quickbeam | QuickBEAM JS runtime on the BEAM — eval/call, pools, handler bridge |
+| npm-ci-verify | npm_ex CI/install verification — lockfile sync, frozen installs |
+| npm-security-audit | npm_ex security — CVE audit, license compliance, supply-chain risk |
+| npm-dep-analysis | npm_ex graph analysis — size, fan-in/out, dedup, package quality |
 
-**Phoenix plugin** (6 skills):
+**Phoenix plugin** (2 skills):
 
 | Skill | Description |
 |-------|-------------|
-| daisyui | daisyUI 5 + Tailwind CSS v4 component patterns |
 | nexus-template | Nexus Phoenix admin dashboard template |
-| phoenix-js | Phoenix JavaScript — hooks, JS commands, channels, presence |
-| phoenix-patterns | Phoenix 1.8+ patterns — LiveView forms, streams, HEEx |
-| phoenix-scope | Phoenix 1.8+ Scope struct for authorization |
 | phoenix-setup | Phoenix project setup — phx.gen.auth, Sobelow, LiveDebugger |
 
 **Elixir-workflows plugin** (1 skill):

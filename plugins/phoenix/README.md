@@ -1,15 +1,12 @@
 # Phoenix Plugin
 
-Phoenix framework patterns, LiveView, and UI component skills for Claude Code.
+Phoenix-specific setup and template skills for Claude Code.
 
 ## Skills
 
 | Skill | Description |
 |-------|-------------|
-| `phoenix-patterns` | Phoenix 1.8 framework patterns - templates, forms, LiveView, routing, Ecto |
-| `phoenix-scope` | Scope patterns, user-scoped data, extending scope with custom fields |
-| `phoenix-js` | Hooks, JS commands, event bindings, loading states |
-| `daisyui` | daisyUI 5 + Tailwind v4, semantic colors, component patterns |
+| `phoenix-setup` | Phoenix project setup — phx.gen.auth, Sobelow, LiveDebugger, formatter |
 | `nexus-template` | Nexus Phoenix admin template, Iconify icons, partials system |
 
 ## Installation
@@ -23,19 +20,16 @@ Phoenix framework patterns, LiveView, and UI component skills for Claude Code.
 Skills are invoked automatically by Claude when working on Phoenix projects, or manually:
 
 ```bash
-/phoenix:phoenix-patterns    # Framework patterns reference
-/phoenix:phoenix-scope       # Scope patterns
-/phoenix:phoenix-js          # JavaScript integration
-/phoenix:daisyui             # daisyUI component patterns
+/phoenix:phoenix-setup       # Phoenix project setup conventions
 /phoenix:nexus-template      # Nexus admin template
 ```
 
 ## When to Install
 
 Install this plugin when working on:
-- Phoenix LiveView applications
-- Phoenix applications using daisyUI
+- New Phoenix projects (setup conventions, Sobelow, LiveDebugger)
 - Projects using the Nexus admin template
-- Any Phoenix project needing framework pattern guidance
+
+Phoenix 1.8 framework patterns (LiveView, forms, streams, Scope), daisyUI 5 component patterns, and Phoenix JS hooks are covered by Claude Opus 4.7's training data and no longer ship as dedicated skills. See the root CHANGELOG for the retirement rationale.
 
 Non-Phoenix Elixir projects do not need this plugin.

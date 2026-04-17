@@ -32,17 +32,13 @@ mix phx.gen.auth Accounts User users
   - Security by default, zero manual work
 
 **The Real Problem:**
-Without `--live`, the scope configuration is incomplete. When you later run `mix phx.gen.live RealEstate Property properties ...`, the generated code won't include user scoping. This creates a **major security vulnerability** - users can see/edit each other's data.
+Without `--live`, the scope configuration is incomplete. When you later run `mix phx.gen.live RealEstate Property properties ...`, the generated code won't include user scoping. This creates a **major security vulnerability** — users can see/edit each other's data.
 
 **Common mistake:** Forgetting the `--live` flag requires complete redo of auth setup and re-cherry-picking all subsequent work.
 
-### Base Setup
-
-For standard Elixir tooling (Styler, Credo, Dialyxir, Doctor, Tidewave), see `elixir-setup.md`.
-
 ### Phoenix-Specific Dependencies
 
-Add these **in addition to** the base deps from `elixir-setup.md`:
+For base Elixir tooling (Styler, Credo, Dialyxir, Doctor, Tidewave), see `elixir-setup.md`. Add these in addition:
 
 | Dep | Purpose |
 |-----|---------|
@@ -50,26 +46,15 @@ Add these **in addition to** the base deps from `elixir-setup.md`:
 | live_debugger | Visual LiveView debugging UI at localhost:4007 |
 
 ```elixir
-# Add to existing deps (after base deps from elixir-setup.md)
 {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},
 {:live_debugger, "~> 0.5", only: :dev}
 ```
 
-**Note:** Phoenix projects do NOT need `{:bandit, ...}` - Phoenix already has an HTTP server.
-
-### .formatter.exs (Phoenix with Styler)
-
-```elixir
-[
-  import_deps: [:phoenix],
-  plugins: [Styler, Phoenix.LiveView.HTMLFormatter],  # Add Styler BEFORE HTMLFormatter
-  inputs: ["*.{heex,ex,exs}", "{config,lib,test}/**/*.{heex,ex,exs}"]
-]
-```
+**Note:** Phoenix projects do NOT need `{:bandit, ...}` — Phoenix already has an HTTP server.
 
 ### Tidewave for Phoenix
 
-Add to `lib/my_app_web/endpoint.ex` - **ABOVE** the `if code_reloading?` block:
+Add to `lib/my_app_web/endpoint.ex` — **ABOVE** the `if code_reloading?` block:
 
 ```elixir
 # Tidewave dev tools
@@ -87,6 +72,7 @@ end
 ### LiveDebugger Setup
 
 Add to `lib/my_app_web/components/layouts/root.html.heex`:
+
 ```heex
 <head>
   <%= Application.get_env(:live_debugger, :live_debugger_tags) %>
@@ -100,13 +86,3 @@ After starting your app, LiveDebugger runs at `http://localhost:4007`. See [Live
 - Open `http://localhost:4007` directly in your browser (same browser session as localhost:4000)
 - Click "Refresh" under Active LiveViews to see current LiveViews
 - Use `browser_eval` tool for same-session page inspection instead of `web` when debugging
-
-### Phoenix-Specific Commands
-
-In addition to the standard commands from `elixir-setup.md`, Phoenix projects should run:
-
-```bash
-mix sobelow  # Run Phoenix security analysis
-```
-
-For Tidewave MCP tools and other quality commands, see `elixir-setup.md`.

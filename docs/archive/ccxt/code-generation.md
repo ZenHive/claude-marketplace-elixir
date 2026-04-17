@@ -75,7 +75,7 @@ Will the generated code be modified by humans?
           +-- NO -> Runtime generation (dynamic plugins, user configs)
 ```
 
-## The ccxt_ex Case Study: 110 Modules from Specs
+## The ccxt_extract Case Study: 110 Modules from Specs
 
 **Problem**: Supporting 100+ cryptocurrency exchanges, each with unique auth, endpoints, and quirks.
 

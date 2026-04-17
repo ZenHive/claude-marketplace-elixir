@@ -21,13 +21,7 @@ fi
 # Format: "relative/path/to/SKILL.md:include-filename.md"
 MAPPINGS=(
   "plugins/elixir/skills/zen-websocket/SKILL.md:zen-websocket.md"
-  "plugins/elixir/skills/meta-development/SKILL.md:meta-development.md"
-  "plugins/elixir/skills/api-consumer/SKILL.md:api-integration.md"
-  "plugins/phoenix/skills/phoenix-js/SKILL.md:phoenix-js.md"
-  "plugins/phoenix/skills/phoenix-patterns/SKILL.md:phoenix-patterns.md"
-  "plugins/phoenix/skills/phoenix-scope/SKILL.md:phoenix-scope.md"
   "plugins/phoenix/skills/phoenix-setup/SKILL.md:phoenix-setup.md"
-  "plugins/phoenix/skills/daisyui/SKILL.md:daisyui.md"
   "plugins/phoenix/skills/nexus-template/SKILL.md:nexus-template.md"
   "plugins/elixir/skills/ex-unit-json/SKILL.md:ex-unit-json.md"
   "plugins/elixir/skills/dialyzer-json/SKILL.md:dialyzer-json.md"
