@@ -18,6 +18,17 @@ allowed-tools: Read, Bash
 
 ## Development Commands
 
+### Compilation
+
+**Always use `time` when compiling** — this tracks compilation duration for performance awareness:
+
+```bash
+time mix compile              # Always prefix with time
+time MIX_ENV=prod mix compile # Production compilation too
+```
+
+This applies to any `mix compile` invocation. Never run bare `mix compile` without `time`.
+
 ### Standard Elixir Development
 ```bash
 mix deps.get              # Install dependencies
@@ -26,6 +37,7 @@ mix test.json --quiet --cover  # Run tests with coverage
 mix dialyzer.json --quiet # Run type checking (AI-friendly JSON output)
 mix credo --strict --format json  # Run static analysis (AI-friendly JSON output)
 mix sobelow               # Run security analysis
+mix sobelow --mark-skip-all  # Mark all low-confidence findings as false positives
 mix doctor                # Check documentation quality
 mix format                # Format code
 mix docs                  # Generate documentation
@@ -185,6 +197,6 @@ iex -S mix phx.server    # Start with interactive shell
 
 ### Production
 ```bash
-MIX_ENV=prod mix compile  # Compile for production
+time MIX_ENV=prod mix compile  # Compile for production (always use time)
 MIX_ENV=prod mix release  # Build production release
 ```

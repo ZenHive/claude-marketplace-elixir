@@ -11,8 +11,8 @@ Read the roadmap. Pick the best tasks. Implement. Update all docs. Leave no gaps
 ## Scope
 
 WHAT THIS SKILL DOES:
-  - Select tasks from ROADMAP.md by efficiency score
-  - Enter plan mode to propose task selection for user approval
+  - Select tasks from ROADMAP.md by efficiency score (lightweight shortlist, no plan mode)
+  - Enter plan mode AFTER a task is selected, to design the implementation
   - Implement approved tasks with TodoWrite progress tracking
   - Add `TODO(Task N):` markers in code for discovered work
   - Update ALL affected *.md files after implementation
@@ -30,18 +30,21 @@ digraph task_driver {
   rankdir=TB;
   node [shape=box];
 
-  read [label="1. Read ROADMAP.md\n+ linked docs"];
-  plan [label="2. Enter plan mode\nPresent top candidates"];
-  select [label="3. User picks task(s)"];
-  exit [label="4. Exit plan mode\nCreate TodoWrite items"];
-  implement [label="5. Implement"];
-  todos [label="6. Add TODO(Task N) markers\nfor discovered work"];
-  docs [label="7. Update all *.md files"];
-  discover [label="8. Add new tasks\nto ROADMAP.md"];
+  read     [label="1. Read ROADMAP.md\n+ linked docs"];
+  shortlist[label="2. Present scored shortlist\n(plain text — NOT plan mode)"];
+  select   [label="3. User picks task(s)"];
+  plan     [label="4. Enter plan mode\nDesign the implementation"];
+  exit     [label="5. ExitPlanMode\nMark 🔄 + TodoWrite"];
+  implement[label="6. Implement"];
+  todos    [label="7. Add TODO(Task N) markers\nfor discovered work"];
+  docs     [label="8. Update all *.md files"];
+  discover [label="9. Add new tasks\nto ROADMAP.md"];
 
-  read -> plan -> select -> exit -> implement -> todos -> docs -> discover;
+  read -> shortlist -> select -> plan -> exit -> implement -> todos -> docs -> discover;
 }
 ```
+
+**Why two stages:** selection is a scored-table menu — cheap, plain text. Plan mode is where design decisions earn approval (files to touch, schema shape, trade-offs). Fusing them forces plan-mode ceremony just to read a sorted list.
 
 ### Step 1: Read the Roadmap
 
@@ -54,9 +57,9 @@ Identify:
 - Parallel-safe tasks marked with `[P]`
 - Current phase and focus area
 
-### Step 2: Enter Plan Mode — Present Candidates
+### Step 2: Present Scored Shortlist (no plan mode)
 
-**Enter plan mode.** Present the top task candidates sorted by efficiency (Eff score):
+Output the top candidates as plain text — this is a menu, not a design review. Do **not** call `EnterPlanMode` here.
 
 ```
 ## Recommended Tasks
@@ -74,18 +77,30 @@ Tasks 274 and 290 are independent — can run in parallel worktrees.
 Task 285 depends on 274 completing first.
 ```
 
-Include your recommendation: "I suggest starting with Task 274 (highest efficiency, unblocked)."
+End with a one-line recommendation: "I suggest Task 274 (highest efficiency, unblocked). Which do you want?"
 
-### Step 3: User Picks Tasks
+### Step 3: User Picks Task(s)
 
-Wait for user to approve or adjust the selection. Do NOT proceed without approval.
+Wait for the user to pick. Do NOT proceed without approval.
 
-### Step 4: Exit Plan Mode — Create TodoWrite Items
+### Step 4: Enter Plan Mode — Design the Implementation
 
-Exit plan mode. Create TodoWrite items for the approved task(s):
+**Now** call `EnterPlanMode`, scoped to the selected task. Inside plan mode:
+
+- Read the task description and any linked docs (SCHEMA.md, CONSUMER_CONTRACT.md, etc.)
+- Explore the codebase (existing patterns, modules to touch, tests that cover the area)
+- Identify reuse opportunities — don't propose new code when a helper exists
+- Produce a concrete plan: files to modify, new modules, schema/contract changes, verification steps
+
+Exit plan mode with `ExitPlanMode` when the plan is ready for user approval.
+
+**Trivial task exception:** if the selected task is a one-line fix, a pure doc update, or otherwise has zero design decisions, skip plan mode and go straight to Step 5. When in doubt, plan.
+
+### Step 5: Create TodoWrite Items + Mark 🔄
+
+After the plan is approved, create TodoWrite items:
 
 ```
-- [ ] Read and understand Task N context
 - [ ] Implement core changes
 - [ ] Add tests
 - [ ] Run quality checks
@@ -93,15 +108,15 @@ Exit plan mode. Create TodoWrite items for the approved task(s):
 - [ ] Update CLAUDE.md/README.md if needed
 ```
 
-Mark the task as 🔄 in ROADMAP.md with your branch name before starting.
+Mark the task as 🔄 in ROADMAP.md with your branch name before the first code change.
 
-### Step 5: Implement
+### Step 6: Implement
 
 Implement the task. Follow project conventions from CLAUDE.md.
 
 Use the task description as a prompt — it describes WHAT to accomplish, not HOW. Research the codebase to determine specifics.
 
-### Step 6: Add TODO Markers for Discovered Work
+### Step 7: Add TODO Markers for Discovered Work
 
 During implementation you WILL discover things that aren't the current task:
 - Edge cases the current fix doesn't address
@@ -119,7 +134,7 @@ During implementation you WILL discover things that aren't the current task:
 - If it's an upstream issue, use `FIXME(upstream):` instead (see staged-review skill)
 - Include which task you were working on when you found it
 
-### Step 7: Update All Documentation
+### Step 8: Update All Documentation
 
 **This is not optional. A task without updated docs is an incomplete task.**
 
@@ -143,9 +158,9 @@ Check and update whichever of these are affected:
 **README.md:**
 - Update if user-facing features or setup instructions changed
 
-### Step 8: Add Discovered Tasks to Roadmap
+### Step 9: Add Discovered Tasks to Roadmap
 
-All `TODO(Task N)` markers you added in Step 6 need corresponding entries in ROADMAP.md:
+All `TODO(Task N)` markers you added in Step 7 need corresponding entries in ROADMAP.md:
 
 ```markdown
 - [ ] Task 295: Handle rate limiting for batch requests [D:3/B:6/U:5 → Eff:1.83] 🚀
@@ -177,7 +192,8 @@ When choosing which tasks to recommend:
 
 | Mistake | Fix |
 |---------|-----|
-| Implementing without plan mode approval | Always enter plan mode first |
+| Entering plan mode just to show the shortlist | Step 2 is plain text; plan mode is Step 4, after selection |
+| Implementing without plan-mode approval for the selected task | Non-trivial tasks get plan mode in Step 4 before any code change |
 | Skipping doc updates | Every task updates ROADMAP + CHANGELOG at minimum |
 | Discovering work without tracking it | Every discovery gets TODO(Task N) + ROADMAP entry |
 | Writing implementation details in task descriptions | Tasks are prompts: WHAT not HOW |

@@ -18,10 +18,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @~/.claude/includes/development-philosophy.md
 
-@~/.claude/includes/documentation-guidelines.md
-
-@~/.claude/includes/ai-coder-docs.md
-
 @~/.claude/includes/agent-economy.md
 
 @~/.claude/includes/elixir-patterns.md

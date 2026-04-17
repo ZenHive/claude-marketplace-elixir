@@ -27,6 +27,16 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**CLAUDE.md: Include-set pruning**
+- Removed `@` imports for retired includes `documentation-guidelines.md` and `ai-coder-docs.md` (archived to `~/.claude/includes/_retired/` — content was generic philosophy already covered by training data)
+- Four includes condensed in place at the canonical location, preserving post-training knowledge (Phoenix 1.8 patterns, daisyUI 5, Tito's Hex package conventions) and opinionated Elixir style: `code-style.md`, `development-philosophy.md`, `library-design.md`, `task-writing.md`
+- No mirrored copy exists in this repo; `~/.claude/includes/` remains canonical
+- SKILL.md cross-references to `task-writing.md` (roadmap-planning) and `library-design.md` (api-consumer) still resolve — condensed versions retain the referenced sections
+
+**Sync skills with canonical includes** (pre-existing drift cleanup)
+- Ran `scripts/sync-skills-from-includes.sh` to reconcile drift accumulated from prior include edits — not caused by the pruning task above, but surfaced while verifying the pruning was sync-neutral
+- Updated skill bodies (frontmatter preserved) for: `meta-development`, `api-consumer` (← `api-integration.md`), `development-commands`, `elixir-setup`, `oxc`, `quickbeam`, `npm-ci-verify`, `npm-security-audit`, `npm-dep-analysis`
+
 **WORKFLOWS.md: Layered Architecture and Routing**
 - Added architecture section documenting the layered model (global includes → universal skills → Elixir commands → hooks)
 - Added session-per-phase model guidance with file handoff patterns

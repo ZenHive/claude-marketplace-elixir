@@ -104,4 +104,4 @@ def project do
 end
 ```
 
-This runs `NPM.install()` as part of the compile step — useful for projects that need npm packages available at compile time (like loading CCXT's browser bundle via QuickBEAM).
+This runs `NPM.install()` as part of the compile step — useful for projects that need npm packages available at compile time (like this project loading CCXT's browser bundle).

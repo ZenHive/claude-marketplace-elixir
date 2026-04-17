@@ -111,7 +111,7 @@ for {name, http_method, path_template, required_params, optional_params, _fixtur
 end
 ```
 
-#### Shared Dispatcher (ccxt_ex pattern)
+#### Shared Dispatcher (ccxt_client pattern)
 
 Generated functions don't inline logic — delegate to a shared dispatcher:
 

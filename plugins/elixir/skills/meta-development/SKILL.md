@@ -127,7 +127,7 @@ defmacro __generate__(spec_id) do
 end
 ```
 
-**Why two stages?** Direct `__using__` evaluates options at quote-time. The indirection lets `spec_id` be unquoted into the inner macro where it can drive compile-time data loading. ccxt_ex uses this: `use CCXT.Generator, spec: "bybit"` → loads spec → generates ~20 functions.
+**Why two stages?** Direct `__using__` evaluates options at quote-time. The indirection lets `spec_id` be unquoted into the inner macro where it can drive compile-time data loading. ccxt_client uses this: `use CCXT.Generator, spec: "bybit"` → loads spec → generates ~20 functions.
 
 ### Module Attribute Accumulation + `@before_compile`
 
@@ -171,7 +171,7 @@ quote do
 end
 ```
 
-**Strip dead weight before escaping**: ccxt_ex removes JS source code (~170KB per exchange) that's only needed during extraction, not at runtime.
+**Strip dead weight before escaping**: ccxt_client removes JS source code (~170KB per exchange) that's only needed during extraction, not at runtime.
 
 ### `@external_resource` for Recompilation
 
@@ -183,7 +183,7 @@ for path <- spec_file_paths do
 end
 ```
 
-ccxt_ex tracks spec files so exchange modules rebuild when extracted specs are updated.
+ccxt_client tracks spec files so exchange modules rebuild when extracted specs are updated.
 
 ### `bind_quoted` — Prevent Re-evaluation
 
@@ -222,7 +222,7 @@ end
 
 ---
 
-## Architecture Patterns (from ccxt_ex)
+## Architecture Patterns (from ccxt_client)
 
 ### Function Head Dispatch Over Case
 
@@ -240,7 +240,7 @@ def sign(:custom, request, credentials, config) do
 end
 ```
 
-ccxt_ex: 7 signing patterns as function heads cover 100+ exchanges. ccxt_client: 14 subscription patterns cover all exchange WebSocket protocols.
+ccxt_client: 7 signing patterns as function heads cover 100+ exchanges. ccxt_client: 14 subscription patterns cover all exchange WebSocket protocols.
 
 ### Pattern-Based Architecture
 
@@ -248,7 +248,7 @@ Instead of N modules with unique code → N parameterized instances of M pattern
 
 | Project | Patterns (M) | Instances (N) | Ratio |
 |---------|-------------|---------------|-------|
-| ccxt_ex signing | 7 | 100+ exchanges | 1:14+ |
+| ccxt_client signing | 7 | 100+ exchanges | 1:14+ |
 | ccxt_client subscriptions | 14 | 100+ exchanges | 1:7+ |
 | ccxt_client auth | 8 | 100+ exchanges | 1:12+ |
 
@@ -259,7 +259,7 @@ Instead of N modules with unique code → N parameterized instances of M pattern
 Generate runtime-discoverable metadata for tooling and agents:
 
 ```elixir
-# Generated per exchange module in ccxt_ex:
+# Generated per exchange module in ccxt_client:
 def __ccxt_spec__(), do: @ccxt_spec
 def __ccxt_endpoints__(), do: @ccxt_spec.endpoints
 def __ccxt_signing__(), do: @ccxt_spec.signing

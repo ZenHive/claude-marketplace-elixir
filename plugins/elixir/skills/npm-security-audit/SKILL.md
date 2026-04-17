@@ -72,6 +72,9 @@ NPM.License.permissive?("GPL-3.0") # => false
 # Group for reporting
 NPM.License.group_by_license(licenses)
 # => %{"MIT" => [...], "Apache-2.0" => [...]}
+
+# Extract from a single package.json map
+NPM.License.extract(%{"license" => "MIT"})  # => "MIT"
 ```
 
 ### Deprecation Scanning
@@ -85,6 +88,9 @@ deprecated = NPM.Deprecation.scan("node_modules")
 
 # Check a single package entry
 NPM.Deprecation.deprecated?(entry)
+
+# Extract deprecation info
+NPM.Deprecation.extract(pkg_json_map)
 ```
 
 ### Supply Chain Risk Assessment
@@ -99,9 +105,9 @@ Combines multiple signals into a risk score. The argument order is non-obvious �
 assessment = NPM.SupplyChain.assess(pkg_json, lockfile)
 # => %{
 #   total_packages: 15,
-#   phantom_deps: 15,
-#   integrity_coverage: 100.0,
-#   risk_level: :high
+#   phantom_deps: 15,        # packages in lockfile but not in package.json deps
+#   integrity_coverage: 100.0, # % of packages with SHA-512 hashes
+#   risk_level: :high         # :low | :medium | :high
 # }
 
 # Numeric risk score (0-100, lower is better)
@@ -109,6 +115,7 @@ NPM.SupplyChain.risk_score(assessment)  # => 30
 
 # Formatted report
 NPM.SupplyChain.format(assessment)
+# => "Supply Chain Assessment (high):\n  Packages: 15\n  ..."
 ```
 
 **Risk level thresholds:**
@@ -116,7 +123,7 @@ NPM.SupplyChain.format(assessment)
 - `:medium` — integrity >= 50% AND phantom deps < 5
 - `:high` — everything else
 
-**Note on phantom deps:** `phantom_deps` counts packages in the lockfile not in package.json's direct deps. Transitive dependencies far outnumber direct ones in most projects, so a high count is normal — it becomes meaningful when combined with low integrity coverage.
+**Note on phantom deps:** `phantom_deps` counts packages in the lockfile that are NOT direct dependencies in package.json. In most projects, transitive dependencies far outnumber direct ones, so a high phantom count is normal — it's not a security alarm by itself. The risk level becomes meaningful when combined with low integrity coverage.
 
 ### Gotchas
 

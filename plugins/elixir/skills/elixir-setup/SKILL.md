@@ -23,7 +23,8 @@ Standard dependencies and tooling for all Elixir projects (libraries, CLI tools,
 | doctor | Documentation quality gates (@moduledoc, @doc, typespecs) | Always |
 | tidewave | Dev tools + Claude Code MCP integration | Always |
 | bandit | HTTP server for Tidewave | Non-Phoenix only |
-| descripex | Self-describing APIs: `api()` macro + `Discoverable` progressive disclosure (`describe/0-2`) | Always (any project with ≥3 public modules) |
+| descripex | Self-describing APIs: `api()` macro, JSON Schema (`schema:`), MCP tools, progressive disclosure (`describe/0-2`) | Always (any project with ≥3 public modules) |
+| api_toolkit | Reusable API infrastructure: `InboundLimiter` (per-IP rate limiting), `RateLimiter` (outbound throttle), `Metrics` (request tracking), `Cache` (TTL), `Provider`/`Discovery` (API provider DSL) | API services. See `~/.claude/includes/api-toolkit.md` for full reference. |
 | ex_dna | AST-based code duplication detector (Type I/II/III clones) | Always |
 | ex_ast | AST-based code search and replace using Elixir patterns | Always |
 
@@ -50,7 +51,10 @@ defp deps do
     {:ex_ast, "~> 0.2", only: [:dev, :test], runtime: false},
 
     # Self-describing APIs — full dep (not dev/test only), macros expand at compile time
-    {:descripex, "~> 0.4"}
+    {:descripex, "~> 0.6"},
+
+    # API infrastructure — rate limiting, metrics, caching, provider DSL (for API services)
+    {:api_toolkit, "~> 0.1"}
   ]
 end
 ```

@@ -10,6 +10,8 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Embeds QuickJS-NG as a Zig NIF. Each runtime is a GenServer with a persistent JavaScript context — run JS libraries, bridge Elixir and JS bidirectionally. No Node.js required.
 
+**Minimum version documented here: `{:quickbeam, "~> 0.10"}`.** v0.10.0 requires `oxc ~> 0.7` (atom-keyed AST values — see `oxc.md`), adds JS line coverage via `QuickBEAM.Cover` (`mix test --cover`) and `Beam.XML.parse` for XML via `:xmerl`, and bumped the default `max_stack_size` from 4 MB to 8 MB.
+
 ### Scope
 
 WHAT THIS COVERS:
@@ -19,11 +21,16 @@ WHAT THIS COVERS:
   - Handler pattern (JS calling Elixir functions)
   - Pool and ContextPool for concurrency
   - Loading npm browser bundles
-  - Module loading and bytecode compilation
+  - Module loading and bytecode compilation (incl. `disasm/1,2`)
+  - Native addons via N-API (`load_addon/3`)
   - Memory limits and resource management
+  - JS line coverage integrated with `mix test --cover` (`QuickBEAM.Cover`, v0.10+)
+  - WebSocket connections (Mint-backed, v0.9.0+)
+  - WebAssembly module compilation and execution (WAMR-backed, v0.9.0+)
+  - XML parsing from JS (`Beam.XML.parse`, v0.10+)
 
 WHAT THIS DOES NOT COVER:
-  - Static analysis of JS/TS source (use OXC for parsing, AST traversal)
+  - Static analysis of JS/TS source (use OXC 0.7+ for parsing, AST traversal)
   - Installing npm packages (use npm_ex: `mix npm.install`)
   - Frontend build pipelines (use Volt)
 
@@ -43,7 +50,7 @@ WHAT THIS DOES NOT COVER:
   handlers: %{},               # Elixir functions callable from JS
   define: %{},                 # compile-time globals (JSON-encoded)
   memory_limit: 256_000_000,   # 256MB default
-  max_stack_size: 4_000_000,   # 4MB default
+  max_stack_size: 8_000_000,   # 8MB default (was 4MB pre-0.10; ~55 recursive frames)
   max_convert_depth: 32,       # nested structure depth limit
   max_convert_nodes: 10_000    # total nodes in conversion
 )
@@ -115,7 +122,7 @@ QuickBEAM.set_global(rt, "items", [1, 2, 3])
 #### Module Loading
 
 ```elixir
-# Load ES module
+# Load ES module (v0.9.0+: propagates top-level evaluation errors as {:error, %JSError{}})
 QuickBEAM.load_module(rt, "utils", "export function add(a, b) { return a + b; }")
 
 # Compile to bytecode (for reuse across runtimes)
@@ -253,21 +260,70 @@ QuickBEAM includes a native DOM implementation (with `:browser` APIs):
 
 ### QuickBEAM.JS — TypeScript Toolchain
 
-Mirrors OXC's API but runs inside a QuickBEAM runtime. Returns atom-keyed maps like OXC.
+Mirrors OXC's API but runs inside a QuickBEAM runtime. Returns atom-keyed maps with snake_case atom `:type`/`:kind` values — same contract as OXC 0.7+.
 
 ```elixir
-{:ok, ast} = QuickBEAM.JS.parse(source, "file.ts")     # atom-keyed, same as OXC
+{:ok, ast} = QuickBEAM.JS.parse(source, "file.ts")     # atom-keyed, same as OXC 0.7+
 {:ok, js}  = QuickBEAM.JS.transform(source, "file.ts")
 {:ok, min} = QuickBEAM.JS.minify(source, "file.js")
-{:ok, js}  = QuickBEAM.JS.bundle(files)
+{:ok, js}  = QuickBEAM.JS.bundle(files, entry: "main.ts")
 {:ok, js}  = QuickBEAM.JS.bundle_file("entry.ts")       # resolves imports from disk
 names      = QuickBEAM.JS.collect(ast, fn
-  %{type: "Identifier", name: n} -> {:keep, n}
+  %{type: :identifier, name: n} -> {:keep, n}
   _ -> :skip
 end)
 ```
 
 Prefer OXC (Rust NIF) for performance. Use `QuickBEAM.JS` when you need `bundle_file` (disk-based resolution) or are already in a QuickBEAM context.
+
+### QuickBEAM.Cover — JS Line Coverage (v0.10+)
+
+Integrates JavaScript coverage with `mix test --cover`. Records per-line execution counts for JS/TS run inside QuickBEAM runtimes during tests.
+
+```elixir
+# mix.exs — register as the Mix test coverage tool
+def project do
+  [
+    ...,
+    test_coverage: [tool: QuickBEAM.Cover]
+  ]
+end
+```
+
+Then `mix test --cover` — Elixir coverage runs as normal (delegates to `:cover`),
+and JS coverage is collected automatically from every QuickBEAM runtime that
+starts during the suite.
+
+**Sidecar with excoveralls** (per the module's moduledoc):
+
+```elixir
+# test/test_helper.exs
+QuickBEAM.Cover.start()
+ExUnit.after_suite(fn _ -> QuickBEAM.Cover.stop() end)
+```
+
+JS coverage is written to `cover/js_lcov.info`.
+
+**API surface** (v0.10.0, verified at runtime):
+
+| Function | Signature | Purpose |
+|----------|-----------|---------|
+| `start/0` | `start()` | Begin global JS coverage recording |
+| `start/2` | `start(compile_path, opts)` | Mix `test_coverage` tool callback — don't call manually |
+| `stop/1` | `stop(opts \\ [])` | Stop recording; returns the results map |
+| `results/1` | `results(opts \\ [])` | Snapshot the current results map without stopping |
+| `record/1` | `record(coverage_map)` | Merge a coverage map captured from a runtime into the global report |
+| `export_lcov/2` | `export_lcov(path, data)` | Write LCOV to `path`; `data` is the map from `results/1` or `stop/1` |
+| `export_istanbul/2` | `export_istanbul(path, data)` | Same, Istanbul JSON format |
+| `enabled?/0` | `enabled?()` | Is recording currently active? |
+
+**Important argument shapes** (the whole Cover module is centered on a `coverage_map`, not runtimes):
+
+- `record/1` takes a `coverage_map`, NOT a runtime. Use it to merge data that came back from a runtime snapshot into the global report.
+- `export_lcov/2` and `export_istanbul/2` take `(path, data)` — the data map comes from `results/1` or `stop/1`, not a runtime.
+- `stop/1` and `results/1` take option keywords, not runtimes.
+
+Works alongside excoveralls as a sidecar — the manual `start`/`stop` pattern above is the supported integration.
 
 ### Recipes
 
@@ -347,6 +403,56 @@ QuickBEAM.eval(rt, """
   const config = JSON.parse(Beam.callSync("readFile", "config.json"));
 """)
 ```
+
+### WebSocket (v0.9.0+)
+
+Mint-backed WebSocket implementation with full JS `WebSocket` API compatibility:
+
+```elixir
+{:ok, rt} = QuickBEAM.start(apis: :browser)
+
+# WebSocket is async — use eval with a Promise to await lifecycle events
+{:ok, log} = QuickBEAM.eval(rt, """
+  new Promise((resolve, reject) => {
+    const ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
+    const log = [];
+    ws.onopen = () => { log.push("open"); };
+    ws.onmessage = (e) => { log.push("msg"); ws.close(); };
+    ws.onclose = (e) => { log.push("close:" + e.code); resolve(log.join(" | ")); };
+    ws.onerror = () => { reject(new Error("WS error")); };
+  });
+""", timeout: 15_000)
+# => "open | msg | close:1000"
+```
+
+Connections use Mint under the hood. Supports `onopen`, `onmessage`, `onclose`, `onerror`, `send()`, `close()`, and subprotocol negotiation.
+
+### WebAssembly (v0.9.0+)
+
+WAMR-backed WebAssembly support with JS `WebAssembly` API compatibility:
+
+```elixir
+{:ok, rt} = QuickBEAM.start()
+
+# Compile and instantiate WASM modules via the standard JS API
+{:ok, 42} = QuickBEAM.eval(rt, """
+  (async () => {
+    // Minimal WASM: export function add(a, b) -> i32
+    const bytes = new Uint8Array([
+      0x00,0x61,0x73,0x6d, 0x01,0x00,0x00,0x00,
+      0x01,0x07,0x01,0x60, 0x02,0x7f,0x7f,0x01,0x7f,
+      0x03,0x02,0x01,0x00,
+      0x07,0x07,0x01,0x03, 0x61,0x64,0x64,0x00,0x00,
+      0x0a,0x09,0x01,0x07, 0x00,0x20,0x00,0x20,0x01,0x6a,0x0b
+    ]);
+    const mod = new WebAssembly.Module(bytes);
+    const inst = new WebAssembly.Instance(mod);
+    return inst.exports.add(40, 2);
+  })()
+""", timeout: 10_000)
+```
+
+Full API surface: `Module`, `Instance`, `Memory`, `Table`, `Global`, `compile`, `instantiate`, `validate`, `CompileError`, `LinkError`, `RuntimeError`.
 
 ### Common Pitfalls
 
