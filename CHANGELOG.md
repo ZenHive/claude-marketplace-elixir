@@ -4,6 +4,16 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**staged-review v1.3.0: mandatory Codex second-opinion + Claude+Codex dialogue for discuss-tier**
+- Flipped Codex from opt-in to required. Observation driving the change: left optional, the second-opinion pass was never invoked — neither user nor Claude thought to ask. The opt-in framing looked reasonable but produced a single-reviewer pass every time.
+- Workflow now dispatches `codex:codex-rescue` in parallel with Claude's own Category 1-5 review (Step 3b), merges both findings sets at Step 4 (Codex-only items default to `discuss` until verified against real code — calibration preserved: Codex over-flags, Claude under-flags).
+- Discuss-tier no longer defaults to "ask the user." Step 9 is now a Claude+Codex dialogue with ROADMAP.md in scope: convergence applies the fix with recorded reasoning; divergence escalates to the user. User becomes the escalation target, not the first responder — preserves attention for genuine design disagreements.
+- Closing summary now states `dual-reviewer pass` or `Codex unreachable — single-reviewer pass` (honest either way; no silent fallback).
+- Step numbering: 3 → 3a/3b, inserted Step 4 (merge), shifted 4-9 → 5-10.
+- Plugin: `1.2.1 → 1.3.0`. Minor bump — workflow behavior change, backward-compatible at the skill invocation layer.
+
 ### Removed
 
 **Orphaned skills retired (Opus 4.7 selective-load philosophy)**
