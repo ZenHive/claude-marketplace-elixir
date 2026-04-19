@@ -6,6 +6,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**staged-review v1.3.1: bias toward Codex dispatch + mandatory tool inventory in every dispatch**
+- Addresses two residual gaps observed after v1.3.0 shipped: (1) Claude sessions still wait to be asked before dispatching Codex during a work session; (2) when Codex is invoked, Claude doesn't brief it on project-local tools, so Codex reasons from training data alone and over-flags.
+- Added "Bias toward dispatch" paragraph under **Second-Opinion Review (Required)**: default answer to "should I ask Codex?" is yes; silent misses are the non-asking failure mode.
+- Added new **Dispatch Payload** subsection specifying the four required sections of every `codex:codex-rescue` prompt: Task, Context, Project tool inventory (MCP servers like Tidewave, mix tasks for verification, hex-docs `/llms.txt` URLs, mix aliases), Verification instruction ("verify before asserting; training-data recall is insufficient").
+- Step 3b amended to require the dispatch payload. Step 9's dialogue dispatch rewritten to follow the same format.
+- Two new Common Mistakes rows: "Under-consulting Codex in-session (waiting for the user to say 'ask Codex')" and "Dispatching Codex without the project tool inventory."
+- Plugin: `1.3.0 → 1.3.1`. Patch — refinements within existing Codex dispatch steps, no workflow renumbering.
+
 **staged-review v1.3.0: mandatory Codex second-opinion + Claude+Codex dialogue for discuss-tier**
 - Flipped Codex from opt-in to required. Observation driving the change: left optional, the second-opinion pass was never invoked — neither user nor Claude thought to ask. The opt-in framing looked reasonable but produced a single-reviewer pass every time.
 - Workflow now dispatches `codex:codex-rescue` in parallel with Claude's own Category 1-5 review (Step 3b), merges both findings sets at Step 4 (Codex-only items default to `discuss` until verified against real code — calibration preserved: Codex over-flags, Claude under-flags).

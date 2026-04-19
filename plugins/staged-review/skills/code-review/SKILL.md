@@ -80,6 +80,8 @@ Dispatch the `codex:codex-rescue` agent **in parallel** with your own Category 1
 
 Parallel dispatch matters: don't feed Codex your own findings first. Independent eyes catch what the other's confidence filter suppresses.
 
+**The dispatch prompt MUST include the project's tool inventory.** See the "Dispatch Payload" subsection under "Second-Opinion Review (Required)" for the full list of what to send. Without the tool inventory, Codex reasons from training data alone — which is the root cause of its over-flagging.
+
 If Codex is unreachable or the agent errors out, continue with a single-reviewer pass and mark the closing summary "Codex unreachable — single-reviewer pass." Don't silently drop it.
 
 #### Category 1: Bugs & Logic Errors
@@ -206,7 +208,7 @@ If no `discuss` rows exist, skip this step.
 Otherwise, resolve each `discuss` finding via a **Claude+Codex dialogue** with ROADMAP.md in scope (already read in Step 2). For each item:
 
 1. You (Claude) write a short position: proposed resolution + reasoning, factoring in roadmap direction, codebase conventions, and the specific trade-off at hand. Keep it to ~3 sentences.
-2. Dispatch `codex:codex-rescue` with the finding, your position, and ROADMAP.md excerpts. Ask for its independent resolution and reasoning.
+2. Dispatch `codex:codex-rescue` following the "Dispatch Payload" format (task = resolve this discuss-tier finding; context = the finding + your position + ROADMAP excerpts; tool inventory = the project's MCP servers and mix tasks; verification instruction = verify claims before asserting). Ask for its independent resolution and reasoning.
 3. Compare:
    - **Convergence** (same resolution, or resolutions that differ only in minor wording) → apply the fix directly. Record both reasoners' short justification in the Step 10 summary so the user can audit.
    - **Divergence** (different resolutions, or one says "apply X" and the other says "don't do this") → escalate to the user with both positions laid out side by side. Wait for their decision. Apply what they choose.
@@ -280,6 +282,23 @@ Every staged review runs a Codex second-opinion pass. This is not optional, not 
 
 **Failure mode.** If Codex is unreachable or errors out, continue single-reviewer and close with `Codex unreachable — single-reviewer pass` in the summary. Don't silently drop the second pass — mark it.
 
+**Bias toward dispatch.** Observed in practice: Claude sessions under-consult Codex. The user ends up having to say "ask Codex" multiple times in a single work session. That's the discipline breaking. When you're mid-review and unsure, **dispatch**. The cost is low (a parallel agent invocation); the failure mode of not dispatching is silent — findings you'd have caught with a second opinion, missed. Default answer to "should I ask Codex?" is yes, unless the question is pure style or the diff is a one-line typo.
+
+### Dispatch Payload (What to Send Codex on Every Dispatch)
+
+Every `codex:codex-rescue` dispatch must include these four sections in the prompt, in order:
+
+1. **Task** — what you want Codex to do (review this diff / resolve this discuss-tier item / verify this specific claim). Be concrete.
+2. **Context** — the relevant diff hunks, ROADMAP.md excerpts for the current phase / task, and any file paths Codex will need to read.
+3. **Project tool inventory** — the tools Codex can invoke to verify claims against the real codebase, not training data. At minimum:
+   - **MCP servers available in this project** (e.g., `mcp__tidewave__project_eval` for runtime Elixir evaluation, `mcp__tidewave__get_docs`, `mcp__tidewave__execute_sql_query`, `mcp__tidewave__search_package_docs` — check `.mcp.json` for the actual list)
+   - **Mix tasks for verification** (e.g., `mix test.json --quiet --failed`, `mix dialyzer.json --quiet --filter-type no_return`, `mix compile`, `mix credo --strict --format json`)
+   - **Hex docs for any packages referenced in the diff** (URLs to `/llms.txt` endpoints if you know them — e.g., `https://hexdocs.pm/<pkg>/llms.txt`)
+   - **Other project scripts** surfaced by `mix help` or visible in `mix.exs` aliases
+4. **Verification instruction** — explicit: "Before asserting any claim about the codebase, verify it with one of the tools above. Training-data recall is insufficient. If a tool isn't available, say so; don't guess."
+
+This is load-bearing. Codex is confident and articulate — without the tool inventory, it will make authoritative-sounding claims that don't survive `mcp__tidewave__project_eval`. With the inventory, its confidence maps onto actual verification, and its over-flagging drops sharply.
+
 **Discipline note.** The mandatory-second-opinion rule does the same work that TDD's "no code without a failing test first" rule does: it removes a decision point where the motivated agent (you) can rationalize its way out of the discipline. Opt-in disciplines don't stick.
 
 ## Common Mistakes
@@ -291,6 +310,8 @@ Every staged review runs a Codex second-opinion pass. This is not optional, not 
 | Skipping the Codex second-opinion pass | Step 3b is required. If Codex is unreachable, mark the summary `Codex unreachable — single-reviewer pass`; don't drop silently |
 | Priming Codex with Claude's findings | Dispatch Codex in parallel with 3a, not after. Independent eyes catch what the other's filter suppresses |
 | Accepting Codex-only findings at face value | Default them to `discuss` until verified against the actual code (Codex over-flags) |
+| Under-consulting Codex in-session (waiting for the user to say "ask Codex") | Default answer is dispatch. Silent misses are the failure mode of not asking; the cost of asking is near zero |
+| Dispatching Codex without the project tool inventory | Every dispatch includes MCP servers (Tidewave), mix tasks, hex-docs URLs, plus a "verify before asserting" instruction. Without it Codex reasons from training alone and over-flags |
 | Defaulting `discuss`-tier to "ask the user" | Step 9 is a Claude+Codex dialogue; user is the escalation target on divergence, not the first responder |
 | Flagging without priority | Every finding gets a 1-10 rating (or "discuss") |
 | Asking the user to hand-pick "1, 2, 3" from the table | Rated findings auto-apply via plan mode; discuss-tier routes through Step 9 dialogue |
