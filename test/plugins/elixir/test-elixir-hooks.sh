@@ -294,4 +294,22 @@ else
   TESTS_RUN=$((TESTS_RUN + 1))
 fi
 
+# =============================================================================
+# Suggest Test Include Tests
+# =============================================================================
+
+echo ""
+echo "## Suggest Test Include Hook"
+echo ""
+
+# Test 31: Suggest test include standalone tests
+echo "Running suggest-test-include standalone tests..."
+if "$SCRIPT_DIR/suggest-test-include-test/test.sh"; then
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+  TESTS_RUN=$((TESTS_RUN + 1))
+else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  TESTS_RUN=$((TESTS_RUN + 1))
+fi
+
 print_summary

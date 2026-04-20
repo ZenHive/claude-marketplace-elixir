@@ -65,6 +65,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/prefer-dialyzer-json.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/suggest-test-include.sh",
+            "timeout": 5
           }
         ]
       }

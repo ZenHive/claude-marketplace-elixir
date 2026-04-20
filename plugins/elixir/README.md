@@ -40,6 +40,7 @@ Each hook is tagged as **convention** (permanent quality gate) or **model-limita
 - ✅ **Suggest --failed** `[model-limitation]` - On 2nd consecutive `mix test`, suggests `--failed --trace` to speed up test-fix cycles
 - ✅ **Prefer test.json** `[convention]` - Blocks `mix test` and redirects to `mix test.json` for AI-friendly output
 - ✅ **Prefer dialyzer.json** `[convention]` - Blocks `mix dialyzer` and redirects to `mix dialyzer.json` for AI-friendly output
+- ✅ **Suggest --include on test.json** `[model-limitation]` - When `mix test.json` runs without `--include`, reads `test/test_helper.exs` and injects the excluded tags into context so Claude can't falsely claim a full-suite pass. Non-blocking (doesn't force slow integration runs on every iteration).
 
 **UserPromptSubmit - On user input:**
 - ✅ **Documentation recommendation** `[model-limitation]` - Suggests using documentation skills when prompt mentions project dependencies
