@@ -10,51 +10,36 @@ allowed-tools: Read, Bash
 
 ### Compilation
 
-**Always use `time` when compiling** — this tracks compilation duration for performance awareness:
+**Always prefix `mix compile` with `time`** — tracks compilation duration:
 
 ```bash
-time mix compile              # Always prefix with time
-time MIX_ENV=prod mix compile # Production compilation too
+time mix compile
+time MIX_ENV=prod mix compile
 ```
 
-This applies to any `mix compile` invocation. Never run bare `mix compile` without `time`.
+For tests/dialyzer/credo, see `ex-unit-json.md`, `dialyzer-json.md`. Credo: always `mix credo --strict --format json`.
 
-For test/dialyzer/credo command details, see `ex-unit-json.md`, `dialyzer-json.md`, and use `mix credo --strict --format json` (always strict + JSON).
-
-### Code Duplication Detection (ExDNA)
-
-**Use `mix ex_dna` to find duplicated code via AST analysis:**
+### ExDNA — Duplication Detection
 
 ```bash
-mix ex_dna                          # Scan for exact duplicates
-mix ex_dna --literal-mode abstract  # Also catch renamed variables/literals
-mix ex_dna --format json            # Machine-readable output
-mix ex_dna --ignore "lib/generated/*.ex"  # Skip generated/intentional duplication
-mix ex_dna.explain 3                # Detailed analysis of a specific clone
+mix ex_dna                                # scan for duplicates
+mix ex_dna --literal-mode abstract        # also catch renamed vars (Type II)
+mix ex_dna --format json                  # machine-readable
+mix ex_dna --ignore "lib/generated/*.ex"  # skip generated code
+mix ex_dna.explain 3                      # detailed analysis of one clone
 ```
 
-**Guidelines:**
-- Use `--format json` when parsing output programmatically
-- Use `--literal-mode abstract` for comprehensive analysis (catches renamed vars)
-- Configure `.ex_dna.exs` in project root for persistent settings
-- Add `@no_clone true` above intentionally duplicated functions
+Config: `.ex_dna.exs`. Suppress intentional dupes with `@no_clone true`.
 
-### AST Code Search & Replace (ExAST)
+### ExAST — AST Search & Replace
 
-**Use `mix ex_ast.search` / `mix ex_ast.replace` for structural code search:**
+**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure.
 
 ```bash
-mix ex_ast.search 'IO.inspect(_)'          # Find debug leftovers
-mix ex_ast.search 'dbg(_)'
-mix ex_ast.replace 'dbg(expr)' 'expr'      # Cleanup, keep expressions
-mix ex_ast.replace 'IO.inspect(expr, _)' 'expr'
-mix ex_ast.replace --dry-run 'use Mix.Config' 'import Config'  # Migrations
+mix ex_ast.search 'IO.inspect(_)'                              # find debug leftovers
 mix ex_ast.search --count 'Logger.debug(_)'
+mix ex_ast.replace 'dbg(expr)' 'expr'                          # cleanup, preserve expression
+mix ex_ast.replace --dry-run 'use Mix.Config' 'import Config'  # preview migrations
 ```
 
-**Guidelines:**
-- **Always prefer `ex_ast.search` over `grep`** for Elixir code patterns — it understands AST structure
-- Use `--dry-run` with replace to preview changes before applying
-- Named captures (`expr`, `x`) in search carry through to replacement
-- Structs/maps match partially — only specified keys need to be present
-- Run `mix format` after replacements to normalize style
+Named captures (`expr`, `x`) in search carry to replacement. Structs/maps match partially. Run `mix format` after replacements.

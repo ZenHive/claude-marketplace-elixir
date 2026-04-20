@@ -8,182 +8,113 @@ allowed-tools: Read, Bash
 
 ## npm_ex Dependency Graph Analysis & Size Optimization
 
-Tools for understanding why your dependency tree looks the way it does, finding the heaviest packages, and reducing bloat.
+Understand your dep tree, find heavy packages, reduce bloat.
 
 ### Investigation Workflow
 
 ```bash
-# 1. Overview — how many packages, direct vs transitive
-mix npm.stats
-
-# 2. Size — where's the disk space going?
-mix npm.size
-
-# 3. Trace — why is a specific package installed?
-mix npm.why <package>
-
-# 4. Visualize — full dependency tree
-mix npm.tree
-
-# 5. Optimize — flatten duplicate versions
-mix npm.dedupe
+mix npm.stats            # overview — direct vs transitive counts
+mix npm.size             # disk usage
+mix npm.why <package>    # why is this installed?
+mix npm.tree             # full tree
+mix npm.dedupe           # flatten duplicate versions
 ```
 
 ### Dependency Graph (`NPM.DepGraph`)
 
-Build and query the graph from the lockfile. The key pattern: `adjacency_list/1` takes the lockfile, but all other functions take the adjacency list output.
+**Two-step pattern:** `adjacency_list/1` takes lockfile; everything else takes the adjacency list.
 
 ```elixir
 {:ok, lockfile} = NPM.Lockfile.read()
-
-# Step 1: Build adjacency list FROM LOCKFILE
 adj = NPM.DepGraph.adjacency_list(lockfile)
-# => %{"ccxt" => ["ws"], "piscina" => ["eventemitter-asyncresource", ...], ...}
 
-# Step 2: All remaining functions take THE ADJACENCY LIST, not lockfile
-fan_out = NPM.DepGraph.fan_out(adj)
-# => %{"piscina" => 4, "ast-transpiler" => 3, "ccxt" => 1, "ws" => 0, ...}
-
-fan_in = NPM.DepGraph.fan_in(adj)
-# => %{"ws" => 1, "typescript" => 1, "ccxt" => 0, "ast-transpiler" => 0, ...}
-
-leaves = NPM.DepGraph.leaves(adj)
-# => ["@assemblyscript/loader", "base64-js", "colorette", "node-addon-api", ...]
-
-roots = NPM.DepGraph.roots(adj)
-# => ["ast-transpiler", "ccxt"]  (packages nothing else depends on)
-
-cycles = NPM.DepGraph.cycles(adj)
-# => []  (list of cycle paths, empty = healthy)
+NPM.DepGraph.fan_out(adj)    # pkg → num deps pulled in (high = bloat risk)
+NPM.DepGraph.fan_in(adj)     # pkg → num dependents (high = critical)
+NPM.DepGraph.roots(adj)      # direct dependencies
+NPM.DepGraph.leaves(adj)     # no sub-deps
+NPM.DepGraph.cycles(adj)     # [] = healthy
 ```
-
-**Interpreting the graph:**
-- **fan_out** = how many deps a package pulls in (high = bloat risk)
-- **fan_in** = how many packages depend on this one (high = critical, breaking it breaks many things)
-- **roots** = your direct dependencies (nothing else requires them)
-- **leaves** = terminal packages with no sub-dependencies
-- **cycles** = circular dependencies (rare but problematic)
 
 ### Size Analysis (`NPM.Size`)
 
 ```elixir
-# analyze/1 takes a PATH STRING, returns sorted list (largest first)
-sizes = NPM.Size.analyze("node_modules")
-# => [%{name: "typescript", size: 66_849_652, version: "4.9.5", file_count: 108},
-#     %{name: "ccxt", size: 54_662_004, version: "4.5.45", file_count: 1659}, ...]
+sizes = NPM.Size.analyze("node_modules")    # PATH string; sorted largest first
+# => [%{name: "typescript", size: 66_849_652, version: "4.9.5", file_count: 108}, ...]
 
-# Top N largest — also takes a PATH STRING (re-analyzes), not a list
-top5 = NPM.Size.top("node_modules", 5)
-
-# Aggregates from the analyzed list
-NPM.Size.total_size(sizes)   # => 183_690_883 (bytes)
-NPM.Size.total_files(sizes)  # => 3847
-
-# Format for display
-NPM.Size.format_size(66_849_652)  # => "63.8 MB"
-NPM.Size.summary(sizes)           # => formatted string
+NPM.Size.top("node_modules", 5)             # PATH string — re-analyzes, not "take N"
+NPM.Size.total_size(sizes)                  # bytes
+NPM.Size.total_files(sizes)
+NPM.Size.format_size(66_849_652)            # "63.8 MB"
+NPM.Size.summary(sizes)
 ```
 
 ### Dependency Tracing (`NPM.Why`)
-
-Explains why a package appears in your dependency tree.
 
 ```elixir
 {:ok, lockfile} = NPM.Lockfile.read()
 {:ok, pkg_json} = NPM.PackageJSON.read()
 
-# explain/3 takes (package_name, lockfile, pkg_json)
-reasons = NPM.Why.explain("ws", lockfile, pkg_json)
+NPM.Why.explain("ws", lockfile, pkg_json)
 # => [%{path: ["ccxt", "ws"], range: "^8.8.1", direct: false}]
 
-# Trace multiple hops
-NPM.Why.explain("@assemblyscript/loader", lockfile, pkg_json)
-# => [%{path: ["piscina", "hdr-histogram-js", "@assemblyscript/loader"], ...}]
-
-# dependents/2 — who depends on this package?
 NPM.Why.dependents("ws", lockfile)
-
-# Format for display
 NPM.Why.format_reasons(reasons)
 ```
 
-**Note:** `NPM.Why.direct?/2` checks lockfile presence, not package.json. Transitive deps that appear as top-level lockfile entries will report `true`. Use `Map.has_key?(pkg_json, name)` for a true direct-dependency check.
+**`NPM.Why.direct?/2` is misleading** — checks lockfile key presence, so transitive deps appearing as top-level lockfile entries report `true`. Use `Map.has_key?(pkg_json, name)` for a real direct check.
 
 ### Deduplication (`NPM.Dedupe`)
 
-Finds packages installed at multiple versions and estimates savings.
-
 ```elixir
-{:ok, lockfile} = NPM.Lockfile.read()
-
-dupes = NPM.Dedupe.find_duplicates(lockfile)
-# => [%{name: "lodash", versions: ["4.17.20", "4.17.21"], ...}]
-
-summary = NPM.Dedupe.summary(lockfile)
-# => %{total_packages: 15, duplicate_groups: 0, saveable: 0, unique_packages: 15}
-
-# For a specific duplicate, find the best shared version
+NPM.Dedupe.find_duplicates(lockfile)       # [%{name:, versions:, ...}]
+NPM.Dedupe.summary(lockfile)               # %{total_packages:, duplicate_groups:, saveable:, unique_packages:}
 NPM.Dedupe.best_shared_version("lodash", lockfile)
-
-# Estimate disk savings from deduplication
 NPM.Dedupe.savings_estimate(lockfile)
 ```
 
 ### Package Quality (`NPM.PackageQuality`)
 
-Scores individual packages on metadata completeness. Takes a **single lockfile entry**, not the whole lockfile.
+Takes a **single lockfile entry**, not the whole lockfile:
 
 ```elixir
-{:ok, lockfile} = NPM.Lockfile.read()
-
-# Score one package at a time
 entry = lockfile["ccxt"]
-NPM.PackageQuality.score(entry)           # => 5 (0-100)
-NPM.PackageQuality.grade(entry)           # => "A" (A-F)
-NPM.PackageQuality.missing_fields(entry)  # => ["description", "license", ...]
-
-# Rank all packages by quality
+NPM.PackageQuality.score(entry)            # 0-100
+NPM.PackageQuality.grade(entry)            # "A"-"F"
+NPM.PackageQuality.missing_fields(entry)
 NPM.PackageQuality.rank(lockfile)
-
-# Average quality across all deps
 NPM.PackageQuality.average(lockfile)
 ```
 
-**Note:** Quality scores are based on lockfile entry metadata, which is sparse (version, dependencies, tarball, integrity). Scores will be low because the lockfile deliberately omits fields like description, keywords, engines. This is expected — the score is more useful when comparing packages against each other than as an absolute measure.
+Scores will be low — lockfile metadata is sparse (no description/keywords/engines). More useful as comparison between packages than as absolute score.
 
 ### Project Health (`NPM.Health`)
 
-Aggregates multiple checks into an overall health score.
+Takes a **checks map**, not just a lockfile:
 
 ```elixir
 health = NPM.Health.score(%{
-  lockfile: lockfile,
-  pkg_json: pkg_json,
-  node_modules: "node_modules"
+  lockfile: lockfile, pkg_json: pkg_json, node_modules: "node_modules"
 })
-# => %{score: 25, details: %{
-#   has_lockfile: 0, has_package_json: 0, has_license: 0,
-#   integrity_coverage: 0, no_deprecated: 0,
-#   up_to_date: 10, no_vulnerabilities: 15
-# }}
+# => %{score: 25, details: %{has_lockfile:, has_package_json:, has_license:,
+#       integrity_coverage:, no_deprecated:, up_to_date:, no_vulnerabilities:}}
 
-NPM.Health.grade(health)            # => "D"
-NPM.Health.recommendations(health)  # => ["Add a lockfile", ...]
+NPM.Health.grade(health)                   # "D"
+NPM.Health.recommendations(health)
 ```
 
 ### Gotchas
 
-- **`NPM.DepGraph` two-step pattern**: `adjacency_list/1` takes the lockfile map. `fan_in/fan_out/leaves/roots/cycles` take the adjacency list (output of `adjacency_list/1`). Passing the lockfile directly to `fan_out` crashes with `(ArgumentError) not a list`.
-- **`NPM.Size.analyze/1` and `NPM.Size.top/2` take path strings**, not lists. `top/2` re-analyzes the directory — it's not a "take N from list" function.
-- **`NPM.PackageQuality.score/1` takes a single entry**, not the whole lockfile. The entry is `lockfile["package-name"]`.
-- **`NPM.Why.direct?/2` is misleading** — it checks lockfile key presence, so transitive deps at the top level of the lockfile appear "direct". Check `pkg_json` instead.
-- **`NPM.Health.score/1` takes a checks map** with `:lockfile`, `:pkg_json`, and `:node_modules` keys — not just a lockfile.
+- `DepGraph`: lockfile → `adjacency_list/1`; adj → everything else. Passing lockfile to `fan_out` crashes `(ArgumentError) not a list`.
+- `Size.analyze/1`, `Size.top/2`: path strings, not lists. `top/2` re-analyzes.
+- `PackageQuality.score/1`: single entry (`lockfile["name"]`), not whole lockfile.
+- `Why.direct?/2`: checks lockfile keys — misleading; use `pkg_json`.
+- `Health.score/1`: checks map with `:lockfile`, `:pkg_json`, `:node_modules`.
 
 ### Optimization Playbook
 
-1. `mix npm.stats` — if transitive >> direct, investigate the heavy fan-out packages
-2. `mix npm.size` — find the top 10 largest packages
-3. For each heavy package: `mix npm.why <pkg>` — is the dependency chain necessary?
-4. `mix npm.dedupe` — reduce duplicate versions where semver allows
-5. Re-run `mix npm.stats` to measure improvement
-6. Consider `mix npm.remove` for packages that are only used transitively by optional features
+1. `mix npm.stats` — transitive >> direct? Investigate heavy fan-out.
+2. `mix npm.size` — top 10 largest.
+3. `mix npm.why <pkg>` on each — chain necessary?
+4. `mix npm.dedupe` — flatten duplicate versions where semver allows.
+5. `mix npm.stats` again — measure improvement.
+6. `mix npm.remove` for packages only used transitively by optional features.

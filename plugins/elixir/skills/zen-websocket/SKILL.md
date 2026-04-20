@@ -8,50 +8,32 @@ allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion
 
 ## ZenWebsocket Patterns
 
-Production-grade WebSocket client for financial APIs built on Gun. Uses only 5 core functions with automatic reconnection and real-world testing.
+Gun-backed WebSocket client for financial APIs. 5 core functions, auto-reconnection, real-world tested.
 
-### The 5 Essential Functions
+### 5 Essential Functions
 
 ```elixir
-# 1. Connect
 {:ok, client} = ZenWebsocket.Client.connect("wss://api.example.com/ws")
-
-# 2. Send message
 :ok = ZenWebsocket.Client.send_message(client, Jason.encode!(%{method: "ping"}))
-
-# 3. Subscribe (JSON-RPC convenience)
-:ok = ZenWebsocket.Client.subscribe(client, ["channel.name"])
-
-# 4. Check state
-state = ZenWebsocket.Client.get_state(client)  # :connected | :connecting | :disconnected
-
-# 5. Close
+:ok = ZenWebsocket.Client.subscribe(client, ["channel.name"])           # JSON-RPC convenience
+state = ZenWebsocket.Client.get_state(client)                           # :connected | :connecting | :disconnected
 :ok = ZenWebsocket.Client.close(client)
 ```
 
 ### Connection Patterns
 
-**Development (no supervision):**
 ```elixir
+# Dev — messages arrive at calling process as {:websocket_message, data}
 {:ok, client} = ZenWebsocket.Client.connect(url)
-# Messages sent to calling process as {:websocket_message, data}
-```
 
-**Production (dynamic supervision):**
-```elixir
-# Add to supervision tree
+# Prod — dynamic supervision
 children = [ZenWebsocket.ClientSupervisor]
-
-# Start connections dynamically
 {:ok, client} = ZenWebsocket.ClientSupervisor.start_client(url, opts)
-```
 
-**Production (fixed connections):**
-```elixir
+# Prod — fixed connection
 children = [
   {ZenWebsocket.Client, [
-    url: "wss://api.example.com/ws",
-    id: :main_ws,
+    url: "wss://api.example.com/ws", id: :main_ws,
     heartbeat_config: %{type: :ping, interval: 30_000}
   ]}
 ]
@@ -59,28 +41,29 @@ children = [
 
 ### Three-Layer Architecture (ccxt_client pattern)
 
-Build WebSocket consumers in layers — use only what you need:
-
 | Layer | Module | State | Use When |
-|-------|--------|-------|----------|
-| **1. Pure helpers** | `MyApp.WS.Helpers` | None | URL resolution, config building, message formatting |
-| **2. Stateless client** | Thin wrapper around `ZenWebsocket.Client` | None | One-off connections, simple subscribe/receive |
-| **3. Stateful adapter** | GenServer using ZenWebsocket | Reconnection, auth, subscriptions | Production with auto-reconnect, auth state machine |
+|---|---|---|---|
+| 1. Pure helpers | `MyApp.WS.Helpers` | None | URL resolution, config, message formatting |
+| 2. Stateless client | Thin wrapper | None | One-off connections, simple subscribe/receive |
+| 3. Stateful adapter | GenServer | Reconnection, auth, subs | Production with auth state machine |
 
-Layer 3 is optional. ccxt_client's adapter manages: connection lifecycle, auth state (`:unauthenticated` → `:authenticating` → `:authenticated` → `:expired`), subscription restoration after reconnect, and exponential backoff. But Layer 2 (5 functions directly) is sufficient for most use cases.
+Layer 3 optional. ccxt_client's adapter manages connection lifecycle, auth state machine (`:unauthenticated` → `:authenticating` → `:authenticated` → `:expired`), subscription restoration, exponential backoff. Layer 2 suffices for most cases.
 
 ### Configuration Options
 
 ```elixir
 opts = [
   timeout: 5000,              # Connection timeout (ms)
-  headers: [],                # Custom HTTP headers
-  retry_count: 3,             # Max reconnection attempts
+  headers: [],                # Custom HTTP headers (redacted in inspect output)
+  retry_count: 3,             # Max reconnection attempts (resets to 0 on successful reconnect)
   retry_delay: 1000,          # Initial backoff delay (exponential)
   max_backoff: 30_000,        # Max delay between retries
-  reconnect_on_error: true,   # Auto-reconnect on errors
+  reconnect_on_error: true,   # Auto-reconnect on recoverable errors
   restore_subscriptions: true, # Re-subscribe after reconnect
   request_timeout: 30_000,    # JSON-RPC correlation timeout
+  handler: &MyApp.on_ws/1,    # Optional custom handler — see Message Handling
+  on_connect: fn pid -> :ok end,    # Optional supervised-connect lifecycle hook
+  on_disconnect: fn pid -> :ok end, # Optional terminate lifecycle hook
   heartbeat_config: %{
     type: :ping,              # :ping | :deribit | :custom
     interval: 30_000          # Heartbeat interval (ms)
@@ -107,22 +90,39 @@ heartbeat_config: %{
 
 ### Message Handling
 
-Messages arrive at the calling process (or configured handler):
+Messages forward to the process that called `connect/2`. **JSON text frames arrive pre-decoded as maps (v0.4.0+)** — don't call `Jason.decode/1` on them.
+
 ```elixir
-def handle_info({:websocket_message, data}, state) do
-  case Jason.decode(data) do
-    {:ok, %{"result" => result, "id" => id}} -> handle_response(id, result, state)
-    {:ok, %{"error" => error, "id" => id}} -> handle_error(id, error, state)
-    {:ok, %{"method" => method, "params" => params}} -> handle_notification(method, params, state)
-    {:ok, other} -> handle_json(other, state)
-    {:error, _} -> handle_raw(data, state)
-  end
+# JSON-RPC success / error / notification — pattern-match the decoded map
+def handle_info({:websocket_message, %{"result" => r, "id" => id}}, state), do: ...
+def handle_info({:websocket_message, %{"error" => err, "id" => id}}, state), do: ...
+def handle_info({:websocket_message, %{"method" => m, "params" => p}}, state), do: ...
+def handle_info({:websocket_message, %{} = decoded}, state), do: ...
+
+# Non-JSON text + binary frames share the same tag
+def handle_info({:websocket_message, data}, state) when is_binary(data), do: ...
+
+# Orphan JSON-RPC reply (no pending caller matched id) — v0.4.1+
+def handle_info({:websocket_unmatched_response, response}, state), do: ...
+
+# Fatal frame-decode error — Client stops after delivering
+def handle_info({:websocket_protocol_error, reason}, state), do: ...
+```
+
+Those four are the complete emitted set. Ping/pong/close control frames never reach the consumer.
+
+**Custom handler** (`handler: fun` to `connect/2`) — distinguish text/binary, or avoid the `:websocket_` prefix:
+
+```elixir
+handler = fn
+  {:message, %{} = json} -> MyApp.route(json)
+  {:message, text} when is_binary(text) -> ...
+  {:binary, bin} -> ...
+  {:unmatched_response, response} -> ...
+  {:protocol_error, reason} -> ...
 end
 
-# Connection lifecycle events
-def handle_info({:websocket_error, reason}, state) do ...end
-def handle_info({:websocket_closed, reason}, state) do ...end
-def handle_info({:websocket_reconnected, _}, state) do ...end
+{:ok, client} = ZenWebsocket.Client.connect(url, handler: handler)
 ```
 
 ### JSON-RPC Support
@@ -130,10 +130,15 @@ def handle_info({:websocket_reconnected, _}, state) do ...end
 ```elixir
 # Build and send JSON-RPC request (auto-generates unique ID)
 {:ok, request} = ZenWebsocket.JsonRpc.build_request("public/subscribe", %{channels: channels})
-:ok = ZenWebsocket.Client.send_message(client, Jason.encode!(request))
 
-# Requests with "id" field are tracked and correlated automatically
-# Responses arrive matched to pending requests by ID
+# When the message has an "id" field, send_message/2 blocks and returns the correlated response
+case ZenWebsocket.Client.send_message(client, Jason.encode!(request)) do
+  {:ok, response} -> ...
+  {:error, :duplicate_request_id} -> ...  # another caller is already waiting on this id (v0.4.1+)
+  {:error, :disconnected} -> ...          # Gun socket went away while waiting (v0.4.1+)
+  {:error, reason} -> ...
+end
+# Messages without an "id" return plain :ok
 ```
 
 ### Error Categories
@@ -154,38 +159,66 @@ When a recoverable error occurs:
 
 ### Rate Limiting
 
-```elixir
-# Initialize rate limiter (per-connection)
-:ok = ZenWebsocket.RateLimiter.init(:my_conn, rate: 100, interval: 1000)
+Token bucket backed by named ETS. Config is a **map**. Two things before `init/2`:
 
-# Consume before sending
-case ZenWebsocket.RateLimiter.consume(:my_conn) do
-  :ok -> send_message(client, msg)
-  {:error, :rate_limited} -> queue_message(msg)
+1. **Caller owns the refill timer** — `init/2` sends `{:refill, name}` to the calling process; that process must call `RateLimiter.refill(name)` or tokens never replenish.
+2. **Tables aren't auto-cleaned** — call `shutdown/1` when done.
+
+```elixir
+alias ZenWebsocket.RateLimiter
+
+config = %{
+  tokens: 100,                             # initial + max
+  refill_rate: 100,
+  refill_interval: 1000,                   # ms
+  request_cost: &RateLimiter.simple_cost/1
+  # max_queue_size: 100                    # optional, default 100
+}
+{:ok, :my_conn} = RateLimiter.init(:my_conn, config)
+
+def handle_info({:refill, name}, state) do
+  RateLimiter.refill(name)
+  {:noreply, state}
 end
 
-# Exchange-specific cost functions:
-# ZenWebsocket.RateLimiter.deribit_cost/1  - Credit-based
-# ZenWebsocket.RateLimiter.binance_cost/1  - Weight-based
-# ZenWebsocket.RateLimiter.simple_cost/1   - Fixed cost of 1
+case RateLimiter.consume(:my_conn, msg) do
+  :ok -> ZenWebsocket.Client.send_message(client, msg)
+  {:error, :rate_limited} -> :queued                     # auto-retried on refill
+  {:error, :queue_full}   -> drop_or_backpressure(msg)
+end
+
+{:ok, %{tokens: _, queue_size: _, pressure_level: _, suggested_delay_ms: _}} =
+  RateLimiter.status(:my_conn)
+:ok = RateLimiter.shutdown(:my_conn)
 ```
+
+**Cost functions** (or supply your own `(request -> pos_integer())`):
+
+| Function | Model | For |
+|---|---|---|
+| `simple_cost/1`   | Fixed 1 per request | Coinbase, most |
+| `deribit_cost/1`  | Credits per JSON-RPC method | Deribit |
+| `binance_cost/1`  | Weight per JSON-RPC method | Binance |
 
 ### Common Issues
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
 | Connection keeps timing out | Network/firewall, wrong URL | Increase `timeout: 10_000`, verify `wss://` vs `ws://` |
-| Messages not received | Wrong process | Messages go to process that called `connect/2` — verify with `get_state/1` |
+| Messages not received | Wrong process | Messages go to the process that called `connect/2` — verify with `get_state/1`, or pass a `:handler` function |
+| `FunctionClauseError` on handler | Calling `Jason.decode/1` on `{:websocket_message, _}` payload | Since v0.4.0, JSON text frames are delivered pre-decoded — pattern-match on the map directly |
 | Reconnection not working | Fatal error category | Fatal errors stop permanently — check if error is recoverable |
-| Subscriptions lost after reconnect | `restore_subscriptions` disabled | Set `restore_subscriptions: true` (default), or handle `{:websocket_reconnected, _}` manually |
+| Subscriptions lost after reconnect | `restore_subscriptions` disabled | Set `restore_subscriptions: true` (default) |
+| `{:error, :duplicate_request_id}` | Two callers used the same JSON-RPC id concurrently | Let `JsonRpc.build_request/2` generate ids; don't reuse integers |
+| Callers hang on disconnect | (pre-v0.4.1) pending requests not drained | Upgrade to v0.4.1+ — pending callers now get `{:error, :disconnected}` immediately |
 
 ### DO NOT
 
-1. **Don't create wrapper modules** — Use the 5 functions directly (ccxt_client uses them as-is)
-2. **Don't mock WebSocket behavior** — Test against real endpoints (use MockWebSockServer for controlled tests)
-3. **Don't add custom reconnection logic** — Use built-in retry options
-4. **Don't transform errors** — Handle raw Gun/WebSocket errors
-5. **Don't skip heartbeats in production** — Always configure appropriate heartbeat type
+1. Don't create wrapper modules — use the 5 functions directly.
+2. Don't mock WebSocket behavior — test against real endpoints or `ZenWebsocket.Testing`.
+3. Don't `Jason.decode/1` on `{:websocket_message, _}` — already decoded (v0.4.0+).
+4. Don't add custom reconnection — use built-in retry; `Client.reconnect/1` preserves config (v0.4.1+).
+5. Don't skip heartbeats in production.
 
 ### Platform-Specific: Deribit
 
@@ -207,38 +240,66 @@ auth = %{"jsonrpc" => "2.0", "id" => :erlang.unique_integer([:positive]),
 :ok = ZenWebsocket.Client.send_message(client, Jason.encode!(auth))
 ```
 
-### Testing Rules
+### Testing
 
 ```elixir
-# ALWAYS test against real endpoints
+# Integration — real endpoints
 @tag :integration
-test "real WebSocket behavior" do
+test "real WebSocket" do
   {:ok, client} = ZenWebsocket.Client.connect("wss://test.deribit.com/ws/api/v2")
   assert ZenWebsocket.Client.get_state(client) == :connected
   ZenWebsocket.Client.close(client)
 end
 
-# For controlled testing, use local mock server (NOT library mocks)
-{:ok, _server} = ZenWebsocket.MockWebSockServer.start(port: 8080)
-{:ok, client} = ZenWebsocket.Client.connect("ws://localhost:8080")
+# Controlled — use ZenWebsocket.Testing (not MockWebSockServer directly)
+alias ZenWebsocket.{Client, Testing}
+
+setup do
+  {:ok, server} = Testing.start_mock_server()
+  on_exit(fn -> Testing.stop_server(server) end)
+  {:ok, server: server}
+end
+
+test "handles server message", %{server: server} do
+  {:ok, client} = Client.connect(server.url)
+  Testing.inject_message(server, ~s({"type": "pong"}))
+  assert_receive {:websocket_message, %{"type" => "pong"}}, 1000
+  Testing.simulate_disconnect(server, :going_away)
+  Client.close(client)
+end
+
+# Assert client sent an expected frame (string, regex, map, or fn matcher)
+Testing.assert_message_sent(server, %{"method" => "public/subscribe"}, 1000)
 ```
 
-### Telemetry Events
+### Monitoring
 
 ```elixir
-:telemetry.attach("ws-logger", [:zen_websocket, :client, :message_received],
-  fn _event, measurements, metadata, _config ->
-    Logger.info("Message: #{measurements.size} bytes from #{metadata.url}")
-  end, nil)
-
-# Health check
-{:ok, health} = ZenWebsocket.Client.get_heartbeat_health(client)
-# %{last_heartbeat_at: timestamp, failures: 0, active: true}
+Client.get_heartbeat_health(client)  # %{active:, failure_count:, last_heartbeat_at:}
+Client.get_latency_stats(client)     # %{p50:, p99:, last:, count:}  — nil before first sample
+Client.get_state_metrics(client)     # %{connection_state:, pending_requests_size:, subscriptions_size:, state_memory:, ...}
 ```
 
-### Performance Characteristics
+### Telemetry
 
-- Connection time: < 100ms typical
-- Message latency: < 1ms processing
-- Memory: ~50KB per connection
-- Reconnection: Exponential backoff (1s, 2s, 4s... capped at max_backoff)
+Events grouped under `:connection`, `:heartbeat`, `:rate_limiter`, `:request_correlator`, `:subscription_manager`, `:pool`. Full reference in `docs/guides/performance_tuning.md` + `USAGE_RULES.md`.
+
+```elixir
+:telemetry.attach("ws-upgrade", [:zen_websocket, :connection, :upgrade],
+  fn _event, %{connect_time_ms: ms}, metadata, _ ->
+    Logger.info("Connected in #{ms}ms to #{metadata[:url]}")
+  end, nil)
+```
+
+### Runtime Discovery (Descripex)
+
+```elixir
+ZenWebsocket.describe()                        # library overview
+ZenWebsocket.describe(:client)                 # Client functions
+ZenWebsocket.describe(:client, :send_message)  # full contract
+```
+
+### Performance
+
+- Connect: < 100ms typical · Message latency: < 1ms processing · Memory: ~50KB/connection
+- Reconnection: exponential backoff (1s, 2s, 4s, … capped at `max_backoff`)

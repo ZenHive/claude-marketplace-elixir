@@ -8,30 +8,13 @@ allowed-tools: Read, Bash, Grep, Glob
 
 ## OXC: Parse, Transform, and Bundle JS/TS on the BEAM
 
-Rust NIF bindings for the [OXC](https://oxc.rs) JavaScript toolchain. Parses, transforms, minifies, and bundles JavaScript and TypeScript entirely on the BEAM — no Node.js required.
+Rust NIF bindings for the [OXC](https://oxc.rs) toolchain. Parses, transforms, minifies, and bundles JS/TS on the BEAM — no Node.js.
 
-**Minimum version documented here: `{:oxc, "~> 0.7"}`.** v0.7.0 introduced breaking changes vs 0.6.x — AST `:type`/`:kind` values are now snake_case atoms (not strings), error tuples are `{:error, [%{message: String.t()}]}`, and bang functions raise `OXC.Error` (not `RuntimeError`). If your project is still on 0.6.x, match strings (`type: "ImportDeclaration"`); if on 0.7+, match atoms (`type: :import_declaration`).
+**Min version: `{:oxc, "~> 0.7"}`.** 0.7 broke vs 0.6: AST `:type`/`:kind` values are now snake_case atoms (not strings), error tuples are `{:error, [%{message: String.t()}]}`, bang functions raise `OXC.Error` (not `RuntimeError`). On 0.6 match strings (`"ImportDeclaration"`); on 0.7+ match atoms (`:import_declaration`).
 
-### Scope
+**Does NOT cover:** runtime JS execution (→ QuickBEAM), installing npm packages (→ `mix npm.install`), frontend build + HMR (→ Volt).
 
-WHAT THIS COVERS:
-  - Parsing JS/TS to ESTree AST and navigating the result
-  - AST traversal (walk, postwalk, collect) and value extraction
-  - Transforming TypeScript to JavaScript
-  - Bundling multiple modules into a single IIFE/ESM/CJS
-  - Minifying JS for production
-  - Extracting import sources (with or without type info)
-  - Rewriting import/export specifiers in a single pass
-  - Source patching via byte offsets
-
-WHAT THIS DOES NOT COVER:
-  - Running JS code at runtime (use QuickBEAM)
-  - Installing npm packages (use npm_ex: `mix npm.install`)
-  - Frontend build pipelines with HMR (use Volt)
-
-### API Reference
-
-#### Parsing
+### Parsing
 
 ```elixir
 # Parse JS or TS to ESTree AST (maps with atom keys AND atom :type/:kind values)
@@ -48,9 +31,9 @@ ast = OXC.parse!(source, "file.ts")
 true = OXC.valid?(source, "file.ts")
 ```
 
-The AST is a map with **atom keys** (`ast.type`, `ast.body`, `node.name`, …) AND **atom values** for `:type` and `:kind` fields (`:import_declaration`, `:variable_declaration`, `:function_expression`, …).
+AST uses **atom keys** AND **atom values** for `:type`/`:kind` (`:import_declaration`, `:variable_declaration`, …).
 
-#### Transform (TS to JS)
+### Transform (TS → JS)
 
 ```elixir
 # Strip type annotations AND interfaces, transform JSX
@@ -68,17 +51,14 @@ The AST is a map with **atom keys** (`ast.type`, `ast.body`, `node.name`, …) A
 )
 ```
 
-#### Minify
+### Minify
 
 ```elixir
-# Dead code elimination, constant folding, whitespace removal
-{:ok, minified} = OXC.minify(source, "file.js")
-
-# Disable identifier mangling (keeps original names)
-{:ok, minified} = OXC.minify(source, "file.js", mangle: false)
+{:ok, minified} = OXC.minify(source, "file.js")                     # DCE, constant folding, whitespace
+{:ok, minified} = OXC.minify(source, "file.js", mangle: false)      # keep original names
 ```
 
-#### Bundle
+### Bundle
 
 ```elixir
 # Bundle multiple TS/JS modules — :entry is REQUIRED
@@ -107,84 +87,67 @@ The AST is a map with **atom keys** (`ast.type`, `ast.body`, `node.name`, …) A
 )
 ```
 
-#### Imports
+### Imports
 
 ```elixir
-# Fast path: just the source strings (type-only imports excluded)
-{:ok, sources} = OXC.imports(source, "file.ts")
-# "import { ref } from 'vue'; import type { Ref } from 'vue'; import axios from 'axios'"
-# => ["vue", "axios"]
+# Fast path — source strings only (type-only imports excluded)
+{:ok, ["vue", "axios"]} = OXC.imports(source, "file.ts")
 
-# NEW in 0.7: collect_imports/2 — source strings WITH type info and byte offsets
+# 0.7+: collect_imports/2 — with type info + byte offsets
 {:ok, imports} = OXC.collect_imports(source, "file.ts")
-# => [
-#   %{specifier: "vue", type: :static, kind: :import, start: 19, end: 24},
-#   %{specifier: "./bar", type: :static, kind: :export, start: 49, end: 56},
-#   %{specifier: "./lazy", type: :dynamic, kind: :import, start: 70, end: 78}
-# ]
+# => [%{specifier: "vue", type: :static, kind: :import, start: 19, end: 24}, ...]
 # Fields: :specifier, :type (:static | :dynamic), :kind (:import | :export | :export_all),
-#          :start, :end (byte offsets including quotes)
+#          :start, :end (byte offsets, including quotes)
 ```
 
-#### Rewrite Specifiers (NEW in 0.7)
+### Rewrite Specifiers (0.7+)
 
 ```elixir
-# Rewrite all import/export specifier strings in a single pass
-# Callback MUST return {:rewrite, new_specifier} | :keep — NOT a bare string.
-# Returning a bare string raises CaseClauseError.
+# Callback MUST return {:rewrite, new} | :keep — bare string raises CaseClauseError.
 {:ok, rewritten} = OXC.rewrite_specifiers(source, "file.ts", fn
   "vue" -> {:rewrite, "/@vendor/vue.js"}
-  "./" <> _ -> :keep
   _ -> :keep
 end)
-# Cleaner than parse → collect imports → patch_string for simple rewrites.
 ```
 
-#### Patch String
+Cleaner than parse → collect → patch for simple rewrites.
+
+### Patch String
 
 ```elixir
-# Apply byte-offset patches to source code
 patched = OXC.patch_string(source, [
   %{start: 10, end: 20, change: "replacement"},
-  %{start: 30, end: 35, change: ""}  # deletion
+  %{start: 30, end: 35, change: ""}            # deletion
 ])
 ```
 
-Use `.start` and `.end` fields from AST nodes directly — they are byte offsets. Patches can be in any order; the function sorts internally. For simple import rewrites, prefer `rewrite_specifiers/3` (above).
+Use `.start`/`.end` from AST nodes — byte offsets. Patches can be in any order (sorted internally). For specifier rewrites, prefer `rewrite_specifiers/3`.
 
 ### AST Navigation
 
-The AST uses **atom keys** AND **atom `:type`/`:kind` values**. Pattern-match on atoms:
+Pattern-match on atoms:
 
 ```elixir
 {:ok, ast} = OXC.parse(source, "file.ts")
 
-# Top-level: ast.body is a list of statements
-# If file has `export default class`, top-level is :export_default_declaration:
+# ast.body is a list of top-level statements
+# `export default class` → top is :export_default_declaration with .declaration
 export = Enum.find(ast.body, &(&1.type == :export_default_declaration))
 class = export.declaration
-
-# If file has a plain class (no export default), it's :class_declaration directly:
+# Plain class (no export default) → :class_declaration directly:
 class = Enum.find(ast.body, &(&1.type == :class_declaration))
 
-# Class structure
-class.id.name                    # class name (nil if anonymous)
-class.superClass.name            # parent class name (nil if no extends)
-class.body.body                  # list of class members
+class.id.name           # nil if anonymous
+class.superClass.name   # nil if no extends
+class.body.body         # class members
 
-# Methods
 methods = Enum.filter(class.body.body, &(&1.type == :method_definition))
-method.key.name                  # method name
-method.value.async               # boolean
-method.value.params              # parameter list
-method.value.body.body           # list of statements in method body
-
-# FunctionExpression keys (method.value):
-# :async, :id, :params, :body, :generator, :declare,
-# :typeParameters, :expression, :returnType
+# method.key.name, method.value.async, .params, .body.body
+# FunctionExpression (method.value) keys: :async, :id, :params, :body, :generator,
+# :declare, :typeParameters, :expression, :returnType
 ```
 
-#### Key ESTree Node Types (atoms in 0.7+)
+#### Key ESTree Node Types (atoms 0.7+)
 
 String-to-atom mapping: `"FooBar"` → `:foo_bar` (PascalCase → snake_case).
 
@@ -209,72 +172,50 @@ String-to-atom mapping: `"FooBar"` → `:foo_bar` (PascalCase → snake_case).
 | `:import_declaration` | `"ImportDeclaration"` | `.source.value`, `.specifiers` |
 | `:variable_declaration` | `"VariableDeclaration"` | `.declarations`, `.kind` (`:var`/`:let`/`:const`) |
 
-Don't have the atom for a node type you're matching? Run `OXC.parse(source, "file.ts")` and inspect `ast.body |> hd() |> Map.get(:type)` — the runtime is authoritative.
+Unknown atom for a type? Run `OXC.parse(source, "file.ts")` and inspect `ast.body |> hd() |> Map.get(:type)` — runtime is authoritative.
 
 #### Type Annotations (TypeScript)
 
-Type info is nested under `.typeAnnotation.typeAnnotation`:
+Nested under `.typeAnnotation.typeAnnotation`:
 
 ```elixir
-# Parameter type: function(x: string)
+# function(x: string)
 type_name = get_in(param, [:typeAnnotation, :typeAnnotation, :typeName, :name])
-# => "string" or a custom type name like "Str"
 ```
 
-### AST Traversal
-
-#### walk — Visit Every Node (Side-Effects Only)
+### Traversal
 
 ```elixir
-# Returns :ok — walk is for side effects, not transformation
+# walk — side-effects only, returns :ok
 :ok = OXC.walk(ast, fn
   %{type: :call_expression, callee: c} -> IO.inspect(c)
   _ -> :ok
 end)
-```
 
-#### postwalk — Depth-First Post-Order
-
-```elixir
-# Transform nodes bottom-up (children visited before parents)
+# postwalk — depth-first post-order (children before parents)
 transformed = OXC.postwalk(ast, fn
   %{type: :identifier, name: "old"} = node -> %{node | name: "new"}
   node -> node
 end)
 
-# With accumulator — collect data during traversal
+# postwalk with accumulator
 {_ast, patches} = OXC.postwalk(ast, [], fn
   %{type: :import_declaration, source: %{value: "vue"} = src} = node, acc ->
     {node, [%{start: src.start, end: src.end, change: "'/@vendor/vue.js'"} | acc]}
-  node, acc ->
-    {node, acc}
+  node, acc -> {node, acc}
 end)
-patched = OXC.patch_string(source, patches)
-```
+# For this specific rewrite, prefer OXC.rewrite_specifiers/3.
 
-(For this specific rewrite, prefer `OXC.rewrite_specifiers/3`.)
-
-#### collect — Filter and Extract
-
-```elixir
-# Return {:keep, value} to collect, :skip to ignore
+# collect — {:keep, value} collects, :skip ignores
 method_names = OXC.collect(ast, fn
   %{type: :method_definition, key: %{name: name}} -> {:keep, name}
-  _ -> :skip
-end)
-# => ["describe", "fetchTicker", "fetchBalance", ...]
-
-identifiers = OXC.collect(ast, fn
-  %{type: :identifier, name: n} -> {:keep, n}
   _ -> :skip
 end)
 ```
 
 ### Recipes
 
-#### Recursive AST Value Extraction
-
-Convert AST subtrees (object_expression, array_expression, literal) back to Elixir values. Standard pattern for extracting configuration objects:
+**Recursive AST value extraction** (object_expression/array_expression/literal → Elixir):
 
 ```elixir
 extract = fn
@@ -284,8 +225,7 @@ extract = fn
       key = Map.get(p.key, :name) || to_string(Map.get(p.key, :value, "?"))
       {key, r.(p.value, r)}
     end)
-  %{type: :array_expression, elements: els}, r ->
-    Enum.map(els, &r.(&1, r))
+  %{type: :array_expression, elements: els}, r -> Enum.map(els, &r.(&1, r))
   %{type: :identifier, name: "undefined"}, _r -> :undefined
   %{type: :identifier, name: n}, _r -> {:ref, n}
   %{type: :unary_expression, operator: "-", argument: %{value: v}}, _r -> -v
@@ -296,118 +236,76 @@ extract = fn
   nil, _r -> nil
 end
 
-# Usage — Y-combinator needed because anonymous fns cannot self-reference
-value = extract.(config_node, extract)
+value = extract.(config_node, extract)   # Y-combinator: anon fns can't self-recurse
 ```
 
-#### Find a Specific Method in a Class
-
+**Find method in class:**
 ```elixir
-{:ok, ast} = OXC.parse(source, "file.ts")
 export = Enum.find(ast.body, &(&1.type == :export_default_declaration))
 methods = Enum.filter(export.declaration.body.body, &(&1.type == :method_definition))
 target = Enum.find(methods, &(&1.key.name == "describe"))
 ```
 
-#### Find Property in ObjectExpression
-
+**Find property in ObjectExpression** (keys can be identifier `.name` or literal `.value`):
 ```elixir
-# Object property keys can be identifiers (.name) or literals (.value) — check both
-find_prop = fn props, name ->
-  Enum.find(props, fn p ->
-    (Map.get(p.key, :name) || Map.get(p.key, :value)) == name
-  end)
-end
-
-prop = find_prop.(object_node.properties, "id")
-```
-
-#### Analyze Class Hierarchy Across Files
-
-```elixir
-files = Path.wildcard("src/**/*.ts")
-
-classes = Enum.map(files, fn path ->
-  source = File.read!(path)
-  case OXC.parse(source, Path.basename(path)) do
-    {:ok, ast} ->
-      export = Enum.find(ast.body, &(&1.type == :export_default_declaration))
-      if export && export.declaration && export.declaration.body do
-        class = export.declaration
-        methods = Enum.filter(class.body.body, &(&1.type == :method_definition))
-        %{
-          name: class.id && class.id.name,
-          super: class.superClass && class.superClass.name,
-          methods: Enum.map(methods, & &1.key.name),
-          path: path
-        }
-      end
-    _ -> nil
-  end
+Enum.find(object_node.properties, fn p ->
+  (Map.get(p.key, :name) || Map.get(p.key, :value)) == "id"
 end)
-|> Enum.reject(&is_nil/1)
 ```
 
 ### Error Handling (0.7+)
 
 ```elixir
-# Soft-fail variant — always returns {:ok, _} | {:error, [%{message: String.t()}]}
 case OXC.parse(source, "file.ts") do
   {:ok, ast} -> process(ast)
   {:error, errors} ->
     for %{message: msg} <- errors, do: Logger.warning("OXC: #{msg}")
 end
 
-# Bang variant raises OXC.Error (was RuntimeError in 0.6)
 try do
   OXC.parse!(source, "file.ts")
 rescue
-  e in OXC.Error -> Logger.error(Exception.message(e))
+  e in OXC.Error -> Logger.error(Exception.message(e))   # was RuntimeError in 0.6
 end
 ```
 
-### Migrating from 0.6.x to 0.7.x
+### Migrating 0.6 → 0.7
 
-1. Replace string-valued `:type`/`:kind` pattern matches with snake_case atoms:
-   - `%{type: "ClassDeclaration"}` → `%{type: :class_declaration}`
-   - `node.type == "Identifier"` → `node.type == :identifier`
-2. Replace `rescue RuntimeError` on bang functions with `rescue OXC.Error`.
-3. Error-tuple destructuring: `{:error, msg}` → `{:error, [%{message: msg} | _]}`.
-4. Consider switching ad-hoc import rewrites to `OXC.rewrite_specifiers/3`.
-5. Consider replacing `OXC.imports/2` with `OXC.collect_imports/2` when you need type info or byte offsets.
+1. String `:type`/`:kind` → snake_case atoms: `"ClassDeclaration"` → `:class_declaration`
+2. `rescue RuntimeError` → `rescue OXC.Error`
+3. `{:error, msg}` → `{:error, [%{message: msg} | _]}`
+4. Consider `OXC.rewrite_specifiers/3` for import rewrites
+5. Consider `OXC.collect_imports/2` when you need type info or offsets
 
 ### Common Pitfalls
 
 | Problem | Cause | Fix |
-|---------|-------|-----|
-| `FunctionClauseError` after upgrade | Code still matching string types | Swap `"ClassDeclaration"` → `:class_declaration` etc. |
-| `KeyError` on AST node | Not all nodes have expected fields | Pattern match on `.type` first, use `Map.get/3` for optional fields |
-| `.superClass` is nil | Class has no `extends` | Check `is_nil(class.superClass)` before accessing `.name` |
-| Property key access fails | Keys can be identifier (`.name`) or literal (`.value`) | Check both: `p.key.name \|\| p.key.value` |
-| Wrong file extension | OXC uses extension to pick parser | `.ts` for TypeScript, `.tsx` for JSX+TS, `.js`/`.jsx` for JS |
-| Y-combinator forgotten | Anonymous fns cannot self-recurse | Pass `fn` as arg: `extract.(node, extract)` |
-| `:export_default_declaration` not found | File may not have `export default` | Check for `:class_declaration` directly as fallback |
-| `bundle/2` returns empty | Missing `:entry` option | Required since 0.6.0 — pass `entry: "main.ts"` |
+|---|---|---|
+| `FunctionClauseError` after upgrade | Still matching string types | Swap to atoms |
+| `KeyError` on node | Optional fields missing | Match `.type` first, use `Map.get/3` for optionals |
+| `.superClass` is nil | No `extends` | Check `is_nil(class.superClass)` |
+| Property key access fails | Keys can be identifier or literal | `p.key.name \|\| p.key.value` |
+| Wrong file extension | Extension picks parser | `.ts`, `.tsx`, `.js`, `.jsx` |
+| Y-combinator forgotten | Anon fns can't self-recurse | Pass `fn` as arg |
+| `bundle/2` empty | Missing `:entry` | Required since 0.6 |
 
 ### DO NOT
 
-1. **Don't use string keys** — OXC returns atom-keyed maps. `node.type` not `node["type"]`.
-2. **Don't match string type values in 0.7+** — AST `:type`/`:kind` values are atoms (`:import_declaration`, not `"ImportDeclaration"`).
-3. **Don't assume node shapes** — Always pattern match on `.type` first.
-4. **Don't parse just to validate** — Use `OXC.valid?/2`; it skips AST allocation.
-5. **Don't parse just to get imports** — Use `OXC.imports/2` for source strings, `OXC.collect_imports/2` when you need type info / offsets.
-6. **Don't hand-roll import rewrites** — `OXC.rewrite_specifiers/3` is a single pass.
-7. **Don't use OXC to run JS** — OXC is static analysis only. Use QuickBEAM for runtime execution.
+1. Don't use string keys — always atom-keyed maps (`node.type`, not `node["type"]`).
+2. Don't parse just to validate — use `OXC.valid?/2`.
+3. Don't parse just for imports — use `OXC.imports/2` or `OXC.collect_imports/2`.
+4. Don't hand-roll import rewrites — `OXC.rewrite_specifiers/3` is a single pass.
+5. Don't use OXC to run JS — static analysis only. Use QuickBEAM for runtime.
 
 ### Performance
 
-| Operation | Approximate Time |
-|-----------|-----------------|
-| Parse 14.5k-line TS file | ~43ms |
-| Transform TS to JS | ~10ms |
-| Minify | ~5ms |
-| `valid?` check | ~20ms |
-| `imports` extraction | ~15ms |
-| `collect_imports` | ~20ms |
+| Operation | ~Time |
+|---|---|
+| Parse 14.5k-line TS | 43ms |
+| Transform TS→JS | 10ms |
+| Minify | 5ms |
+| `valid?` | 20ms |
+| `imports` | 15ms |
+| `collect_imports` | 20ms |
 
-OXC is a Rust NIF — CPU-bound on the scheduler. For batch processing many files, use `Task.async_stream` with controlled concurrency.
+Rust NIF, CPU-bound. For batch processing, `Task.async_stream` with controlled concurrency.

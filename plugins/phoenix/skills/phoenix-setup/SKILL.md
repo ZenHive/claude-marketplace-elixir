@@ -6,70 +6,45 @@ allowed-tools: Read, Bash, Grep, Glob
 
 <!-- Auto-synced from ~/.claude/includes/phoenix-setup.md — do not edit manually -->
 
-## Phoenix Project Setup (CRITICAL)
+## Phoenix Project Setup
 
-### 🚨 ALWAYS Use --live Flag for Authentication
-
-**CRITICAL:** When generating authentication with Phoenix 1.8+, **ALWAYS** use the `--live` flag:
+### 🚨 ALWAYS `--live` for Authentication
 
 ```bash
-# ✅ CORRECT - Generates LiveView-based auth with proper scoping configuration
-mix phx.gen.auth Accounts User users --live
-
-# ❌ WRONG - Generates controller-based auth WITHOUT LiveView scoping
-mix phx.gen.auth Accounts User users
+mix phx.gen.auth Accounts User users --live    # ✅
+mix phx.gen.auth Accounts User users           # ❌ missing LiveView scoping
 ```
 
-**Why this matters:**
-- **Without `--live`**: Does NOT configure automatic scoping for LiveView resources
-  - Future `mix phx.gen.live` commands won't be scoped to current user
-  - Manual security code required for every resource
-  - Scope module/configuration incomplete for LiveView
-- **With `--live`**: Configures proper scoping in `config/config.exs`
-  - All subsequent `phx.gen.live` commands automatically generate scoped code
-  - Context functions auto-accept `%Scope{}` parameter
-  - Queries auto-filter by `user_id`
-  - Security by default, zero manual work
+**Why:** without `--live`, `config/config.exs` scope configuration is incomplete. Subsequent `mix phx.gen.live` won't scope to current user — generated code won't filter by `user_id`, creating a **major security vulnerability** where users can see/edit each other's data. Forgetting requires complete redo of auth + re-cherry-picking subsequent work.
 
-**The Real Problem:**
-Without `--live`, the scope configuration is incomplete. When you later run `mix phx.gen.live RealEstate Property properties ...`, the generated code won't include user scoping. This creates a **major security vulnerability** — users can see/edit each other's data.
+With `--live`: context functions auto-accept `%Scope{}`, queries auto-filter by `user_id`, security by default.
 
-**Common mistake:** Forgetting the `--live` flag requires complete redo of auth setup and re-cherry-picking all subsequent work.
+### Phoenix-Specific Deps
 
-### Phoenix-Specific Dependencies
-
-For base Elixir tooling (Styler, Credo, Dialyxir, Doctor, Tidewave), see `elixir-setup.md`. Add these in addition:
-
-| Dep | Purpose |
-|-----|---------|
-| sobelow | Security-focused analysis for Phoenix (SQL injection, XSS, CSRF) |
-| live_debugger | Visual LiveView debugging UI at localhost:4007 |
+For base Elixir tooling (Styler, Credo, Dialyxir, Doctor, Tidewave), see `elixir-setup.md`. Add:
 
 ```elixir
-{:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},
-{:live_debugger, "~> 0.5", only: :dev}
+{:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},     # security: SQL/XSS/CSRF
+{:live_debugger, "~> 0.7", only: :dev}                          # UI at localhost:4007
 ```
 
-**Note:** Phoenix projects do NOT need `{:bandit, ...}` — Phoenix already has an HTTP server.
+Phoenix projects do NOT need `{:bandit, ...}` — Phoenix already has an HTTP server.
 
 ### Tidewave for Phoenix
 
-Add to `lib/my_app_web/endpoint.ex` — **ABOVE** the `if code_reloading?` block:
+Add to `lib/my_app_web/endpoint.ex` **ABOVE** the `if code_reloading?` block:
 
 ```elixir
-# Tidewave dev tools
 if Code.ensure_loaded?(Tidewave) do
   plug Tidewave
 end
 
-# Code reloading can be explicitly enabled under the
-# :code_reloader configuration of your endpoint.
 if code_reloading? do
   ...
 end
 ```
 
-### LiveDebugger Setup
+### LiveDebugger
 
 Add to `lib/my_app_web/components/layouts/root.html.heex`:
 
@@ -80,9 +55,12 @@ Add to `lib/my_app_web/components/layouts/root.html.heex`:
 </head>
 ```
 
-After starting your app, LiveDebugger runs at `http://localhost:4007`. See [LiveDebugger docs](https://hexdocs.pm/live_debugger/welcome.html) for full usage.
+Runs at `http://localhost:4007`. Docs: https://hexdocs.pm/live_debugger/welcome.html
 
-**⚠️ LiveDebugger Limitation with `web` command**: The `web` command creates a separate browser session, so LiveViews accessed via `web http://localhost:4000` won't appear in LiveDebugger's "Active LiveViews" list. To debug LiveViews with LiveDebugger:
-- Open `http://localhost:4007` directly in your browser (same browser session as localhost:4000)
-- Click "Refresh" under Active LiveViews to see current LiveViews
-- Use `browser_eval` tool for same-session page inspection instead of `web` when debugging
+**0.6+/0.7+ knobs** (in `config/dev.exs` under `:live_debugger`):
+- `:auto_port` — pick free port if 4007 taken
+- `:ignore_startup_errors` — don't crash on init failure
+- Settings defaults via config (was UI-only)
+- "Open in editor" buttons, user-event sending API
+
+**⚠️ `web` command limitation:** separate browser session — LiveViews hit via `web http://localhost:4000` won't appear in LiveDebugger's Active LiveViews list. Open `http://localhost:4007` in the same browser as `:4000`, or use `browser_eval` for same-session inspection.

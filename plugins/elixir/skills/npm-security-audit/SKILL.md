@@ -8,138 +8,85 @@ allowed-tools: Read, Bash
 
 ## npm_ex Security Auditing & Supply Chain Assessment
 
-Multi-layered security analysis for npm dependencies managed by npm_ex. Combines CVE scanning, license compliance, deprecation detection, and supply chain risk scoring.
+CVE scanning, license compliance, deprecation detection, supply chain risk scoring.
 
-### Quick Security Check
+### Quick Check
 
 ```bash
-mix npm.audit          # CVE vulnerabilities
-mix npm.licenses       # License compliance
-mix npm.deprecations   # Stale/deprecated packages
+mix npm.audit          # CVEs
+mix npm.licenses       # license compliance
+mix npm.deprecations   # stale/deprecated packages
 ```
 
-### CVE / Vulnerability Audit
+### CVE Audit (`NPM.Audit`)
 
-`mix npm.audit` queries the npm registry's audit endpoint for known vulnerabilities.
-
-**Programmatic API:**
 ```elixir
 {:ok, lockfile} = NPM.Lockfile.read()
 
-# check/2 takes (lockfile, advisories_list)
-# advisories is a list of advisory maps, not a map
-findings = NPM.Audit.check(lockfile, advisories)
-
-# Filter by severity threshold
-critical = NPM.Audit.filter_by_severity(findings, :critical)
-high_plus = NPM.Audit.filter_by_severity(findings, :high)
-
-# Check if a finding has a patch available
-NPM.Audit.fixable?(finding)  # => true/false
-
-# Aggregate stats
-summary = NPM.Audit.summary(findings)
-# => %{total: 3, critical: 1, high: 1, moderate: 1, low: 0, fixable: 2}
-
-# Severity comparison for sorting
-NPM.Audit.compare_severity(:critical, :high)  # => :gt
+findings = NPM.Audit.check(lockfile, advisories)       # advisories = list of maps
+NPM.Audit.filter_by_severity(findings, :critical)
+NPM.Audit.fixable?(finding)
+NPM.Audit.summary(findings)                            # %{total:, critical:, high:, moderate:, low:, fixable:}
+NPM.Audit.compare_severity(:critical, :high)           # :gt
 ```
 
-**Severity levels** (highest to lowest): `:critical`, `:high`, `:moderate`, `:low`, `:info`
+Severity levels (high → low): `:critical`, `:high`, `:moderate`, `:low`, `:info`.
 
-### License Compliance
-
-`mix npm.licenses` scans node_modules package.json files for license declarations.
+### License Compliance (`NPM.License`)
 
 ```elixir
-# scan/1 takes a PATH STRING, not a lockfile
-licenses = NPM.License.scan("node_modules")
-# => [%{package: "ccxt", version: "4.5.45", license: "MIT"}, ...]
+licenses = NPM.License.scan("node_modules")            # PATH string, not lockfile
+# => [%{package:, version:, license:}, ...]
 
-# Aggregate by license type
-summary = NPM.License.summary(licenses)
-# => %{total: 16, permissive: 14, non_permissive: 2, unknown: 0,
-#       unique_licenses: ["MIT", "Apache-2.0", "BSD", "(MIT AND Zlib)"]}
-
-# Find problematic licenses (GPL, AGPL, SSPL, BSD, compound)
-NPM.License.non_permissive(licenses)
-# => [%{package: "hdr-histogram-js", license: "BSD"}, ...]
-
-# Check individual license
-NPM.License.permissive?("MIT")     # => true
-NPM.License.permissive?("GPL-3.0") # => false
-
-# Group for reporting
+NPM.License.summary(licenses)                          # %{total:, permissive:, non_permissive:, unknown:, unique_licenses:}
+NPM.License.non_permissive(licenses)                   # GPL, AGPL, SSPL, BSD, compound
+NPM.License.permissive?("MIT")                         # true
 NPM.License.group_by_license(licenses)
-# => %{"MIT" => [...], "Apache-2.0" => [...]}
-
-# Extract from a single package.json map
-NPM.License.extract(%{"license" => "MIT"})  # => "MIT"
+NPM.License.extract(%{"license" => "MIT"})
 ```
 
-### Deprecation Scanning
-
-`mix npm.deprecations` checks which installed packages are deprecated.
+### Deprecation (`NPM.Deprecation`)
 
 ```elixir
-# scan/1 takes a PATH STRING
-deprecated = NPM.Deprecation.scan("node_modules")
-# => [%{package: "...", version: "...", message: "Use xyz instead"}, ...]
-
-# Check a single package entry
+NPM.Deprecation.scan("node_modules")                   # PATH string
 NPM.Deprecation.deprecated?(entry)
-
-# Extract deprecation info
 NPM.Deprecation.extract(pkg_json_map)
 ```
 
-### Supply Chain Risk Assessment
+### Supply Chain Risk (`NPM.SupplyChain`)
 
-Combines multiple signals into a risk score. The argument order is non-obvious — package.json data first, lockfile second:
+Non-obvious argument order — **pkg_json first, lockfile second**:
 
 ```elixir
 {:ok, lockfile} = NPM.Lockfile.read()
 {:ok, pkg_json} = NPM.PackageJSON.read()
 
-# assess/2 args: (pkg_json_data, lockfile) — NOT (lockfile, advisories)
 assessment = NPM.SupplyChain.assess(pkg_json, lockfile)
-# => %{
-#   total_packages: 15,
-#   phantom_deps: 15,        # packages in lockfile but not in package.json deps
-#   integrity_coverage: 100.0, # % of packages with SHA-512 hashes
-#   risk_level: :high         # :low | :medium | :high
-# }
+# %{total_packages:, phantom_deps:, integrity_coverage:, risk_level: :low | :medium | :high}
 
-# Numeric risk score (0-100, lower is better)
-NPM.SupplyChain.risk_score(assessment)  # => 30
-
-# Formatted report
+NPM.SupplyChain.risk_score(assessment)                 # 0-100, lower is better
 NPM.SupplyChain.format(assessment)
-# => "Supply Chain Assessment (high):\n  Packages: 15\n  ..."
 ```
 
-**Risk level thresholds:**
-- `:low` — integrity >= 90% AND zero phantom deps
-- `:medium` — integrity >= 50% AND phantom deps < 5
-- `:high` — everything else
+**Risk thresholds:** `:low` = integrity ≥ 90% + zero phantom · `:medium` = integrity ≥ 50% + phantom < 5 · `:high` = everything else.
 
-**Note on phantom deps:** `phantom_deps` counts packages in the lockfile that are NOT direct dependencies in package.json. In most projects, transitive dependencies far outnumber direct ones, so a high phantom count is normal — it's not a security alarm by itself. The risk level becomes meaningful when combined with low integrity coverage.
+**Phantom deps** count packages in lockfile but not in `package.json` deps — transitive deps are normal, so high phantom count alone isn't alarming. Becomes meaningful combined with low integrity coverage.
 
 ### Gotchas
 
-- **`NPM.License.scan/1` and `NPM.Deprecation.scan/1` take path strings** (`"node_modules"`), not lockfile maps. Passing a lockfile map causes `IO.chardata_to_string` errors.
-- **`NPM.SupplyChain.assess/2` argument order is `(pkg_json, lockfile)`** — pass the full package.json deps map (from `NPM.PackageJSON.read()`) as first arg. Passing a single package entry makes `PhantomDep.count` treat everything as phantom.
-- **`NPM.Audit.check/2` takes `(lockfile, advisories)`** where advisories is a list of maps. Each advisory **must** include `:patched_versions` or `summary/1` raises `KeyError`.
-- **`NPM.Audit.format_finding/1` requires atom severity** (`:high`, `:critical`) not strings. Passing `"high"` raises `ArgumentError`.
-- **`NPM.License.permissive?/1` expects a license string** like `"MIT"`, not an entry map. Use `NPM.License.permissive?(entry.license)`.
-- **`NPM.Health.grade/1` vs `NPM.Health.format_report/1`** may disagree on the letter grade for the same data — trust `grade/1` for programmatic use.
-- **BSD is flagged as non-permissive** by `NPM.License.non_permissive/1`. This is conservative — review flagged BSD packages manually.
-- **`NPM.Lockfile.get_package/1`** reads from the lockfile file. If you already have the map in memory, use `Map.get(lockfile, "name")` instead.
+- `License.scan/1`, `Deprecation.scan/1`: path strings, not lockfile maps. Passing a map causes `IO.chardata_to_string` errors.
+- `SupplyChain.assess/2`: `(pkg_json, lockfile)`. Passing a single entry makes everything count as phantom.
+- `Audit.check/2`: `(lockfile, advisories)`. Each advisory **must** include `:patched_versions` or `summary/1` raises `KeyError`.
+- `Audit.format_finding/1`: atom severity (`:high`), not strings.
+- `License.permissive?/1`: license string (`"MIT"`), not entry map. Use `permissive?(entry.license)`.
+- `Health.grade/1` vs `Health.format_report/1`: may disagree — trust `grade/1`.
+- BSD is flagged non-permissive (conservative) — review manually.
+- `Lockfile.get_package/1`: reads file. If already in memory, use `Map.get(lockfile, "name")`.
 
 ### Decision Framework
 
 | Risk Score | Action |
-|-----------|--------|
+|---|---|
 | 0-19 (low) | Safe to proceed |
-| 20-49 (medium) | Review phantom deps and integrity gaps |
-| 50+ (high) | Investigate before deploying to production |
+| 20-49 (medium) | Review phantom deps + integrity gaps |
+| 50+ (high) | Investigate before production |

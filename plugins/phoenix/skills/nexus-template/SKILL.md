@@ -34,41 +34,33 @@ assets/styles/
 
 ### Routing & Layouts
 
-The router uses layout pipelines to select different root layouts:
-- `layout_empty` -> `empty.html.heex` (landing pages)
-- `layout_auth` -> `auth.html.heex` (authentication pages)
-- `layout_components` -> `components.html.heex` (component showcase)
-- `layout_admin` -> `admin.html.heex` (admin dashboard pages)
+Router uses layout pipelines:
+- `layout_empty` → `empty.html.heex` (landing)
+- `layout_auth` → `auth.html.heex`
+- `layout_components` → `components.html.heex` (showcase)
+- `layout_admin` → `admin.html.heex` (dashboard)
 
 ### Iconify Icons
 
-Nexus uses `iconify_ex` with three icon sets: `lucide`, `heroicons-solid`, `heroicons-outline`.
+`iconify_ex` with three sets: `lucide`, `heroicons-solid`, `heroicons-outline`.
 
-**Syntax:**
 ```heex
 <.iconify icon="lucide:sun" class="size-4" />
-<.iconify icon="lucide:dollar-sign" class="text-base-content/60 size-4" />
 <.iconify icon="heroicons-solid:check" class="size-5 text-success" />
 ```
 
-**Icon commands:**
 ```bash
-mix icons.install   # Download icon sets
-mix icons.patch     # Patch iconify for Phoenix compatibility
+mix icons.install   # download sets
+mix icons.patch     # patch iconify for Phoenix
 ```
 
-### Partials System
+### Partials
 
-Partials are organized as separate modules in `partials.ex`, each embedding templates:
-- `NexusPhoenixWeb.Partials.Layouts.Sidebar`
-- `NexusPhoenixWeb.Partials.Layouts.Topbar`
+Separate modules in `partials.ex`, each `embed_templates("partials/path/*")`:
+- `NexusPhoenixWeb.Partials.Layouts.Sidebar` / `Topbar`
 - `NexusPhoenixWeb.Partials.Interactions.Carousel`
 
-Each module uses `embed_templates("partials/path/*")` to load HEEx files.
-
-### Phoenix Functional Components
-
-**Always prefer functional components** for reusable UI:
+### Functional Components (preferred)
 
 ```elixir
 attr :title, :string, required: true
@@ -87,16 +79,9 @@ def my_card(assigns) do
 end
 ```
 
-**Usage:**
-```heex
-<.my_card title="Dashboard">
-  <p>Card content here</p>
-</.my_card>
-```
-
 ### Interactivity
 
-**Alpine.js first** for client-side interactivity:
+**Alpine.js first** for client-side:
 ```heex
 <div x-data="{ open: false }">
   <button @click="open = !open">Toggle</button>
@@ -104,19 +89,19 @@ end
 </div>
 ```
 
-**LiveView** for real-time features - but default to standard Controller/Template rendering for static designs.
+Default to Controller/Template for static designs; LiveView only for real-time features.
 
-### Development Commands
+### Commands
 
 ```bash
-mix setup              # Install deps, create DB, run migrations, setup assets, install icons
-mix phx.server         # Start Phoenix server (localhost:4000)
-mix precommit          # Compile (warnings-as-errors), unlock unused deps, format, test
+mix setup          # deps, DB, migrations, assets, icons
+mix phx.server     # localhost:4000
+mix precommit      # compile (warn-as-error), unlock unused, format, test
 ```
 
-### Debugging Checklist
+### Debugging
 
-1. **Check Tailwind/daisyUI class names** for typos
-2. **Check assets watcher** - ensure `mix phx.server` is running
-3. **Check dynamic classes** - Tailwind requires full class names in source code (no string interpolation)
-4. **Check icon set** - ensure icon exists in installed sets (lucide, heroicons-solid, heroicons-outline)
+1. Tailwind/daisyUI class typos
+2. Assets watcher running? (`mix phx.server`)
+3. No string interpolation in Tailwind classes — needs full class names in source
+4. Icon exists in installed sets?

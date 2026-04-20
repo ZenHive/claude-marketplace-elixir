@@ -8,100 +8,63 @@ allowed-tools: Read, Bash
 
 ## npm_ex CI/CD & Installation Verification
 
-Reproducible builds with npm_ex require understanding which verification tool to use when. The tools form a pipeline — each checks a different layer.
+Reproducible builds. The tools form a pipeline — each checks a different layer.
 
-### The Verification Stack
+### Verification Stack
 
-| Symptom | Tool | What it checks |
-|---------|------|----------------|
-| "Is my install healthy?" | `mix npm.doctor` | Overall installation sanity |
-| "Does node_modules match lockfile?" | `mix npm.verify` | File presence + version match |
-| "Does lockfile match package.json?" | `mix npm.check` | Lockfile freshness |
+| Symptom | Tool | Checks |
+|---|---|---|
+| "Install healthy?" | `mix npm.doctor` | Overall sanity |
+| "node_modules matches lockfile?" | `mix npm.verify` | File presence + version match |
+| "Lockfile matches package.json?" | `mix npm.check` | Lockfile freshness |
 | "Frozen install for CI" | `mix npm.ci` | Clean install from lockfile only |
 | "Lock versions for publishing" | `mix npm.shrinkwrap` | Freeze exact versions |
 
-### CI Pipeline Recipe
+### CI Pipeline
 
 ```bash
-# 1. Verify lockfile is in sync with package.json
-mix npm.check
-
-# 2. Clean frozen install (fails if lockfile stale)
-mix npm.ci
-
-# 3. Verify node_modules matches what was just installed
-mix npm.verify
+mix npm.check      # lockfile ↔ package.json
+mix npm.ci         # clean frozen install (fails on stale lockfile)
+mix npm.verify     # node_modules ↔ lockfile
 ```
 
-For simpler setups, `mix npm.install --frozen` achieves the same as step 1+2 in one command.
+`mix npm.install --frozen` combines check + ci in one command.
 
 ### Programmatic API
 
-The real value is calling these from Elixir code (build scripts, CI tasks, Mix compilers).
-
-**CI validation:**
 ```elixir
-# Preflight check — ensures lockfile + package.json exist
-:ok = NPM.CI.preflight()
+:ok = NPM.CI.preflight()        # lockfile + package.json exist?
+:ok = NPM.CI.validate()         # full CI validation
+true = NPM.CI.needs_clean?()    # needs rebuild?
 
-# Full CI validation
-:ok = NPM.CI.validate()
-
-# Check if node_modules needs rebuilding
-true = NPM.CI.needs_clean?()
-```
-
-**Verify installed packages:**
-
-The argument order matters — `node_modules_dir` comes first, lockfile second:
-```elixir
 {:ok, lockfile} = NPM.Lockfile.read()
-
-# Returns list of issues (empty = clean)
-[] = NPM.Verify.check("node_modules", lockfile)
-
-# Boolean shorthand
+[] = NPM.Verify.check("node_modules", lockfile)     # (path, lockfile) — path first
 true = NPM.Verify.clean?("node_modules", lockfile)
-```
 
-**Lockfile operations:**
-```elixir
-# Read returns {:ok, map} — always unwrap when passing to Verify, DepGraph, etc.
-{:ok, lockfile} = NPM.Lockfile.read()
-
-# Convenience helpers are path-based (read the lockfile internally):
-NPM.Lockfile.has_package?("ccxt")             # => true (reads npm.lock)
-{:ok, names} = NPM.Lockfile.package_names()   # => ["ccxt", "ws", ...]
-{:ok, entry} = NPM.Lockfile.get_package("ccxt") # => %{version: ..., ...}
-
-# Optional second arg overrides the lockfile path:
+# Convenience — path-based (reads lockfile internally)
+NPM.Lockfile.has_package?("ccxt")
+{:ok, names} = NPM.Lockfile.package_names()
+{:ok, entry} = NPM.Lockfile.get_package("ccxt")
 NPM.Lockfile.has_package?("ccxt", "path/to/npm.lock")
 ```
 
 ### Gotchas
 
-- **`NPM.Lockfile.read/0` returns `{:ok, map}`** — forgetting to unwrap is the #1 mistake. Every downstream function expects the bare map.
-- **`NPM.Verify.check/2` arg order is `(path, lockfile)`** — the string path comes first, lockfile map second. The typespec confirms: `@spec check(String.t(), map())`.
-- **`NPM.CI.needs_clean?/0`** returns `true` when node_modules is stale or missing — it does NOT mean something is broken, just that a reinstall is needed.
-- **`mix npm.install --frozen`** vs **`mix npm.ci`**: Both fail on stale lockfiles. `npm.ci` additionally wipes node_modules first for a guaranteed clean slate.
+- `Lockfile.read/0` returns `{:ok, map}` — unwrap before passing downstream. #1 mistake.
+- `Verify.check/2` is `(path, lockfile)` — path first. `@spec check(String.t(), map())`.
+- `CI.needs_clean?/0` returning `true` means "reinstall needed," not "broken."
+- `npm.install --frozen` and `npm.ci` both fail on stale lockfiles. `npm.ci` additionally wipes `node_modules` first.
 
 ### npm.lock vs npm-shrinkwrap.json
 
-- **`npm.lock`** — Standard lockfile. Checked into version control. Used by `mix npm.install` and `mix npm.ci`.
-- **`npm-shrinkwrap.json`** — Created by `mix npm.shrinkwrap`. Intended for published packages where you want consumers to get your exact dependency tree. Rarely needed for applications.
+- `npm.lock` — standard lockfile, checked into VCS. Used by `mix npm.install` and `mix npm.ci`.
+- `npm-shrinkwrap.json` — created by `mix npm.shrinkwrap`. For published packages where consumers should get your exact tree. Rare for applications.
 
 ### Mix Compiler Integration
 
-npm_ex includes a Mix compiler that auto-installs on `mix compile`:
-
 ```elixir
 # mix.exs
-def project do
-  [
-    compilers: [:npm | Mix.compilers()],
-    # ...
-  ]
-end
+def project, do: [compilers: [:npm | Mix.compilers()], ...]
 ```
 
-This runs `NPM.install()` as part of the compile step — useful for projects that need npm packages available at compile time (like this project loading CCXT's browser bundle).
+Runs `NPM.install()` during compile — useful when npm packages are needed at compile time (e.g., loading a browser bundle).
