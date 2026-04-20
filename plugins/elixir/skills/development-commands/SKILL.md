@@ -33,13 +33,24 @@ Config: `.ex_dna.exs`. Suppress intentional dupes with `@no_clone true`.
 
 ### ExAST — AST Search & Replace
 
-**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure.
+**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.3"}`.
 
 ```bash
 mix ex_ast.search 'IO.inspect(_)'                              # find debug leftovers
 mix ex_ast.search --count 'Logger.debug(_)'
 mix ex_ast.replace 'dbg(expr)' 'expr'                          # cleanup, preserve expression
 mix ex_ast.replace --dry-run 'use Mix.Config' 'import Config'  # preview migrations
+
+# 0.3.0: pipe awareness — matches both forms bidirectionally
+mix ex_ast.search 'Enum.map(_, _)'                             # matches `data |> Enum.map(f)` too
+mix ex_ast.search 'data |> Enum.map(f)'                        # matches `Enum.map(data, f)` too
+
+# 0.3.0: ancestor-context filters
+mix ex_ast.search 'Repo.get!(_, _)' --inside 'def _(_)'        # only inside function defs
+mix ex_ast.search 'IO.inspect(_)' --not-inside 'test _, do: _' # skip inside tests
+
+# 0.3.0: multi-node patterns (sequential statements)
+mix ex_ast.search 'a = Repo.get!(_, _); Repo.delete(a)'        # N+1-ish load-then-delete pairs
 ```
 
 Named captures (`expr`, `x`) in search carry to replacement. Structs/maps match partially. Run `mix format` after replacements.

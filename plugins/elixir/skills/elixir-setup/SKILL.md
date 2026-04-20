@@ -34,7 +34,11 @@ Pinned versions below are starting points. Before adding a dep, check hex for cu
 ```bash
 curl -s https://hex.pm/api/packages/<pkg> | jq -r .latest_stable_version
 ```
-`~> X.Y` only matches the same minor. For 0.x packages, every minor bump can be breaking under hex semver.
+Hex `~>` operator (per `Version.match?/2`):
+- `~> X.Y` allows everything up to (not including) the next major: `~> 2.0` = `>= 2.0.0 and < 3.0.0`; `~> 0.3` = `>= 0.3.0 and < 1.0.0`.
+- `~> X.Y.Z` allows everything up to (not including) the next minor: `~> 2.0.0` = `>= 2.0.0 and < 2.1.0`; `~> 0.3.1` = `>= 0.3.1 and < 0.4.0`.
+
+For 0.x packages, every minor bump can be breaking under hex semver — so prefer the three-segment form (`~> 0.3.1`) when you want to lock to a single 0.x minor and opt into bumps deliberately.
 
 ### mix.exs deps (libraries/non-Phoenix)
 
@@ -51,7 +55,7 @@ defp deps do
     {:tidewave, "~> 0.5", only: :dev},
     {:bandit, "~> 1.10", only: :dev},      # non-Phoenix only
     {:ex_dna, "~> 1.1", only: [:dev, :test], runtime: false},
-    {:ex_ast, "~> 0.2", only: [:dev, :test], runtime: false},
+    {:ex_ast, "~> 0.3", only: [:dev, :test], runtime: false},
     {:descripex, "~> 0.6"},                # full dep — macros expand at compile time
     {:api_toolkit, "~> 0.1"}               # API services only
   ]
