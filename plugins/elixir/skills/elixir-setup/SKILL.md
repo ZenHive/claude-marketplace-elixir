@@ -54,8 +54,8 @@ defp deps do
     {:doctor, "~> 0.22", only: [:dev, :test], runtime: false},
     {:tidewave, "~> 0.5", only: :dev},
     {:bandit, "~> 1.10", only: :dev},      # non-Phoenix only
-    {:ex_dna, "~> 1.1", only: [:dev, :test], runtime: false},
-    {:ex_ast, "~> 0.3", only: [:dev, :test], runtime: false},
+    {:ex_dna, "~> 1.3", only: [:dev, :test], runtime: false},
+    {:ex_ast, "~> 0.5", only: [:dev, :test], runtime: false},
     {:descripex, "~> 0.6"},                # full dep — macros expand at compile time
     {:api_toolkit, "~> 0.1"}               # API services only
   ]
@@ -103,22 +103,30 @@ Tidewave runs in the same BEAM as the IEx session. After editing source, the old
 ### ExDNA — Duplication Detection
 
 ```bash
-mix ex_dna                            # scan for duplicates
-mix ex_dna --literal-mode abstract    # catch renamed variables (Type II)
+mix ex_dna                            # scan for duplicates (Type I — exact)
+mix ex_dna --literal-mode abstract    # Type II — catch renamed variables
+mix ex_dna --min-similarity 0.85      # Type III — near-miss (structural similarity)
+mix ex_dna --min-mass 50              # only flag larger clones
+mix ex_dna --max-clones 10            # CI budget — exit 1 only above threshold
 mix ex_dna --format json              # machine-readable
+mix ex_dna --format html              # self-contained browsable report
+mix ex_dna --format sarif             # GitHub Code Scanning
+mix ex_dna.explain 3                  # anti-unification breakdown of one clone
 ```
 
-Config: `.ex_dna.exs` in project root. Suppress intentional dupes with `@no_clone true`. Credo integration: add `{ExDNA.Credo, []}` to `.credo.exs`.
+Config: `.ex_dna.exs` in project root. Suppress intentional dupes with `@no_clone true`. Credo integration: add `{ExDNA.Credo, []}` to `.credo.exs`. LSP server pushes diagnostics to Expert/ElixirLS.
 
 ### ExAST — AST Search & Replace
 
 ```bash
 mix ex_ast.search 'IO.inspect(_)'           # find debug leftovers
+mix ex_ast.search 'IO.inspect(...)'         # 0.4+ ellipsis — any arity
 mix ex_ast.replace 'dbg(expr)' 'expr'       # remove dbg, keep expression
 mix ex_ast.replace --dry-run old new        # preview
+mix ex_ast.diff lib/old.ex lib/new.ex       # 0.4+ syntax-aware diff
 ```
 
-Patterns: `_` = wildcard, named vars (`expr`) capture and carry to replacement. Structs/maps match partially.
+Patterns: `_` = wildcard, named vars (`expr`) capture and carry to replacement. `...` = zero-or-more (args, list items, block body). Structs/maps match partially. See `development-commands.md` for the full surface (pipe awareness, `--inside`/`--not-inside`, multi-node, `~p` sigil, quoted patterns, AST/zipper input).
 
 ### Quality Gates
 

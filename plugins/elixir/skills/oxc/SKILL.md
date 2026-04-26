@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Rust NIF bindings for the [OXC](https://oxc.rs) toolchain. Parses, transforms, minifies, and bundles JS/TS on the BEAM — no Node.js.
 
-**Min version: `{:oxc, "~> 0.7"}`.** 0.7 broke vs 0.6: AST `:type`/`:kind` values are now snake_case atoms (not strings), error tuples are `{:error, [%{message: String.t()}]}`, bang functions raise `OXC.Error` (not `RuntimeError`). On 0.6 match strings (`"ImportDeclaration"`); on 0.7+ match atoms (`:import_declaration`).
+**Min version: `{:oxc, "~> 0.10"}`.** 0.10 adds AST codegen (`OXC.codegen/1`, `OXC.codegen!/1`), placeholder templating (`OXC.bind/2`, `OXC.splice/3`), and the `:external` bundle option. 0.9 adds `OXC.Format` (oxfmt as a Rust NIF — see Format section) and `OXC.Lint.run!/2,3` bang variants. 0.7.2 adds `OXC.transform_many/2` (parallel via rayon). 0.8 added `OXC.Lint` (oxlint's 650+ rules + custom Elixir rules via `OXC.Lint.Rule`). 0.7 broke vs 0.6: AST `:type`/`:kind` values are now snake_case atoms, error tuples are `{:error, [%{message: String.t()}]}`, bang functions raise `OXC.Error` (not `RuntimeError`). On 0.6 match strings (`"ImportDeclaration"`); on 0.7+ match atoms (`:import_declaration`).
 
 **Does NOT cover:** runtime JS execution (→ QuickBEAM), installing npm packages (→ `mix npm.install`), frontend build + HMR (→ Volt).
 
@@ -51,12 +51,86 @@ AST uses **atom keys** AND **atom values** for `:type`/`:kind` (`:import_declara
 )
 ```
 
+### Codegen (0.10+)
+
+`OXC.codegen/1` emits JavaScript source from an ESTree AST. Handles precedence, indentation, semicolon insertion. **Roundtripping TS through codegen emits JS** — TypeScript type annotations, interfaces, and `as`/satisfies expressions are stripped.
+
+```elixir
+{:ok, ast} = OXC.parse("const x: number = 40 + 2;", "f.ts")
+{:ok, "const x = 40 + 2;\n"} = OXC.codegen(ast)   # TS type annotation gone
+
+js = OXC.codegen!(ast)                             # bang variant
+```
+
+Works on hand-built ASTs too — manually construct a `:program` with `.body` and codegen will emit it, as long as each node has its required ESTree fields.
+
+### Bind & Splice — Placeholder Templating (0.10+)
+
+AST-level string templating. `$placeholder` identifiers in the source are replaced with Elixir values, structurally (not by string substitution), so you can't build syntactically invalid output.
+
+```elixir
+{:ok, ast} = OXC.parse("const x = $v;", "t.js")
+
+# Bindings is a keyword list, NOT a map
+OXC.bind(ast, v: {:literal, 42})    |> OXC.codegen!()  # => "const x = 42;\n"
+OXC.bind(ast, v: "userId")          |> OXC.codegen!()  # => "const x = userId;\n"   (identifier rename)
+OXC.bind(ast, v: {:expr, "40 + 2"}) |> OXC.codegen!()  # => "const x = 40 + 2;\n"   (parsed sub-AST)
+OXC.bind(ast, v: other_ast_node)    |> OXC.codegen!()  # raw AST node (must have :type)
+```
+
+Binding value forms:
+- **string** — replaced as identifier name (rename)
+- **`{:literal, v}`** — replaced with a literal node. Maps/lists recursively become JS object/array literals.
+- **`{:expr, "code"}`** — parsed as a JS expression, inserted as a sub-AST
+- **raw AST node** (map with `:type`) — spliced directly
+
+`splice/3` replaces `$name` *statements*, shorthand object *properties*, or array *elements* with one or more nodes (strings auto-parse as JS):
+
+```elixir
+{:ok, ast} = OXC.parse("function f() { $body }", "t.js")
+OXC.splice(ast, :body, ["const x = 1;", "return x;"]) |> OXC.codegen!()
+# => "function f() {\n\tconst x = 1;\n\treturn x;\n}\n"
+```
+
+`bind` = substitute at expression positions. `splice` = substitute at statement/list positions.
+
 ### Minify
 
 ```elixir
 {:ok, minified} = OXC.minify(source, "file.js")                     # DCE, constant folding, whitespace
 {:ok, minified} = OXC.minify(source, "file.js", mangle: false)      # keep original names
 ```
+
+### Format (0.9+)
+
+`OXC.Format` wraps oxfmt (the OXC formatter, separate Rust NIF `oxc_fmt_nif`). Prettier-compatible output defaults; no Node.js needed.
+
+```elixir
+{:ok, "const x = 1 + 2;\nfunction foo(a, b) {\n  return a + b;\n}\n"} =
+  OXC.Format.run("const   x=1 +2 ; function  foo(   a,b) {return a+b ;}", "t.js")
+
+formatted = OXC.Format.run!(source, "t.ts")   # bang variant — raises OXC.Error
+```
+
+Options mirror Prettier-ish knobs (`print_width`, `tab_width`, `use_tabs`, `single_quote`, `trailing_comma`, `semi`). `oxc_fmt_nif` ships precompiled for aarch64/x86_64 glibc + darwin — **no musl builds**, so on Alpine you'll compile from source (Rust toolchain required).
+
+### Transform Many (0.7.2+)
+
+Parallel transform via a Rust (rayon) thread pool — significantly faster than `Task.async_stream` for many files since work is distributed across OS threads without BEAM scheduling overhead.
+
+```elixir
+# Footgun: {source, filename} — OPPOSITE order from OXC.bundle/2 ({filename, source})
+results = OXC.transform_many([
+  {"const a: number = 1;", "a.ts"},
+  {"const b: string = 'x';", "b.ts"}
+])
+# => [ok: "const a = 1;\n", ok: "const b = \"x\";\n"]
+
+# Shared opts apply to all files
+OXC.transform_many(inputs, jsx: :automatic, target: "es2020")
+```
+
+Each result is `{:ok, code}`, `{:ok, %{code:, sourcemap:}}` (with `sourcemap: true`), or `{:error, errors}`. Preserves input order.
 
 ### Bundle
 
@@ -77,6 +151,8 @@ AST uses **atom keys** AND **atom values** for `:type`/`:kind` (`:import_declara
   minify: true,
   treeshake: true,           # NEW in 0.7: remove unused exports
   preamble: "const { ref } = Vue;",  # NEW in 0.7: code injected at top of IIFE body
+  external: ["react", "scheduler"],  # NEW in 0.10: preserve as `import` in output (bare ESM
+                                     # specifiers auto-detect; this is for cases auto-detect misses)
   banner: "/* v1.0 */",
   footer: "/* end */",
   define: %{"process.env.NODE_ENV" => ~s("production")},
@@ -213,6 +289,34 @@ method_names = OXC.collect(ast, fn
 end)
 ```
 
+### Lint (0.8+)
+
+`OXC.Lint` wraps oxlint (650+ rules, Rust-speed) and lets you add Elixir-side custom rules that walk the same atom-keyed AST `OXC.parse/2` returns.
+
+```elixir
+# Built-ins only — severity is :allow | :warn | :deny
+{:ok, diags} = OXC.Lint.run(source, "app.tsx",
+  plugins: [:react, :typescript],
+  rules: %{"no-debugger" => :deny, "no-console" => :warn}
+)
+
+# 0.9+: bang variant — raises OXC.Error on parse failure, returns diags list directly
+diags = OXC.Lint.run!(source, "app.tsx", rules: %{"no-debugger" => :deny})
+
+# Diagnostic shape (rule is namespaced — "eslint(no-debugger)"):
+# %{rule: "eslint(no-debugger)", severity: :deny, message: "...",
+#   span: {start, end}, labels: [{s, e}], help: String.t() | nil}
+
+# Custom Elixir rules — module implements OXC.Lint.Rule (meta/0 + run/2)
+{:ok, diags} = OXC.Lint.run(source, "app.ts",
+  custom_rules: [{MyApp.NoConsoleLog, :warn}]
+)
+```
+
+Plugin atoms: `:react`, `:typescript`, `:unicorn`, `:import`, `:jsdoc`, `:jest`, `:vitest`, `:jsx_a11y`, `:nextjs`, `:react_perf`, `:promise`, `:node`, `:vue`, `:oxc`. Default is oxlint's correctness set (no plugin flag needed for rules like `no-debugger`).
+
+`:fix` option computes suggested fixes; `:settings` passes arbitrary context to custom rules.
+
 ### Recipes
 
 **Recursive AST value extraction** (object_expression/array_expression/literal → Elixir):
@@ -277,6 +381,10 @@ end
 4. Consider `OXC.rewrite_specifiers/3` for import rewrites
 5. Consider `OXC.collect_imports/2` when you need type info or offsets
 
+### Migrating 0.8 → 0.10
+
+No breaking API changes — purely additive. If you were hand-rolling AST→string emission via `patch_string` + `postwalk`, switch to `OXC.codegen/1`. If you have import-rewriting macros that substitute identifier strings into source templates, switch to `OXC.bind/2` + `OXC.codegen/1` (structural instead of string-concat, so ill-typed substitutions fail visibly at bind time rather than producing syntactically invalid output). Custom `OXC.Lint.Rule` modules keep working unchanged.
+
 ### Common Pitfalls
 
 | Problem | Cause | Fix |
@@ -288,6 +396,9 @@ end
 | Wrong file extension | Extension picks parser | `.ts`, `.tsx`, `.js`, `.jsx` |
 | Y-combinator forgotten | Anon fns can't self-recurse | Pass `fn` as arg |
 | `bundle/2` empty | Missing `:entry` | Required since 0.6 |
+| `transform_many`/`bundle` arg order reversed | `transform_many` is `{source, filename}`; `bundle` is `{filename, source}` | Remember: bundle files are virtual project *files* (filename first); transform inputs are *sources* being labeled |
+| `OXC.bind` `FunctionClauseError` | Passed a map `%{v: ...}` | Bindings must be a keyword list `[v: ...]` |
+| TS types vanish after `codegen` roundtrip | `codegen` emits JS, not TS | Expected — codegen is not an identity function on TS |
 
 ### DO NOT
 
@@ -308,4 +419,4 @@ end
 | `imports` | 15ms |
 | `collect_imports` | 20ms |
 
-Rust NIF, CPU-bound. For batch processing, `Task.async_stream` with controlled concurrency.
+Rust NIF, CPU-bound. For batch transform, prefer `OXC.transform_many/2` (rayon thread pool, 0.7.2+) over `Task.async_stream` — distributes across OS threads without BEAM scheduling overhead.

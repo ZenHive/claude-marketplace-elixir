@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Grep, Glob
 
 QuickJS-NG as a Zig NIF. Each runtime is a GenServer with a persistent JS context — run JS libraries, bridge Elixir↔JS bidirectionally. No Node.js.
 
-**Min version: `{:quickbeam, "~> 0.10"}`.** Requires `oxc ~> 0.7` (atom-keyed AST — see `oxc.md`). 0.10 adds `QuickBEAM.Cover` (JS line coverage via `mix test --cover`), `Beam.XML.parse` (xmerl), and bumps default `max_stack_size` 4→8MB.
+**Min version: `{:quickbeam, "~> 0.10.4"}`.** Requires `oxc ~> 0.10` (atom-keyed AST — see `oxc.md`). 0.10 adds `QuickBEAM.Cover` (JS line coverage via `mix test --cover`), `Beam.XML.parse` (xmerl), and bumps default `max_stack_size` 4→8MB. 0.10.2–0.10.4 are bug-fix releases worth the floor: segfault on nested empty BEAM map property enumeration (0.10.2), upstream QuickJS-NG GC fix for closures captured in long-lived handlers (0.10.3), and a use-after-free in coverage recording (0.10.4). If you're using `QuickBEAM.Cover` or holding runtimes in a supervision tree, do NOT pin below 0.10.4.
 
 **Does NOT cover:** static JS/TS analysis (→ OXC), installing npm packages (→ `mix npm.install`), frontend builds (→ Volt).
 

@@ -33,7 +33,7 @@ Config: `.ex_dna.exs`. Suppress intentional dupes with `@no_clone true`.
 
 ### ExAST — AST Search & Replace
 
-**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.3"}`.
+**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.5"}`.
 
 ```bash
 mix ex_ast.search 'IO.inspect(_)'                              # find debug leftovers
@@ -51,6 +51,36 @@ mix ex_ast.search 'IO.inspect(_)' --not-inside 'test _, do: _' # skip inside tes
 
 # 0.3.0: multi-node patterns (sequential statements)
 mix ex_ast.search 'a = Repo.get!(_, _); Repo.delete(a)'        # N+1-ish load-then-delete pairs
+
+# 0.4+: ellipsis `...` — matches zero or more nodes (args, list items, block body)
+mix ex_ast.search 'IO.inspect(...)'                            # any arity
+mix ex_ast.search 'foo(first, ..., last)'                      # head + tail
+mix ex_ast.search 'def run(_) do ... end'                      # any body
+
+# 0.4+: syntax-aware diff (GumTree-inspired — matches fns by name/arity,
+# classifies edits :insert | :delete | :update | :move)
+mix ex_ast.diff lib/old.ex lib/new.ex
+mix ex_ast.diff --summary lib/old.ex lib/new.ex                # one-line per edit
+mix ex_ast.diff --no-moves lib/old.ex lib/new.ex               # disable move detection
+mix ex_ast.diff --json lib/old.ex lib/new.ex                   # structured output
+```
+
+**0.4+ programmatic extras:**
+
+```elixir
+# Quoted expressions or ~p sigil instead of strings
+import ExAST.Sigil
+ExAST.Patcher.find_all(source, ~p"IO.inspect(...)")
+ExAST.Patcher.replace_all(ast, quote(do: IO.inspect(expr)), quote(do: dbg(expr)))
+
+# find_all/replace_all accept source string, AST, or Sourceror.Zipper
+ast = Sourceror.parse_string!(source)
+ExAST.Patcher.replace_all(ast, "dbg(expr)", "expr")   # returns AST (not string)
+
+# Syntax-aware diff as a library call
+%{edits: edits} = ExAST.diff(old_source, new_source)
+# edits are %ExAST.Diff.Edit{op:, kind:, summary:, old_range:, new_range:, meta:}
+ExAST.apply_diff(diff_result)                         # produces patched source
 ```
 
 Named captures (`expr`, `x`) in search carry to replacement. Structs/maps match partially. Run `mix format` after replacements.

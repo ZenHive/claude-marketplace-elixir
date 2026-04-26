@@ -56,6 +56,22 @@ Reports undocumented includes (files on disk not in setup-guide) and missing inc
 
 **Note:** A separate **SessionStart prompt hook** in `~/.claude/settings.json` handles per-project CLAUDE.md checks — it detects the project stack (Elixir, Phoenix, etc.) and flags missing includes against the setup-guide templates. That hook is user-level config, not part of this repo.
 
+### Codex Plugin Sync
+
+Generate a Codex-friendly subset of this marketplace (writes to `~/plugins/` and `~/.agents/plugins/marketplace.json`):
+
+```bash
+./scripts/sync-codex-plugins.py                  # dry-run (default)
+./scripts/sync-codex-plugins.py --apply          # write files
+./scripts/sync-codex-plugins.py --plugin elixir  # sync one plugin
+./scripts/sync-codex-plugins.py --marketplace-only  # regenerate marketplace.json only
+```
+
+Transforms Claude-Code-specific tool names and frontmatter (`allowed-tools:`, `AskUserQuestion`, `TodoWrite`, `SlashCommand`) to Codex equivalents. The elixir subset is narrowed via explicit allow-lists for skills and scripts. Delegates include→skill sync to `~/.codex/skills/sync-claude-includes/scripts/sync_claude_includes.py` unless `--skip-core-sync` is passed. Tests live at `test/test-sync-codex-plugins.sh`.
+
+For the current verified Codex integration status, active hook model, and
+upstream tracking, see `codex_hooks_state.md`.
+
 ## Architecture
 
 ### Plugin Marketplace Structure
@@ -132,11 +148,11 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (23 total)
+### Skills (28 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
-**Elixir plugin** (18 skills):
+**Elixir plugin** (23 skills):
 
 | Skill | Description |
 |-------|-------------|
@@ -158,6 +174,11 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 | npm-ci-verify | npm_ex CI/install verification — lockfile sync, frozen installs |
 | npm-security-audit | npm_ex security — CVE audit, license compliance, supply-chain risk |
 | npm-dep-analysis | npm_ex graph analysis — size, fan-in/out, dedup, package quality |
+| reach | Reach PDG/SDG — slicing, taint, dead-code, OTP state machines, codebase-level analysis |
+| elixir-volt | JavaScript on the BEAM ecosystem map — OXC, QuickBEAM, npm_ex, Phoenix frontend stack |
+| agent-economy | Designing APIs for AI agents — Descripex, manifests, MCP tools, EIP-8004 verification |
+| api-toolkit | ApiToolkit — InboundLimiter, RateLimiter, Cache, Metrics, Provider DSL, Discovery |
+| upstream-pr-workflow | Contributing PRs to forked libraries without leaking personal tooling into the diff |
 
 **Phoenix plugin** (2 skills):
 
@@ -550,5 +571,4 @@ This validates:
 <description>
 ```
 Start with imperative verb: Add, Update, Fix, Remove, etc.
-
 

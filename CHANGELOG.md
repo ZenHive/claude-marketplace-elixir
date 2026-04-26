@@ -4,7 +4,39 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**5 new skills synced from `~/.claude/includes/`** (elixir plugin: 18 → 23)
+- `reach` — Reach PDG/SDG (program dependence graph) for Elixir/Erlang/Gleam/BEAM. Backward/forward slicing, taint analysis, dead-code detection, OTP state-machine analysis, `mix reach` HTML viz, codebase-level analysis (coupling, hotspots, depth, effects, xref, boundaries, concurrency).
+- `elixir-volt` — Elixir-Volt ecosystem map (JS on the BEAM without Node.js). Routes to OXC, QuickBEAM, npm_ex, and the Phoenix frontend stack (volt, oxide_ex, vize_ex, phoenix_vapor).
+- `agent-economy` — Designing APIs for AI agent consumers using Descripex (`api()` macro, progressive disclosure, MCP tool generation, EIP-8004 trustless verification).
+- `api-toolkit` — Reusable infrastructure for Elixir API services. InboundLimiter (sliding window), RateLimiter (token bucket), Cache (TTL ETS), Metrics, Provider DSL with `defapi`, Discovery generating 8 functions.
+- `upstream-pr-workflow` — Contributing PRs to forked external libraries without leaking personal dev tooling stack into the diff. Worktree vs separate-clone setup, additive-vs-mandate distinction, alias-based hook bypass.
+- All 5 added to `scripts/sync-skills-from-includes.sh` MAPPINGS (15 → 20 mapped skills). Bodies auto-sync from canonical includes; only frontmatter is hand-written. CLAUDE.md skill table updated (23 → 28 total).
+
+**Codex integration state handoff**
+- Added `codex_hooks_state.md` at the repo root. It records the verified local
+  Codex plugin/hook state, what works today (skills + Bash hooks), what does
+  not yet work in the released path we tested (edit-time hooks), and the
+  upstream tracking links for `apply_patch` hook support.
+
+**Codex plugin sync script**
+- Added `scripts/sync-codex-plugins.py` — generates a Codex-friendly subset of this marketplace at `~/plugins/` and `~/.agents/plugins/marketplace.json`. Transforms markdown (strips `allowed-tools:` frontmatter; renames `Claude Code`, `AskUserQuestion`, `TodoWrite`/`TaskCreate`/`TaskUpdate`, `SlashCommand` to Codex equivalents), filters the `elixir` plugin's hooks to Bash + UserPromptSubmit only, rewrites hook commands to absolute paths under the destination root, and emits a `.codex-plugin/plugin.json` per plugin.
+- Syncs the `elixir`, `phoenix`, `staged-review`, `task-driver`, and `portfolio-strategy` plugins. The elixir subset is narrowed further via explicit allow-lists (6 skills, 8 scripts) to exclude Claude-only tooling.
+- CLI modes: `--dry-run` (default), `--apply`, `--plugin` (repeatable), `--marketplace-only`, `--skip-core-sync`. Delegates include→skill sync to `~/.codex/skills/sync-claude-includes/scripts/sync_claude_includes.py`.
+- Added `test/test-sync-codex-plugins.sh` (4 test cases: dry-run no-write, full apply, filtered plugin sync, marketplace-only). Registered in `test/run-all-tests.sh`.
+- **Known limitation:** the markdown replacement table translates tool names, not workflow concepts. Synced `task-driver` and `staged-review:code-review` skills still reference Claude Code plan-mode (`EnterPlanMode`/`ExitPlanMode`); synced `hex-docs-search` still references `WebSearch`. Codex users of those skills will encounter nonexistent tools until a Codex-native rewrite or exclusion decision is made.
+
 ### Changed
+
+**staged-review v1.4.0: reviewer writes doc updates instead of just flagging gaps**
+- Reverses the prior "report doc gaps but don't write them" stance. Doc updates now flow through the same path as every other finding: Category 6 row in the findings table → rated → included in the plan-mode batch (Step 7) → applied on plan exit. Nothing is edited silently — the user sees the proposed `ROADMAP.md` / `CHANGELOG.md` / `CLAUDE.md` / `README.md` edits before approving.
+- Why the change: the prior rule's "committer's mental model diverges" concern is preserved by plan-mode visibility (user reviews the doc edits in the same batch as the code edits) and by Step 8 leaving reviewer edits unstaged so the committer still inspects via `git diff` before `git add`. The cost the prior rule paid — doc gaps that committers forget to fill in a separate pass — was happening in practice.
+- Added **Category 6: Documentation Gaps** with explicit rating defaults (CHANGELOG entry 5-7, ROADMAP status flip 6-8, CLAUDE.md drift 7-9, README drift 6-8, cosmetic 1-2). Includes a "don't invent activity" guard: if the diff doesn't actually complete the task, don't flip ROADMAP; if you can't summarize without speculation, mark `discuss`.
+- Scope section flipped: doc updates now appear in "WHAT THIS SKILL DOES" with explicit ROADMAP/CHANGELOG/CLAUDE.md/README.md naming. The "Why review-only on docs" rationale paragraph replaced with "Doc updates are findings, not silent edits" explaining how plan-mode visibility preserves the prior concern.
+- Common Mistakes rewritten: removed "silently updating CHANGELOG/ROADMAP" (the new rule); added three replacements covering (a) silent updates without showing the user, (b) inventing doc activity the diff doesn't justify, (c) staging the reviewer's doc edits.
+- Example findings table extended with two `doc-gap` rows.
+- Plugin: `1.3.1 → 1.4.0`. Minor bump — workflow gains a category and changes a "don't" to a "do," backward-compatible at the skill invocation layer.
 
 **staged-review v1.3.1: bias toward Codex dispatch + mandatory tool inventory in every dispatch**
 - Addresses two residual gaps observed after v1.3.0 shipped: (1) Claude sessions still wait to be asked before dispatching Codex during a work session; (2) when Codex is invoked, Claude doesn't brief it on project-local tools, so Codex reasons from training data alone and over-flags.

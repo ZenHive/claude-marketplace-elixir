@@ -35,6 +35,11 @@ MAPPINGS=(
   "plugins/elixir/skills/npm-security-audit/SKILL.md:npm-security-audit.md"
   "plugins/elixir/skills/npm-dep-analysis/SKILL.md:npm-dep-analysis.md"
   "plugins/portfolio-strategy/skills/portfolio-strategy/SKILL.md:portfolio-strategy.md"
+  "plugins/elixir/skills/reach/SKILL.md:reach.md"
+  "plugins/elixir/skills/elixir-volt/SKILL.md:elixir-volt.md"
+  "plugins/elixir/skills/agent-economy/SKILL.md:agent-economy.md"
+  "plugins/elixir/skills/api-toolkit/SKILL.md:api-toolkit.md"
+  "plugins/elixir/skills/upstream-pr-workflow/SKILL.md:upstream-pr-workflow.md"
 )
 
 synced=0

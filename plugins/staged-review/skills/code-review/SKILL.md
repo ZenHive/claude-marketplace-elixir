@@ -11,20 +11,20 @@ Read the staged diff. Find real problems. Present them in a table. Auto-apply ra
 ## Scope
 
 WHAT THIS SKILL DOES:
-  - Review `git diff --staged` for bugs, extractions, TODOs, abstractions
+  - Review `git diff --staged` for bugs, extractions, TODOs, abstractions, doc gaps
   - Cross-reference ROADMAP.md for tracked task numbers
   - Rate each finding 1-10 priority (or `discuss`)
   - Present findings as a table (informational)
-  - Auto-apply fixes for anything rated 3-10 and actionable TODOs
+  - Auto-apply fixes for anything rated 3-10 and actionable TODOs — **including doc updates** (ROADMAP.md, CHANGELOG.md, CLAUDE.md, README.md)
   - Ask the user only about `discuss`-tier findings
 
 WHAT THIS SKILL DOES NOT DO:
   - Comprehensive language-specific checklist (use `/elixir-code-review` or similar)
   - Review unstaged or committed code (scope is staged files only)
-  - Update ROADMAP.md / CHANGELOG.md / CLAUDE.md — that's the committer's job (or `task-driver`'s). Reviewers surface doc gaps as findings; they don't write the doc edits.
   - Style/formatting checks (use linters)
+  - Stage the reviewer's own doc edits (Step 8 — leaves them unstaged so the committer inspects before `git add`)
 
-**Why review-only on docs:** if the reviewer silently rewrites CHANGELOG during review, the committer's mental model diverges from the diff they'll actually push. Reviewers report; committers decide.
+**Doc updates are findings, not silent edits.** When the staged diff completes a tracked task, omits a CHANGELOG entry, or invalidates a CLAUDE.md claim, the gap appears as a Category 6 row in the findings table, gets rated, and flows through plan mode (Step 7) like every other fix. The user sees the proposed `ROADMAP.md` / `CHANGELOG.md` / `CLAUDE.md` / `README.md` edits **before** approving the plan — nothing happens silently. After plan mode exits, the edits apply but stay unstaged (Step 8), so the committer can `git diff` and decide what to add to the commit.
 
 ## Workflow
 
@@ -145,6 +145,27 @@ TODOs in the staged diff that are resolvable RIGHT NOW:
 
 **List them in the findings table, then fix them in Step 7 (plan mode) with the rest of the rated findings.** Don't defer what's already implementable.
 
+#### Category 6: Documentation Gaps
+
+Doc edits the staged diff implies but doesn't make. The reviewer **writes** these (via plan mode), not just flags them.
+
+- **ROADMAP.md** — staged diff completes a tracked task but ROADMAP still shows ⬜ → flip to ✅ and update the phase summary / Current Focus
+- **CHANGELOG.md** — meaningful change (feature, fix, behavior change, new dep, schema change) with no entry under `## [Unreleased]` → add one
+- **CLAUDE.md** — staged diff changes repo structure, conventions, hook behavior, command surface, or anything CLAUDE.md asserts → update the affected section
+- **README.md** — user-facing feature, install step, or example invalidated by the diff → update
+- **Project-specific tracking docs** — touched-file is referenced in another doc that now disagrees with reality → update
+
+**Rating defaults:**
+- Missing CHANGELOG entry for a feature/fix → **5-7** (medium-high; expected hygiene)
+- ROADMAP status flip when task is clearly complete → **6-8** (committer relies on this for next session)
+- CLAUDE.md drift on a load-bearing claim (architecture, hook list, conventions) → **7-9** (other sessions read this)
+- README drift on user-facing surface → **6-8**
+- Cosmetic doc nit (typo, wording) → **1-2** (skip unless trivial)
+
+**When in doubt, mark `discuss`** — e.g., "is this change worth a CHANGELOG entry, or is it noise?" Step 9 (Claude+Codex dialogue) resolves it.
+
+**Don't invent activity.** If the diff doesn't actually complete the task, don't flip ROADMAP. If you can't summarize the change in one CHANGELOG line without speculation, the entry isn't yours to write — flag as `discuss`.
+
 ### Step 4: Merge Claude + Codex Findings
 
 Wait for Codex to return, then merge both sets into a single findings list:
@@ -180,7 +201,9 @@ Output a single table. No plan mode at this step — it's a report, not a design
 | 3 | 5   | abstraction | lib/handlers/*.ex   | 4 similar handle_event clauses       | Flag as TODO(Task N) |
 | 4 | 4   | todo-marker | lib/config.ex:8     | Hardcoded timeout needs TODO(Task 7) | Add marker |
 | 5 | 3   | actionable  | lib/auth.ex:22      | TODO: add rate limiting              | Resolve inline |
-| 6 | —   | discuss     | lib/cache.ex:5      | TTL of 60s — aggressive? confirm     | Ask user |
+| 6 | 7   | doc-gap     | CHANGELOG.md        | No [Unreleased] entry for parser fix | Add entry |
+| 7 | 6   | doc-gap     | ROADMAP.md          | Task 7 done in diff but still ⬜      | Flip to ✅, update phase summary |
+| 8 | —   | discuss     | lib/cache.ex:5      | TTL of 60s — aggressive? confirm     | Ask user |
 ```
 
 **Keep descriptions terse** — 10 words max per cell, so the table renders. Long reasoning goes in a follow-up note if needed, not in the table.
@@ -316,7 +339,9 @@ This is load-bearing. Codex is confident and articulate — without the tool inv
 | Flagging without priority | Every finding gets a 1-10 rating (or "discuss") |
 | Asking the user to hand-pick "1, 2, 3" from the table | Rated findings auto-apply via plan mode; discuss-tier routes through Step 9 dialogue |
 | Entering plan mode to present the findings table | Step 6 is a report, not a plan — no plan mode there. Plan mode is Step 7 (concrete edits) |
-| Silently updating CHANGELOG/ROADMAP | Reviewer surfaces doc gaps; committer writes the entries |
+| Silently updating CHANGELOG/ROADMAP without showing the user first | Doc edits are Category 6 findings — they go in the table, then plan mode (Step 7), then apply on exit. Never edit docs before the findings table is presented |
+| Inventing CHANGELOG entries or flipping ROADMAP status when the diff doesn't actually complete the task | Don't fabricate doc activity. If you can't summarize the change in one line without speculation, mark `discuss` instead of writing |
+| Staging the reviewer's doc edits with `git add` | Step 8 — leave reviewer edits unstaged so the committer can `git diff` and decide |
 | Reporting "looks suspicious" | Name the triggering input or mark it "discuss" |
 | Running `grep`/`glob` all over a 40-file diff | Delegate the survey to an Explore subagent (Step 3a) |
 | Emitting `★ Insight` blocks or "Not flagged (verified clean)" appendices | The findings table is the entire deliverable — no headers, no afterword |
