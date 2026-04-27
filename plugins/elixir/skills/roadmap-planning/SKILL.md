@@ -47,6 +47,15 @@ D/B/U scoring, status markers, and `[P]` markers apply to **ROADMAP.md and multi
 - 🔶 Blocked/Paused
 - ✅ Complete
 
+### Pre-Implementation Gate
+
+Before starting a code-mutating task on an existing module, confirm the module's coverage is at tier:
+
+- ≥80% for standard business logic
+- ≥95% for critical business logic (signing, money handling, cryptographic ops, low-level encoders)
+
+If below, raising coverage is **part of this task** — not a follow-up to defer. See `critical-rules.md` § "RAISE COVERAGE BEFORE MUTATING" for scope guards (trivial doc/format/rename mutations are exempt) and the `mix test.json --cover` workflow.
+
 ### Parallel Work (`[P]`)
 
 Mark independent tasks with `[P]`. Before starting: update status to 🔄 with branch name, commit to main, create worktree.

@@ -93,6 +93,7 @@ Code that will fail at runtime or produce incorrect results:
 - **Silent failures**: Discarded return values, catch-all error handlers, `with` without `else`
 - **Unreachable code**: Dead branches, impossible conditions
 - **Concurrency bugs**: Race conditions, deadlocks, unhandled messages
+- **Untested error paths added in this diff**: an error tuple, `raise` site, or new `else`/catch branch added in the staged code that no staged test exercises. The trigger is concrete (the input that produces the error), so this clears the confidence filter. Scope is **the diff itself** — not "module coverage is below X%" (which rots every commit). Pattern: scan the diff for new `{:error, _}` / `raise` / new branches, then confirm a staged test names each one. If not, the branch ships unverified — frequently with a wrong tuple shape, wrong atom, or wrong message.
 
 **Confidence filter**: only report if you can name the specific input that triggers the bug. "Looks suspicious" is not a finding — it's noise that trains the user to ignore you. If you think something is off but can't demonstrate the trigger, mark it *discuss* (see rating scale below) rather than *bug*.
 
@@ -147,24 +148,39 @@ TODOs in the staged diff that are resolvable RIGHT NOW:
 
 #### Category 6: Documentation Gaps
 
-Doc edits the staged diff implies but doesn't make. The reviewer **writes** these (via plan mode), not just flags them.
+Doc edits the staged diff implies but doesn't make. The reviewer **writes** these (via plan mode), not just flags them. Two scopes — both diff-structural, neither relies on counts that age:
 
+**External docs** (markdown files at repo root):
 - **ROADMAP.md** — staged diff completes a tracked task but ROADMAP still shows ⬜ → flip to ✅ and update the phase summary / Current Focus
 - **CHANGELOG.md** — meaningful change (feature, fix, behavior change, new dep, schema change) with no entry under `## [Unreleased]` → add one
 - **CLAUDE.md** — staged diff changes repo structure, conventions, hook behavior, command surface, or anything CLAUDE.md asserts → update the affected section
 - **README.md** — user-facing feature, install step, or example invalidated by the diff → update
 - **Project-specific tracking docs** — touched-file is referenced in another doc that now disagrees with reality → update
 
+**In-code docs** (docstrings, type signatures on staged functions):
+- **`@doc` enumerates a subset of returns/raises** — docstring lists 3 error tuples but the function returns 4 (or vice versa). Trigger is concrete: name the missing/spurious atom. Same shape for `raise`-able exceptions, return shapes, and option keys.
+- **Public function added with no docstring** — Elixir `@doc`, Rust `///`, Go doc-comment, Python docstring. Skip private helpers; flag exported surface only.
+- **`@spec` / type signature missing on public function added in the diff** — Elixir `@spec`, TypeScript signature, Python type hints if the project uses them. Project convention rules: if neighbors have specs, the new function needs one too.
+- **Existing docstring example invalidated by the diff** — function renamed, return shape changed, parameter added/removed, but the `## Examples` block still shows the old shape. The example will mislead the next reader.
+
 **Rating defaults:**
+
+External:
 - Missing CHANGELOG entry for a feature/fix → **5-7** (medium-high; expected hygiene)
 - ROADMAP status flip when task is clearly complete → **6-8** (committer relies on this for next session)
 - CLAUDE.md drift on a load-bearing claim (architecture, hook list, conventions) → **7-9** (other sessions read this)
 - README drift on user-facing surface → **6-8**
 - Cosmetic doc nit (typo, wording) → **1-2** (skip unless trivial)
 
+In-code:
+- `@doc` doesn't enumerate all error atoms / return shapes a function emits → **3-5** (medium; agents and Dialyzer-equivalents lean on this)
+- Public function added with no docstring → **4-6** (higher when it's an exported API surface; lower for internal-but-public helpers)
+- `@spec` missing on public function in a project that uses specs elsewhere → **4-6**
+- Docstring example invalidated by the diff (will mislead readers) → **5-7**
+
 **When in doubt, mark `discuss`** — e.g., "is this change worth a CHANGELOG entry, or is it noise?" Step 9 (Claude+Codex dialogue) resolves it.
 
-**Don't invent activity.** If the diff doesn't actually complete the task, don't flip ROADMAP. If you can't summarize the change in one CHANGELOG line without speculation, the entry isn't yours to write — flag as `discuss`.
+**Don't invent activity.** If the diff doesn't actually complete the task, don't flip ROADMAP. If you can't summarize the change in one CHANGELOG line without speculation, the entry isn't yours to write — flag as `discuss`. Same rule for in-code docs: if you don't know which error atoms the function actually returns, don't fabricate the enumeration — read the code or mark `discuss`.
 
 ### Step 4: Merge Claude + Codex Findings
 
