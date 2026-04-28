@@ -16,7 +16,7 @@ WHAT THIS SKILL DOES:
   - Rate each finding 1-10 priority (or `discuss`)
   - Present findings as a table (informational)
   - Auto-apply fixes for anything rated 3-10 and actionable TODOs — **including doc updates** (ROADMAP.md, CHANGELOG.md, CLAUDE.md, README.md)
-  - Ask the user only about `discuss`-tier findings
+  - Ask the user only on `discuss-design` divergence in Step 9 (`discuss-trivial` applies with the rest)
 
 WHAT THIS SKILL DOES NOT DO:
   - Comprehensive language-specific checklist (use `/elixir-code-review` or similar)
@@ -201,9 +201,15 @@ Use this scale. It collapses cleanly onto the priority bands the user actually c
 | 5-6 | medium | Missing extraction, worth-doing abstraction | **Auto-apply** (or add `TODO(Task N)` if the fix needs scoping beyond this commit) |
 | 3-4 | low | Missing TODO marker, minor cleanup | **Auto-apply** |
 | 1-2 | cosmetic | Style, naming nits | List only; skip unless trivial |
-| — | discuss | Judgment call, not a clear finding | **Ask the user** |
+| — | discuss-trivial | Lean apply; cognitively reversible (single coherent change, no new public surface, auditable in one read) | **Apply now**, note the alternative + reasoning in the Step 10 summary |
+| — | discuss-design | Genuine trade-off — structural, multi-file ripple, hard-to-revert, or roadmap-shaping | **Step 9 Claude+Codex dialogue**; escalate to user on divergence |
 
-**"Discuss" means "two reasoners should think about this together"** — it's the honest category for "I'd lean this way, but it's a real trade-off." Premature abstractions, architectural-flavor decisions, and subjective readability calls belong here, not in the 5-6 band. If you rated it numerically, you're committing to the fix; use `discuss` only when you genuinely can't. Step 9 runs these through a Claude+Codex dialogue — the user is escalated to only on divergence.
+**The `discuss` split exists because dialogue cost is roughly fixed but fix cost varies wildly.** For a 2-line `@doc` extension or a rename, dispatching Codex with a full tool-inventory payload costs more than the diff itself contains — and that overhead is itself a deterrent that nudges sessions to silently skip Step 9 (the worst outcome). The triage question: *would the dialogue cost exceed the fix-and-revert cost?*
+
+- **`discuss-trivial`** — yes, dialogue would dominate. The change is **cognitively reversible**: single coherent diff (revert it as a unit, not piecewise), no new public API surface that callers will start depending on, no structural cascade, and the user can audit it in one read. Examples: extending a `@doc` to enumerate a missing error atom, a single-file rename, a localized extraction with no callsite churn. Apply, note the alternative in the summary; the user reads the diff and reverts in one line if they disagree. The user's attention is the audit, not the dialogue.
+- **`discuss-design`** — no, the decision actually shapes the codebase. Two-reasoner dialogue earns its keep here: premature abstractions, architectural-flavor decisions, multi-file structural changes, new public API surface, anything tied to roadmap direction. Line count isn't the gate — *ripple* is. A 5-line `@spec` tightening that breaks N callers is `discuss-design`; a 40-line clean extraction inside one module is `discuss-trivial`.
+
+If you rated it numerically (1-10), you're committing to the fix without dialogue. Use `discuss-trivial` when you'd lean apply but want the alternative on the record. Use `discuss-design` when you genuinely can't decide alone and the cost of being wrong is high.
 
 ### Step 6: Present Findings Table (Informational, No Plan Mode)
 
@@ -219,7 +225,8 @@ Output a single table. No plan mode at this step — it's a report, not a design
 | 5 | 3   | actionable  | lib/auth.ex:22      | TODO: add rate limiting              | Resolve inline |
 | 6 | 7   | doc-gap     | CHANGELOG.md        | No [Unreleased] entry for parser fix | Add entry |
 | 7 | 6   | doc-gap     | ROADMAP.md          | Task 7 done in diff but still ⬜      | Flip to ✅, update phase summary |
-| 8 | —   | discuss     | lib/cache.ex:5      | TTL of 60s — aggressive? confirm     | Ask user |
+| 8 | —   | discuss-trivial | lib/parser.ex:90    | @doc lists 3 errors, fn returns 4   | Apply, note alt in summary |
+| 9 | —   | discuss-design  | lib/cache.ex:5      | TTL of 60s — aggressive? Affects N callers | Step 9 dialogue |
 ```
 
 **Keep descriptions terse** — 10 words max per cell, so the table renders. Long reasoning goes in a follow-up note if needed, not in the table.
@@ -230,7 +237,7 @@ After the findings table, **enter plan mode** (`ExitPlanMode` is what you'll cal
 
 Skip priority 1-2 unless the fix is a single-line trivial edit.
 
-Do NOT include `discuss`-tier findings in the plan — those go to Step 9. Plan mode is for decided fixes only.
+Include `discuss-trivial` findings in the plan — they auto-apply with the rest, and the alternative + reasoning gets recorded in the Step 10 summary so the user can revert in one line if they disagree. Do NOT include `discuss-design` findings — those go to Step 9. Plan mode is for decided fixes only.
 
 The user's **single exit-to-proceed** approves the whole batch. No cherry-picking. If they want to drop individual items, they can say so before exiting plan mode and you revise the plan; the default is "all of it."
 
@@ -240,19 +247,19 @@ Once the user exits plan mode, apply every edit in the plan using `Edit`/`MultiE
 
 Do not run `git add` for the reviewer's own edits unless the user explicitly asks — let them stage the review changes themselves so the distinction between "author's work" and "reviewer's work" stays inspectable.
 
-### Step 9: Claude+Codex Dialogue on `discuss`-Tier
+### Step 9: Claude+Codex Dialogue on `discuss-design`
 
-If no `discuss` rows exist, skip this step.
+If no `discuss-design` rows exist, skip this step. (`discuss-trivial` items already applied via plan mode in Step 8 — their alternatives go in the Step 10 summary, not the dialogue.)
 
-Otherwise, resolve each `discuss` finding via a **Claude+Codex dialogue** with ROADMAP.md in scope (already read in Step 2). For each item:
+Otherwise, resolve each `discuss-design` finding via a **Claude+Codex dialogue** with ROADMAP.md in scope (already read in Step 2). For each item:
 
 1. You (Claude) write a short position: proposed resolution + reasoning, factoring in roadmap direction, codebase conventions, and the specific trade-off at hand. Keep it to ~3 sentences.
-2. Dispatch `codex:codex-rescue` following the "Dispatch Payload" format (task = resolve this discuss-tier finding; context = the finding + your position + ROADMAP excerpts; tool inventory = the project's MCP servers and mix tasks; verification instruction = verify claims before asserting). Ask for its independent resolution and reasoning.
+2. Dispatch `codex:codex-rescue` following the "Dispatch Payload" format (task = resolve this `discuss-design` finding; context = the finding + your position + ROADMAP excerpts; tool inventory = the project's MCP servers and mix tasks; verification instruction = verify claims before asserting). Ask for its independent resolution and reasoning.
 3. Compare:
    - **Convergence** (same resolution, or resolutions that differ only in minor wording) → apply the fix directly. Record both reasoners' short justification in the Step 10 summary so the user can audit.
    - **Divergence** (different resolutions, or one says "apply X" and the other says "don't do this") → escalate to the user with both positions laid out side by side. Wait for their decision. Apply what they choose.
 
-**Do not default to "ask the user"** — the dialogue is the default path. The user is the escalation target, not the first responder. This protects the user's attention for genuine design disagreements and uses the two-model pass for everything else.
+**Do not default to "ask the user"** — for `discuss-design`, the dialogue is the default path. The user is the escalation target, not the first responder. This protects the user's attention for genuine design disagreements and uses the two-model pass for everything else.
 
 After dialogue-resolved fixes are applied (or user-resolved ones, on divergence), move to the summary.
 
@@ -262,7 +269,7 @@ After all auto-fixes and any dialogue-resolved or user-resolved discuss-tier fix
 - "N fixes auto-applied across M files"
 - List of files touched (so the user can `git diff` them)
 - Any priority 1-2 items that were skipped
-- Each discuss-tier item and how it was resolved: `dialogue-resolved` (with the convergent reasoning in ~1 sentence), `user-resolved` (with the user's decision), or `declined`/`deferred`
+- Each `discuss`-tier item and how it was resolved: `applied-as-trivial` (with the alternative + reasoning in ~1 sentence so the user can decide whether to revert), `dialogue-resolved` (with the convergent reasoning in ~1 sentence), `user-resolved` (with the user's decision), or `declined`/`deferred`
 - Closing line: either `dual-reviewer pass` or `Codex unreachable — single-reviewer pass` (honest either way)
 
 ## Boundary Rule: Report Upstream Issues, Don't Patch Over Them
@@ -351,9 +358,10 @@ This is load-bearing. Codex is confident and articulate — without the tool inv
 | Accepting Codex-only findings at face value | Default them to `discuss` until verified against the actual code (Codex over-flags) |
 | Under-consulting Codex in-session (waiting for the user to say "ask Codex") | Default answer is dispatch. Silent misses are the failure mode of not asking; the cost of asking is near zero |
 | Dispatching Codex without the project tool inventory | Every dispatch includes MCP servers (Tidewave), mix tasks, hex-docs URLs, plus a "verify before asserting" instruction. Without it Codex reasons from training alone and over-flags |
-| Defaulting `discuss`-tier to "ask the user" | Step 9 is a Claude+Codex dialogue; user is the escalation target on divergence, not the first responder |
+| Defaulting `discuss`-tier to "ask the user" | `discuss-trivial` applies directly with an alternative noted in the Step 10 summary. `discuss-design` runs the Step 9 Claude+Codex dialogue. User is escalation target only on `discuss-design` divergence, never the first responder |
+| Misclassifying a rippling change as `discuss-trivial` | Ripple is the gate, not line count. A 5-line `@spec` tightening that breaks N callers is `discuss-design`. A 40-line clean extraction inside one module with no callsite churn is `discuss-trivial`. If you'd need to chase callers to verify the fix, it's not trivial |
 | Flagging without priority | Every finding gets a 1-10 rating (or "discuss") |
-| Asking the user to hand-pick "1, 2, 3" from the table | Rated findings auto-apply via plan mode; discuss-tier routes through Step 9 dialogue |
+| Asking the user to hand-pick "1, 2, 3" from the table | Rated findings + `discuss-trivial` auto-apply via plan mode; `discuss-design` routes through Step 9 dialogue |
 | Entering plan mode to present the findings table | Step 6 is a report, not a plan — no plan mode there. Plan mode is Step 7 (concrete edits) |
 | Silently updating CHANGELOG/ROADMAP without showing the user first | Doc edits are Category 6 findings — they go in the table, then plan mode (Step 7), then apply on exit. Never edit docs before the findings table is presented |
 | Inventing CHANGELOG entries or flipping ROADMAP status when the diff doesn't actually complete the task | Don't fabricate doc activity. If you can't summarize the change in one line without speculation, mark `discuss` instead of writing |
