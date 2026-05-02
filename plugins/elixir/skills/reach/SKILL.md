@@ -10,9 +10,11 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Builds PDG/SDG from Elixir, Erlang, Gleam, or compiled BEAM. Backward/forward slicing, taint analysis, independence checks, dead-code detection, OTP state-machine analysis, `mix reach` HTML viz.
 
-**Min version: `{:reach, "~> 1.7"}`.** 1.7 adds a **JavaScript source frontend** (`Reach.Frontend.JavaScript` — parses JS/TS via QuickBEAM bytecode disasm into Reach IR) and the **`Reach.Plugins.QuickBEAM`** cross-language plugin that stitches Elixir ↔ JS through `QuickBEAM.eval`/`QuickBEAM.call` sites with edges `:js_eval`, `{:js_call, name}`, and `:beam_call`. 1.7 also introduces a new plugin callback `analyze_embedded/2` (for plugins that splice sub-graphs into the host graph), splits File I/O effects (`File.read`/`stat`/`exists?` → `:read`; `File.write`/`cp`/`rm`/`mkdir` → `:write`), and brings dead-code false positives to near-zero by fixing a pre-existing `with do ... end` body translation bug that was dropping entire `with` bodies from the IR. 1.6 unifies the target format across `reach.slice`, `reach.impact`, `reach.deps`, and `reach.graph` — all four accept both `Module.function/arity` and `file:line`. 1.6 also makes function resolution 100–500× faster and resolves calls with fewer args than the definition to functions with default args (`foo/1` matches `def foo(a, b \\ nil)`). 1.5 adds 7 codebase-level analysis commands (`coupling`, `hotspots`, `depth`, `effects`, `xref`, `boundaries`, `concurrency`). 1.4 added `mix reach.graph` + `--graph` flag and the public `Reach.Plugin` behaviour.
+**Min version: `{:reach, "~> 1.8"}`.** 1.8 turns `mix reach.otp` into a much richer OTP-aware analyzer: **gen_statem support** (both `:state_functions` and `:handle_event_function` callback modes — extracts initial states, transition graph, and event types per state), **dead GenServer reply detection** (`GenServer.call` sites where the reply is discarded — candidates for `cast`), **cross-process coupling analysis** (flags `GenServer.call`/`cast` sites where caller and callee share ETS tables or process-dictionary keys, with conflict type `callee_writes` or `callee_reads_caller_write`), and **supervision tree extraction** (resolves `Supervisor.start_link(children, opts)` child-variable references and pulls module names out of `__aliases__`). 1.8 also delivers a ~1000× speedup on the OTP analysis (precomputed shared `all_nodes`, O(1) module-index lookup replacing O(n²)), refactors OTP internals into `Reach.OTP.GenServer/GenStatem/Coupling/DeadReply/CrossProcess` submodules, and fixes a cluster of smell-detection false positives (cons `|`, string-interp `to_string`, unrelated `Enum.map`/`List.first`; eager-pattern detection now requires actual data flow, not line proximity).
 
-**Caveat:** `dead_code` false positives are near-zero in 1.7 but not zero — treat output as hint material, not a worklist.
+1.7 adds the **JavaScript source frontend** (`Reach.Frontend.JavaScript` — parses JS/TS via QuickBEAM bytecode disasm into Reach IR) and the **`Reach.Plugins.QuickBEAM`** cross-language plugin that stitches Elixir ↔ JS through `QuickBEAM.eval`/`QuickBEAM.call` sites with edges `:js_eval`, `{:js_call, name}`, and `:beam_call`. 1.7 also introduces the plugin callback `analyze_embedded/2` (for plugins that splice sub-graphs into the host graph), splits File I/O effects (`File.read`/`stat`/`exists?` → `:read`; `File.write`/`cp`/`rm`/`mkdir` → `:write`), and brings dead-code false positives to near-zero by fixing a pre-existing `with do ... end` body translation bug that was dropping entire `with` bodies from the IR. 1.6 unifies the target format across `reach.slice`, `reach.impact`, `reach.deps`, and `reach.graph` — all four accept both `Module.function/arity` and `file:line`. 1.6 also makes function resolution 100–500× faster and resolves calls with fewer args than the definition to functions with default args (`foo/1` matches `def foo(a, b \\ nil)`). 1.5 adds 7 codebase-level analysis commands (`coupling`, `hotspots`, `depth`, `effects`, `xref`, `boundaries`, `concurrency`). 1.4 added `mix reach.graph` + `--graph` flag and the public `Reach.Plugin` behaviour.
+
+**Caveat:** `dead_code` false positives are near-zero in 1.7+ but not zero — treat output as hint material, not a worklist.
 
 **Does NOT cover:** runtime execution (static only), type inference (→ Dialyzer), dep security audit (→ Sobelow, npm_ex audit).
 
@@ -150,8 +152,12 @@ mix reach.slice MyApp.Accounts.register/2     # 1.6+: MFA target accepted
 mix reach.slice lib/my_app/accounts.ex:45     # backward slice at file:line
 mix reach.slice --forward lib/my_app/accounts.ex:45
 
-mix reach.otp                                 # GenServer state machines, ETS coupling, missing handlers
+mix reach.otp                                 # GenServer + gen_statem state machines, supervision trees,
+                                              # ETS/process-dict coupling, missing handlers,
+                                              # cross-process coupling (callee writes / callee reads caller write),
+                                              # dead-reply detection (1.8: ~1000× faster, much richer)
 mix reach.smell                               # redundant traversals, duplicate computations
+                                              # (1.8: cons `|` / interp `to_string` / unrelated map+List.first FPs fixed)
 ```
 
 **Codebase-scope (1.5):**
@@ -293,7 +299,7 @@ Limitation: cross-language edges only form when the JS source is a **literal** a
 ### Dependencies
 
 ```elixir
-{:reach, "~> 1.7", only: [:dev, :test], runtime: false},
+{:reach, "~> 1.8", only: [:dev, :test], runtime: false},
 {:boxart, "~> 0.3", only: [:dev, :test], runtime: false}   # terminal --graph (1.4+)
 ```
 
