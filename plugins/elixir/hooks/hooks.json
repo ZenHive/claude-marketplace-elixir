@@ -85,6 +85,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/check-branch-behind-origin.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

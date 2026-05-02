@@ -66,6 +66,29 @@ Mark independent tasks with `[P]`. Before starting: update status to 🔄 with b
 | Task 81 | ⬜ | Depends on 79 |
 ```
 
+### Codex Delegation (`[CX]`)
+
+Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meeting all criteria below are `[CX]` unless there's a stated reason otherwise.** Claude's bias is to grab work; this default is a counterweight.
+
+**Criteria (all must be true):**
+- Self-contained — single module or feature, no orchestration with other in-flight work
+- No Tidewave / live-data exploration required (Codex doesn't have project MCP)
+- No dependency changes (`mix.exs`, lockfile)
+- No `.mcp.json`, hooks, or CI changes
+- Spec is fully captured in the Linear issue body — no live clarifications mid-flight
+
+**Workflow:**
+1. Create Linear issue with `delegate: "Codex"` and label `cx-eligible`. Body is the prompt — full spec, acceptance criteria, file paths.
+2. Codex picks it up, opens PR, transitions issue to `In Review`.
+3. Local Claude Code session invokes `staged-review:commit-review` to fetch and review the PR.
+4. Claude Code surfaces "ready to merge" but the **user** merges (see `critical-rules.md` § "DON'T AUTO-MERGE PRS").
+
+```
+| Task 79 `[P]`  | ⬜              | Independent, local       |
+| Task 80 `[CX]` | ⬜              | Delegate to Codex        |
+| Task 81 `[CX]` | 🔄 in-review   | Codex PR open, awaiting review |
+```
+
 ### Task Descriptions as Prompts
 
 Task descriptions should be prompts for Claude Code (WHAT to accomplish), not implementation specs (HOW). Let Claude research the codebase. Avoid code examples (they rot). Include success criteria. See `task-writing.md` for detail.

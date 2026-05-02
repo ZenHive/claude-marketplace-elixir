@@ -148,7 +148,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (28 total)
+### Skills (29 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
@@ -193,11 +193,12 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands (research, plan, implement, qa) |
 
-**Staged-review plugin** (1 skill):
+**Staged-review plugin** (2 skills):
 
 | Skill | Description |
 |-------|-------------|
 | code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
+| commit-review | Cloud-agent PR review (Codex) — Linear `In Review` poll, harness fixes, verdict-only (user merges) |
 
 **Task-driver plugin** (1 skill):
 

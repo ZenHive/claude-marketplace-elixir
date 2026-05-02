@@ -33,6 +33,7 @@ digraph task_driver {
   read     [label="1. Read ROADMAP.md\n+ linked docs"];
   shortlist[label="2. Present scored shortlist\n(plain text — NOT plan mode)"];
   select   [label="3. User picks task(s)"];
+  route    [label="3.5. [CX] router\n— in-review → commit-review\n— ⬜ → halt + ask\n— otherwise → continue"];
   plan     [label="4. Enter plan mode\nDesign the implementation"];
   exit     [label="5. ExitPlanMode\nMark 🔄 + TodoWrite"];
   implement[label="6. Implement"];
@@ -40,7 +41,7 @@ digraph task_driver {
   docs     [label="8. Update all *.md files"];
   discover [label="9. Add new tasks\nto ROADMAP.md"];
 
-  read -> shortlist -> select -> plan -> exit -> implement -> todos -> docs -> discover;
+  read -> shortlist -> select -> route -> plan -> exit -> implement -> todos -> docs -> discover;
 }
 ```
 
@@ -82,6 +83,21 @@ End with a one-line recommendation: "I suggest Task 274 (highest efficiency, unb
 ### Step 3: User Picks Task(s)
 
 Wait for the user to pick. Do NOT proceed without approval.
+
+### Step 3.5: `[CX]` Router
+
+Before entering plan mode, check the selected task's marker (see `task-prioritization.md` § "Codex Delegation (`[CX]`)"):
+
+- **Task is `[CX]` and status is `🔄 in-review`** → Codex's PR is open and awaiting review. Invoke `staged-review:commit-review` and exit normally — that skill polls Linear, runs the harness, presents a verdict. Do NOT proceed to plan mode (no local implementation).
+
+- **Task is `[CX]` and status is `⬜`** → halt. Per `critical-rules.md` § "DON'T STEAL `[CX]` TASKS", Claude does not silently execute `[CX]`-marked work locally. Ask the user:
+
+  > "Task N is marked `[CX]`, queued for Codex. Want me to create the Linear issue and delegate (default path), or are you redirecting this one to local execution?"
+
+  - If "delegate" → use `mcp__linear-server__save_issue` with `delegate: "Codex"`, label `cx-eligible`, body = full prompt (spec + acceptance criteria + file paths). Update ROADMAP status from `⬜` to `🔄 (delegated)` so future sessions know it's queued. Stop — Codex picks it up and opens a PR; the user runs `commit-review` later.
+  - If "redirect to local" → continue to Step 4 (plan mode) with the task as if it weren't marked `[CX]`. Optionally remove or update the `[CX]` marker in ROADMAP.md.
+
+- **No `[CX]` marker** → continue to Step 4 (existing local flow).
 
 ### Step 4: Enter Plan Mode — Design the Implementation
 
@@ -202,3 +218,5 @@ When choosing which tasks to recommend:
 | Adding counts/stats to CHANGELOG | Describe what was built, not numeric inventories |
 | Starting blocked tasks | Check dependencies before recommending |
 | Forgetting to mark task as 🔄 before starting | Update ROADMAP status before first code change |
+| Silently executing a `[CX]` task locally | Step 3.5 routes `[CX]`. Per `critical-rules.md` § "DON'T STEAL `[CX]` TASKS", halt and ask before redirecting to local. The marker is a fence; user override is the gate |
+| Skipping `commit-review` on `[CX]` + `🔄 in-review` | Step 3.5 invokes `staged-review:commit-review` for those rows. Don't try to plan-mode an already-implemented Codex PR |

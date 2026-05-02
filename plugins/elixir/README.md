@@ -45,6 +45,9 @@ Each hook is tagged as **convention** (permanent quality gate) or **model-limita
 **UserPromptSubmit - On user input:**
 - ✅ **Documentation recommendation** `[model-limitation]` - Suggests using documentation skills when prompt mentions project dependencies
 
+**SessionStart - On session start:**
+- ✅ **Branch behind origin/main** `[convention]` - `git fetch origin main` and warns if the working branch is behind. Pairs with the `[CX]` Codex delegation flow (`task-driver` Step 3.5) so Claude rebases before reviewing a PR or claiming a roadmap task that Codex may have advanced. Fails open on no-repo / fetch errors.
+
 ### Skills
 
 **hex-docs-search** - Intelligent Hex package documentation search with progressive fetching:

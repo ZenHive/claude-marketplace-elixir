@@ -74,14 +74,14 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 
 | Plugin | Description |
 |--------|-------------|
-| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 18 skills |
+| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 23 skills |
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns — setup and Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 
-## Available Skills (23)
+## Available Skills (29)
 
-**Elixir plugin** (18 skills):
+**Elixir plugin** (23 skills):
 
 | Skill | Description |
 |-------|-------------|
@@ -103,6 +103,11 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 | npm-ci-verify | npm_ex CI/install verification — lockfile sync, frozen installs |
 | npm-security-audit | npm_ex security — CVE audit, license compliance, supply-chain risk |
 | npm-dep-analysis | npm_ex graph analysis — size, fan-in/out, dedup, package quality |
+| reach | Reach PDG/SDG — slicing, taint, dead-code, OTP state machines, codebase-level analysis |
+| elixir-volt | JavaScript on the BEAM ecosystem map — OXC, QuickBEAM, npm_ex, Phoenix frontend stack |
+| agent-economy | Designing APIs for AI agents — Descripex, manifests, MCP tools, EIP-8004 verification |
+| api-toolkit | ApiToolkit — InboundLimiter, RateLimiter, Cache, Metrics, Provider DSL, Discovery |
+| upstream-pr-workflow | Contributing PRs to forked libraries without leaking personal tooling into the diff |
 
 **Phoenix plugin** (2 skills):
 
@@ -117,11 +122,12 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands for your project |
 
-**Staged-review plugin** (1 skill):
+**Staged-review plugin** (2 skills):
 
 | Skill | Description |
 |-------|-------------|
 | code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
+| commit-review | Cloud-agent PR review (Codex) — Linear `In Review` poll, harness fixes, verdict-only (user merges) |
 
 **Task-driver plugin** (1 skill):
 

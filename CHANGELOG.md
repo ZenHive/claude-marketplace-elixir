@@ -6,6 +6,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
+**Codex delegation workflow (Phase 9)**
+- New `[CX]` task marker in `task-prioritization.md` — default-on for tasks meeting all criteria (self-contained, no Tidewave / live-data needs, no dep changes, no `.mcp.json`/hooks/CI changes, spec fully captured in Linear). Counterweight to Claude's bias to grab work locally. Auto-syncs to `roadmap-planning/SKILL.md`.
+- Two new `critical-rules.md` sections: "🚨 DON'T STEAL `[CX]` TASKS" (skip `[CX]` rows from ROADMAP.md unless user explicitly redirects) and "🚨 DON'T AUTO-MERGE PRS" (`commit-review` produces a verdict; user merges).
+- `scripts/sync-agents-md.sh` — generates per-repo `AGENTS.md` for Codex by inlining the project CLAUDE.md's `@`-imports. Run from inside the target repo. Codex receives the same rules our local hooks would have enforced (testing discipline, format, coverage gate, no-fabrication, etc.). `--dry-run` flag, exit-1 on missing/unreadable imports.
+- `plugins/staged-review/skills/commit-review/SKILL.md` — sibling of `code-review` for cloud-agent PR review. Polls Linear `In Review` issues delegated to Codex, fetches PR via `gh pr checkout`, runs full local harness (Codex's output drifts on credo/dialyzer/format since it lacks our hooks), runs the same 5-category audit + Codex second-opinion as `code-review`, presents verdict (✅ ready / ⚠️ blockers / 💬 discussion). Offers Linear comment post; user merges.
+- `plugins/elixir/scripts/check-branch-behind-origin.sh` + `SessionStart` registration in `hooks.json` (first SessionStart hook in the elixir plugin) — `git fetch origin main` and warn if the working branch is behind, so Claude rebases before claiming a roadmap task that Codex may have advanced. Fails open on no-repo / fetch errors.
+- `task-driver` SKILL.md updated with Step 3.5 router branch: `[CX]` + `🔄 in-review` → invoke `commit-review` and exit; `[CX]` + `⬜` → halt and ask "delegate via Linear or redirect to local?"; otherwise existing local flow.
+
 **5 new skills synced from `~/.claude/includes/`** (elixir plugin: 18 → 23)
 - `reach` — Reach PDG/SDG (program dependence graph) for Elixir/Erlang/Gleam/BEAM. Backward/forward slicing, taint analysis, dead-code detection, OTP state-machine analysis, `mix reach` HTML viz, codebase-level analysis (coupling, hotspots, depth, effects, xref, boundaries, concurrency).
 - `elixir-volt` — Elixir-Volt ecosystem map (JS on the BEAM without Node.js). Routes to OXC, QuickBEAM, npm_ex, and the Phoenix frontend stack (volt, oxide_ex, vize_ex, phoenix_vapor).

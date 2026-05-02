@@ -15,8 +15,9 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 6. New Skills | 1/1 ✅ | - |
 | 7. Skill Quality | 5/5 ✅ | - |
 | 8. Hook Scripts | 0/4 | 4 |
+| 9. Codex Delegation | 5/5 ✅ | - |
 
-**Total: 28/32 complete (88%)**
+**Total: 33/37 complete (89%)**
 
 ---
 
@@ -152,6 +153,40 @@ Add a `PreToolUse:Bash` hook that **warns** (no block) when Claude is about to r
 
 ---
 
+### Phase 9: Codex Delegation Workflow
+
+> **Methodology:** Linear MCP as shared task tracker; Codex (registered Linear user) executes `[CX]` tasks; Claude Code reviews PR via `staged-review:commit-review` after Linear status flips to `In Review`. Canonical rules live in `~/.claude/includes/critical-rules.md` and `task-prioritization.md`.
+
+#### Task 33: Add `[CX]` marker to task-prioritization include ✅ [D:1/B:7/U:7 → Eff:7.0]
+
+Add `### Codex Delegation (\`[CX]\`)` subsection to `~/.claude/includes/task-prioritization.md` defining the marker, criteria, and workflow. Default: tasks meeting criteria are `[CX]` unless justified otherwise. Auto-syncs to `roadmap-planning/SKILL.md`.
+
+---
+
+#### Task 34: Add `[CX]` discipline rules to critical-rules.md ✅ [D:1/B:8/U:6 → Eff:7.0]
+
+Add two `##` sections to `~/.claude/includes/critical-rules.md`: "DON'T STEAL `[CX]` TASKS" (no local execution of `[CX]`-marked rows) and "DON'T AUTO-MERGE PRS" (`commit-review` surfaces verdict, user merges). Marketplace inherits via existing `@~/.claude/includes/critical-rules.md` import.
+
+---
+
+#### Task 35: AGENTS.md sync script ✅ [D:3/B:7/U:7 → Eff:2.33]
+
+`scripts/sync-agents-md.sh` — runs from inside a target repo, parses `./CLAUDE.md`, inlines all `@`-imports (resolving `~/`), writes `./AGENTS.md` with auto-sync banner. `--dry-run` flag, exit-1 on missing/unreadable imports. Mirrors `sync-skills-from-includes.sh` skeleton.
+
+---
+
+#### Task 36: SessionStart branch-behind hook ✅ [D:3/B:6/U:7 → Eff:2.17]
+
+`plugins/elixir/scripts/check-branch-behind-origin.sh` — `git fetch origin main`, warn if behind. Register in `plugins/elixir/hooks/hooks.json` as new top-level `SessionStart` key. Pair with `task-driver` SKILL.md "pre-task rebase" step.
+
+---
+
+#### Task 37: commit-review skill in staged-review plugin ✅ [D:5/B:9/U:8 → Eff:1.70]
+
+`plugins/staged-review/skills/commit-review/SKILL.md` — sibling of `code-review`. Polls Linear for `In Review` issues delegated to Codex, runs `gh pr checkout`, executes full local harness (format/compile/credo/dialyzer.json/test.json --cover/doctor/sobelow), fixes harness drift, runs same 5-category audit + mandatory Codex second-opinion as `code-review`, presents verdict (no merge). Updates `task-driver` SKILL.md to route `[CX]` rows.
+
+---
+
 ### Completed (Phase 0-4, 6)
 
 #### Task 9: Rename Meta Plugin & Update Templates ✅
@@ -192,6 +227,14 @@ Plugin renamed from `meta` to `elixir-workflows`. All references updated. Workfl
 | Skill eval infrastructure | evals.json with test prompts and assertions for objective skills (hex-docs-search, usage-rules, elixir-setup, web-command) |
 | Description optimization loop | Automated triggering tests using skill-creator's `run_loop.py` methodology |
 | Blind comparison framework | A/B testing between skill versions using skill-creator's comparator pattern |
+| `/elixir:sync-agents-md` slash command | Wrap Task 35's bash script as a slash command for one-step invocation |
+| `/staged-review:delegate-to-codex` slash command | One-shot: gather spec, create Linear issue with `delegate: "Codex"`, label `cx-eligible`, transition to Backlog/Todo |
+| Test framework for `commit-review` skill | Stub Linear MCP + a fake PR, validate harness fixes are staged-not-committed |
+| AGENTS.md noise filter via `<!-- agents-md: skip -->` marker | Per-repo opt-out for imports that bloat AGENTS.md |
+| SessionStart Linear `In Review` count announcement | Manual invocation only for now; revisit if missed in practice |
+| Generalize `commit-review` beyond Codex | Same shape works for Devin, Factory.ai, any cloud-agent PR — parametrize the Linear delegate filter |
+| Linear comment auto-post after `commit-review` | Currently "offer to post"; flip default once trust is established |
+| `cx-eligible` label automation in `sync-agents-md.sh` | Script could verify the Linear label exists per workspace; out-of-scope for v1 |
 
 ---
 
