@@ -72,7 +72,8 @@ Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meetin
 
 **Criteria (all must be true):**
 - Self-contained — single module or feature, no orchestration with other in-flight work
-- No Tidewave / live-data exploration required (Codex doesn't have project MCP)
+- No Tidewave / live-data exploration required (Codex has no internet — no Tidewave, no live-app exploration)
+- No hex-docs lookup required for niche or version-pinned third-party APIs (Codex has no hex.pm access — it can't verify signatures of `assert_receive/3` vs `assert_received/2`-class macros, version-bumped libraries, or anything outside reliable training coverage)
 - No dependency changes (`mix.exs`, lockfile)
 - No `.mcp.json`, hooks, or CI changes
 - Spec is fully captured in the Linear issue body — no live clarifications mid-flight

@@ -6,6 +6,13 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**staged-review v1.9.0: fetch upstream PR review comments + push-back-vs-fix-locally matrix in `commit-review`**
+- New Step 5 in `commit-review`: before auditing, fetch existing PR review comments via `gh pr view --json reviews,comments` and `gh api repos/OWNER/REPO/pulls/<n>/comments`. Reviewer was previously running the audit blind to upstream feedback (Copilot, CodeRabbit, humans), duplicating their findings and missing context they had documented. Step 8 (the 5-category audit) now integrates the upstream comments — overlapping findings get attributed instead of re-flagged, disagreements surface in the verdict as `disputed`.
+- Step 11 (verdict) now includes an explicit **push-back-vs-fix-locally matrix** for blockers. Codex cloud has no internet — no hex.pm, no Tidewave, no external HTTP — so hex-API correctness bugs (e.g. `assert_receive/3` vs `assert_received/2` in INE-6), live-data diagnosis, and external-spec lookups all fail under push-back. The matrix classifies each blocker by whether Codex *can* realistically fix it given its environment, with hybrid splits (some push-back, some fix-locally) as a first-class option.
+- Codex cloud constraints documented canonically in `~/.claude/includes/linear-workflow.md` § "Codex Cloud Constraints" (no hex.pm / no Tidewave / no external HTTP) and § "Fetch Existing PR Review Comments Before Auditing" (the comment-fetch rule applies to all PR reviews, not just `commit-review`).
+- `~/.claude/includes/task-prioritization.md` § "Codex Delegation `[CX]`" criteria gained a new bullet: "no hex-docs lookup required for niche or version-pinned third-party APIs." Auto-syncs to `roadmap-planning/SKILL.md`.
+- Plugin version 1.8.0 → 1.9.0.
+
 **staged-review v1.8.0: broaden `commit-review` polling to use PR-attachment as authoritative signal**
 - `commit-review` Step 2 now polls `delegate = Codex AND status ∈ {In Review, In Progress}`, then filters to issues with at least one open GitHub PR attachment. Codex's status transitions are unreliable across observed round-trips (sometimes stays at `Backlog`, sometimes opens PR but stays at `In Progress`), so the PR attachment is the load-bearing signal — Linear status is just a cached version that Codex isn't writing reliably.
 - Results grouped into "`In Review` (canonical)" and "`In Progress` with open PR (non-canonical)" so the reviewer/user knows which issues need a manual status flip post-review.
