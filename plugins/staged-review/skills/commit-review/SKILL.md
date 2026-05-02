@@ -1,6 +1,6 @@
 ---
 name: commit-review
-description: Use when reviewing a Codex (or other cloud-agent) PR before merging. Polls Linear for `In Review` issues delegated to Codex, fetches the PR branch via `gh pr checkout`, runs the full local harness (mix format check, compile, credo --strict, mix dialyzer.json, mix test.json --cover, doctor, sobelow), reviews the diff against Linear acceptance criteria, fixes harness-flagged issues since Codex doesn't run our hooks, and surfaces a verdict — but does NOT merge (user merges). Sibling of `staged-review:code-review` for already-committed-on-a-branch flows.
+description: Use when reviewing a Codex (or other cloud-agent) PR before merging. Polls Linear for Codex-delegated issues with an open PR attachment (status ∈ In Review or In Progress, since Codex transitions are unreliable), fetches the PR branch via `gh pr checkout`, runs the full local harness (mix format check, compile, credo --strict, mix dialyzer.json, mix test.json --cover, doctor, sobelow), reviews the diff against Linear acceptance criteria, fixes harness-flagged issues since Codex doesn't run our hooks, and surfaces a verdict — but does NOT merge (user merges). Sibling of `staged-review:code-review` for already-committed-on-a-branch flows.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 ---
 
@@ -11,7 +11,7 @@ Read the PR diff. Run the local harness Codex didn't have. Fix harness drift. Re
 ## Scope
 
 WHAT THIS SKILL DOES:
-  - Poll Linear for `In Review` issues delegated to Codex
+  - Poll Linear for Codex-delegated issues with an open PR attachment (status ∈ {In Review, In Progress} — Codex's status transitions are unreliable, so the PR attachment is the authoritative signal)
   - `gh pr checkout` the linked PR branch locally
   - Run the full local harness Codex's environment lacks (format/compile/credo/dialyzer.json/test.json --cover/doctor/sobelow)
   - **Fix harness-flagged issues in the PR branch** — Codex doesn't run our hooks, so format/credo/dialyzer/test drift is expected
@@ -46,7 +46,7 @@ digraph commit_review {
   node [shape=box];
 
   detect    [label="1. Detect Linear MCP\n(abort with install instructions if missing)"];
-  list      [label="2. List `In Review` issues delegated to Codex\n(default to most recent if exactly one)"];
+  list      [label="2. List Codex PRs awaiting review\n(delegate=Codex, status∈{In Review, In Progress},\nfiltered to issues with open PR attachment)"];
   spec      [label="3. Read Linear issue body\nspec + acceptance criteria"];
   checkout  [label="4. Resolve PR → `gh pr checkout <n>`"];
   harness   [label="5. Run full local harness\nformat/compile/credo/dialyzer.json/test.json --cover/doctor/sobelow"];
@@ -77,13 +77,28 @@ After install, restart Claude Code so the MCP tools register, then re-invoke thi
 
 Then **abort**. Don't try to find PRs through `gh` alone — the Linear → PR linkage is what makes the workflow tractable.
 
-### Step 2: List `In Review` Issues Delegated to Codex
+### Step 2: List Codex PRs Awaiting Review
+
+**The PR-attachment link in Linear is the authoritative "ready for review" signal.** Linear status is just a cached version of that, and Codex's transition behavior has been unreliable across observed round-trips:
+
+- Sometimes Codex stays at `Backlog` (no auto-transition, no PR auto-open)
+- Sometimes Codex auto-opens the PR but stays at `In Progress` (no transition to `In Review`)
+- Sometimes the canonical `In Progress` → `In Review` transition fires correctly
+
+So polling **only** `status = In Review` misses real PRs awaiting review. Broaden the filter:
 
 Call `mcp__linear-server__list_issues` filtered for:
-- `status` = `In Review` (workflow status type `started` — this is the cloud-agent → reviewer handoff signal)
 - `delegate` = Codex's user id (verified: `cbb4823b-2de9-493b-8238-9697da57a07b`; or look up by email/name if id is stale)
+- `status` ∈ { `In Review`, `In Progress` }
 
-Present results to the user. If there's exactly one, default to it (the user can override). If there are zero, tell the user "no Codex PRs awaiting review" and stop. If there are multiple, list them with title + identifier and ask which one.
+Then for each candidate, fetch attachments via `mcp__linear-server__get_issue` (or check the issue body if the integration writes PR links inline) and **filter to issues with at least one open GitHub PR attachment**. The PR-link check is the load-bearing one — it filters out `In Progress` issues Codex is still working on.
+
+Group the results into two lists when presenting:
+
+- **`In Review` (canonical):** issues whose status flipped correctly
+- **`In Progress` with open PR (non-canonical):** issues where Codex auto-opened a PR but didn't flip status. Surface these explicitly so the user knows the issue is on a non-canonical status — they may want to manually flip it after the review, or you can include the status flip in the post-review Linear comment
+
+If there's exactly one candidate across both groups, default to it (user can override). Zero candidates → "no Codex PRs awaiting review" and stop. Multiple → list with title + identifier + status and ask which one.
 
 ### Step 3: Read the Linear Issue Body
 
@@ -260,6 +275,7 @@ Default is **don't post** — wait for explicit user confirmation. The verdict i
 | Auto-posting the verdict as a Linear comment without asking | Default is don't post. Offer; wait for explicit confirmation |
 | Reviewing staged work with this skill | Use `staged-review:code-review` for local pre-commit. This skill is for cloud-agent PR review |
 | Treating Codex MCP user lookups as fact | Verify the Codex user id by name/email if the id seems stale. Linear can rotate user ids on workspace migration |
+| Polling only `status = In Review` | Codex's transitions are unreliable — also poll `In Progress` and filter by open-PR-attachment. Status is a cached version of the PR-link signal; the PR attachment is the authoritative one |
 | Running this skill when Linear MCP isn't installed | Step 1 aborts cleanly with install instructions. Don't fall back to gh-only — Linear → PR linkage is the workflow |
 | Surfacing harness fixes as "blockers" when they're mechanical | Mechanical drift (format, alias order, missing `@doc`) is expected and gets staged in Step 6, not blocked. Genuine bugs/test failures/dialyzer issues are blockers |
 | Inventing Linear acceptance criteria not in the issue body | If the body lacks explicit criteria, mark "criteria implicit" in the verdict and lean on the 5-category audit. Don't fabricate a checklist |

@@ -4,6 +4,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**staged-review v1.8.0: broaden `commit-review` polling to use PR-attachment as authoritative signal**
+- `commit-review` Step 2 now polls `delegate = Codex AND status ∈ {In Review, In Progress}`, then filters to issues with at least one open GitHub PR attachment. Codex's status transitions are unreliable across observed round-trips (sometimes stays at `Backlog`, sometimes opens PR but stays at `In Progress`), so the PR attachment is the load-bearing signal — Linear status is just a cached version that Codex isn't writing reliably.
+- Results grouped into "`In Review` (canonical)" and "`In Progress` with open PR (non-canonical)" so the reviewer/user knows which issues need a manual status flip post-review.
+- Documented the polling shape canonically in `~/.claude/includes/linear-workflow.md` § "Polling for 'Ready for Review'" so future skills/sessions matching this pattern (any cloud-agent → Linear → reviewer flow with best-effort transitions) follow the same shape.
+- Plugin version 1.7.0 → 1.8.0.
+
 ### Added
 
 **Codex delegation workflow (Phase 9)**
