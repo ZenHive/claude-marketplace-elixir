@@ -79,7 +79,7 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 
-## Available Skills (29)
+## Available Skills (31)
 
 **Elixir plugin** (23 skills):
 
@@ -134,6 +134,13 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 | Skill | Description |
 |-------|-------------|
 | task-driver | Roadmap-driven task execution — select by efficiency, implement, update all docs |
+
+**Cloud-delegation plugin** (2 skills):
+
+| Skill | Description |
+|-------|-------------|
+| linear-workflow | Linear-as-queue + cloud-agent (Codex, Cursor) delegation — flows, polling, push-back-vs-fix matrix, comment fetch (PR + Linear), cross-repo coordination |
+| cloud-agent-environments | Cloud-agent env reference — what each can/can't reach (hex.pm, mix, Tidewave, HTTP), runtime gotchas, AGENTS.md generation workflow |
 
 ## License
 

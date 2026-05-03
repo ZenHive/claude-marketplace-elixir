@@ -1,6 +1,6 @@
 ---
 name: commit-review
-description: Use when reviewing a Codex (or other cloud-agent) PR before merging. Polls Linear for Codex-delegated issues with an open PR attachment (status ∈ In Review or In Progress, since Codex transitions are unreliable), fetches the PR branch via `gh pr checkout`, fetches existing review comments from upstream reviewers (Copilot, CodeRabbit, humans) so the audit doesn't duplicate their findings, runs the full local harness (mix format check, compile, credo --strict, mix dialyzer.json, mix test.json --cover, doctor, sobelow), reviews the diff against Linear acceptance criteria, fixes harness-flagged issues since Codex doesn't run our hooks, and surfaces a verdict with explicit push-back-vs-fix-locally guidance — but does NOT merge (user merges). Sibling of `staged-review:code-review` for already-committed-on-a-branch flows.
+description: Use when reviewing a Codex (or other cloud-agent) PR before merging. Polls Linear for Codex-delegated issues with an open PR attachment (status ∈ In Review or In Progress, since Codex transitions are unreliable), fetches the PR branch via `gh pr checkout`, fetches existing comments from both the GitHub PR (Copilot, CodeRabbit, humans) and the Linear issue (delegating user clarifications, prior reviewer notes, prior `@codex`/`@cursor` push-back rounds) so the audit doesn't duplicate work or miss prior decisions, runs the full local harness (mix format check, compile, credo --strict, mix dialyzer.json, mix test.json --cover, doctor, sobelow), reviews the diff against Linear acceptance criteria, fixes harness-flagged issues since Codex doesn't run our hooks, and surfaces a verdict with explicit push-back-vs-fix-locally guidance — but does NOT merge (user merges). Sibling of `staged-review:code-review` for already-committed-on-a-branch flows.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 ---
 
@@ -13,7 +13,7 @@ Read the PR diff. Read upstream reviewer comments. Run the local harness Codex d
 WHAT THIS SKILL DOES:
   - Poll Linear for Codex-delegated issues with an open PR attachment (status ∈ {In Review, In Progress} — Codex's status transitions are unreliable, so the PR attachment is the authoritative signal)
   - `gh pr checkout` the linked PR branch locally
-  - **Fetch existing PR review comments** (Copilot, CodeRabbit, humans) before auditing — so we don't duplicate findings and we inherit context they've already documented
+  - **Fetch existing comments from both the GitHub PR and the Linear issue** before auditing — GitHub PR comments (Copilot, CodeRabbit, humans) so we don't duplicate findings and we inherit context they've already documented; Linear issue comments (delegating user clarifications, prior reviewer notes, agent self-summary, prior `@codex`/`@cursor` push-back rounds) so we know whether this is a fresh review or a revision and we don't re-litigate scope decisions
   - Run the full local harness Codex's environment lacks (format/compile/credo/dialyzer.json/test.json --cover/doctor/sobelow)
   - **Fix harness-flagged issues in the PR branch** — Codex doesn't run our hooks, so format/credo/dialyzer/test drift is expected
   - Apply `code-review`'s 5-category audit against `gh pr diff <number>`, integrated with upstream reviewer findings
@@ -50,7 +50,7 @@ digraph commit_review {
   list      [label="2. List Codex PRs awaiting review\n(delegate=Codex, status∈{In Review, In Progress},\nfiltered to issues with open PR attachment)"];
   spec      [label="3. Read Linear issue body\nspec + acceptance criteria"];
   checkout  [label="4. Resolve PR → `gh pr checkout <n>`"];
-  comments  [label="5. Fetch existing PR review comments\nCopilot / CodeRabbit / humans"];
+  comments  [label="5. Fetch existing comments\nGitHub PR (Copilot/CodeRabbit/humans)\n+ Linear issue (user clarifications,\nprior reviewer notes, prior push-back)"];
   harness   [label="6. Run full local harness\nformat/compile/credo/dialyzer.json/test.json --cover/doctor/sobelow"];
   fix       [label="7. Stage harness fixes\nDO NOT commit"];
   audit     [label="8. 5-category audit\non `gh pr diff <number>`,\nintegrated with upstream comments"];
@@ -134,11 +134,11 @@ git branch --show-current
 git log -1 --oneline
 ```
 
-### Step 5: Fetch Existing PR Review Comments
+### Step 5: Fetch Existing Comments — GitHub PR AND Linear Issue
 
-**Before auditing, read what other reviewers have already said.** Copilot, CodeRabbit, and human reviewers may have left comments on the PR — auditing without reading them duplicates their work and misses context they've already documented (intent, prior discussion, won't-fix decisions).
+**Before auditing, read both comment streams.** Auditing without reading them duplicates work and misses context that's already documented (intent, prior discussion, won't-fix decisions, scope amendments, prior push-back rounds). This is the same shape covered in `~/.claude/includes/linear-workflow.md` § "Fetch Existing Comments Before Auditing" — apply both sub-blocks.
 
-Fetch both PR-level reviews and line-level review comments:
+**GitHub PR comments** — Copilot, CodeRabbit, and human reviewers may have left comments on the PR; both PR-level reviews and line-level review comments matter:
 
 ```bash
 # PR-level review summaries + issue-style PR comments
@@ -154,13 +154,28 @@ gh api repos/OWNER/REPO/pulls/<number>/comments --jq '.[] | {author: .user.login
 
 The repo's `OWNER/REPO` is whatever `gh repo view --json nameWithOwner --jq .nameWithOwner` returns.
 
-For each existing comment / review finding, classify it for use in Step 8:
+**Linear issue comments** — fetch the comment thread on the source Linear issue identified in Step 2/3:
 
-- **Already flagged** — the audit's own categories will mention this; surface it in the table with attribution (e.g., `(also flagged by Copilot)`) rather than as a fresh finding. Don't re-litigate
+```
+mcp__linear-server__list_comments  (filter by issueId)
+mcp__linear-server__get_issue      (returns the comment thread inline)
+```
+
+Triage the Linear thread for:
+
+- **Scope amendments** — user clarifications added after the issue was created. If they conflict with the issue body, the comment usually wins (the user added context the agent missed)
+- **Prior reviewer notes** — if this is a revision round (PR has prior commits + a push-back comment), read what the prior reviewer flagged so you don't re-flag the same issues
+- **Agent self-summary** — Codex/Cursor sometimes post a summary on PR open. Useful for understanding what the agent thinks it did vs what the diff actually shows
+- **Prior `@codex` / `@cursor` mentions** — tell you whether this is a fresh review or a revision after push-back. If a prior reviewer pushed something back and the agent amended, your audit should focus on the amend, not re-litigate the original
+
+**Then classify every comment from both streams** for use in Step 8:
+
+- **Already flagged** — the audit's own categories will mention this; surface it in the table with attribution (e.g., `(also flagged by Copilot)` or `(also flagged in Linear comment by user)`) rather than as a fresh finding. Don't re-litigate
 - **Confirmed-by-upstream** — upstream reviewer agreed the diff is correct or marked something as "intentional / won't fix" — incorporate as context; don't re-flag
 - **Disputed** — your audit disagrees with an existing comment. Surface explicitly in Step 11 (verdict) so the user sees the disagreement and decides
+- **Scope-shifting** — a Linear comment re-scopes what the PR should do. Treat the comment's scope as authoritative for Step 9's acceptance-criteria cross-reference
 
-If there are no existing comments (fresh PR with no upstream review), proceed normally.
+If there are no existing comments on either stream (fresh PR, fresh Linear issue), proceed normally.
 
 ### Step 6: Run the Full Local Harness
 
@@ -324,7 +339,7 @@ Default is **don't post** — wait for explicit user confirmation. The verdict i
 | Reviewing staged work with this skill | Use `staged-review:code-review` for local pre-commit. This skill is for cloud-agent PR review |
 | Treating Codex MCP user lookups as fact | Verify the Codex user id by name/email if the id seems stale. Linear can rotate user ids on workspace migration |
 | Polling only `status = In Review` | Codex's transitions are unreliable — also poll `In Progress` and filter by open-PR-attachment. Status is a cached version of the PR-link signal; the PR attachment is the authoritative one |
-| **Skipping Step 5 (fetching upstream PR comments)** | **The audit duplicates Copilot/CodeRabbit/human findings and misses context they've documented. Always fetch `gh pr view --json reviews,comments` AND `gh api .../pulls/<n>/comments` before auditing. Attribute overlapping findings; surface disagreements in the verdict** |
+| **Skipping Step 5 (fetching upstream PR comments AND Linear issue comments)** | **The audit duplicates Copilot/CodeRabbit/human findings and misses Linear-side context (user clarifications, scope amendments, prior push-back rounds). Always fetch `gh pr view --json reviews,comments` AND `gh api .../pulls/<n>/comments` AND `mcp__linear-server__list_comments` (or `get_issue`) before auditing. Attribute overlapping findings; surface disagreements in the verdict; treat Linear scope amendments as authoritative over the original issue body** |
 | **Pushing hex-API bugs back to Codex** | **Codex has no hex.pm — it can't verify third-party signatures, will re-guess from training data, likely re-ship the same bug. Hex-API correctness bugs (ExUnit, Phoenix, Ecto, version-pinned libs) are fix-locally per the push-back-vs-fix matrix in Step 11** |
 | **Pushing live-data / Tidewave bugs back to Codex** | **Codex has no Tidewave, no internet — can't diagnose anything that needs running code or external lookups. Fix locally per the matrix** |
 | Running this skill when Linear MCP isn't installed | Step 1 aborts cleanly with install instructions. Don't fall back to gh-only — Linear → PR linkage is the workflow |

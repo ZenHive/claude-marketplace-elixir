@@ -26,6 +26,7 @@ PLUGIN_ORDER = [
     "staged-review",
     "task-driver",
     "portfolio-strategy",
+    "cloud-delegation",
 ]
 
 PLUGIN_CONFIG = {
@@ -67,6 +68,10 @@ PLUGIN_CONFIG = {
     "portfolio-strategy": {
         "category": "Productivity",
         "display_name": "Portfolio Strategy",
+    },
+    "cloud-delegation": {
+        "category": "Productivity",
+        "display_name": "Cloud Delegation",
     },
 }
 

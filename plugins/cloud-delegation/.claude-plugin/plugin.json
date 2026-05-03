@@ -1,0 +1,12 @@
+{
+  "name": "cloud-delegation",
+  "version": "1.0.0",
+  "description": "Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow — issue creation, polling, push-back-vs-fix matrix, agent env constraints",
+  "author": {
+    "name": "DeltaHedge",
+    "url": "https://github.com/ZenHive"
+  },
+  "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+  "license": "MIT",
+  "keywords": ["linear", "codex", "cursor", "cloud-agent", "delegation", "workflow"]
+}

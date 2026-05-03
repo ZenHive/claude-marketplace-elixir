@@ -84,20 +84,29 @@ End with a one-line recommendation: "I suggest Task 274 (highest efficiency, unb
 
 Wait for the user to pick. Do NOT proceed without approval.
 
-### Step 3.5: `[CX]` Router
+### Step 3.5: Cloud-Agent Delegation Router
 
-Before entering plan mode, check the selected task's marker (see `task-prioritization.md` § "Codex Delegation (`[CX]`)"):
+Before entering plan mode, check the selected task's marker (see `task-prioritization.md` § "Codex Delegation (`[CX]`)" for `[CX]`; `linear-workflow.md` § "Cursor Delegation Flow" + `cloud-agent-environments.md` for `[CSR]`):
 
-- **Task is `[CX]` and status is `🔄 in-review`** → Codex's PR is open and awaiting review. Invoke `staged-review:commit-review` and exit normally — that skill polls Linear, runs the harness, presents a verdict. Do NOT proceed to plan mode (no local implementation).
+- **Task is `[CX]` or `[CSR]` and status is `🔄 in-review`** → the cloud agent's PR is open and awaiting review. Invoke `staged-review:commit-review` and exit normally — that skill polls Linear, runs the harness, presents a verdict. Do NOT proceed to plan mode (no local implementation).
 
-- **Task is `[CX]` and status is `⬜`** → halt. Per `critical-rules.md` § "DON'T STEAL `[CX]` TASKS", Claude does not silently execute `[CX]`-marked work locally. Ask the user:
+- **Task is `[CX]` and status is `⬜`** → halt. Per `critical-rules.md` § "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS", Claude does not silently execute marker-labeled work locally. Ask the user:
 
   > "Task N is marked `[CX]`, queued for Codex. Want me to create the Linear issue and delegate (default path), or are you redirecting this one to local execution?"
 
   - If "delegate" → use `mcp__linear-server__save_issue` with `delegate: "Codex"`, label `cx-eligible`, body = full prompt (spec + acceptance criteria + file paths). Update ROADMAP status from `⬜` to `🔄 (delegated)` so future sessions know it's queued. Stop — Codex picks it up and opens a PR; the user runs `commit-review` later.
   - If "redirect to local" → continue to Step 4 (plan mode) with the task as if it weren't marked `[CX]`. Optionally remove or update the `[CX]` marker in ROADMAP.md.
 
-- **No `[CX]` marker** → continue to Step 4 (existing local flow).
+- **Task is `[CSR]` and status is `⬜`** → halt. Same rule. Ask the user:
+
+  > "Task N is marked `[CSR]`, queued for Cursor. Want me to create the Linear issue and delegate (default path), or are you redirecting this one to local execution?"
+
+  - If "delegate" → use `mcp__linear-server__save_issue` with `delegate: "Cursor"`, label `cursor-eligible`, body = full prompt (spec + acceptance criteria + file paths). Cursor's eligibility is broader than Codex (hex.pm, mix tasks, internet — see `cloud-agent-environments.md` § "Cursor Cloud" for what's reachable), so don't second-guess the marker. Update ROADMAP status from `⬜` to `🔄 (delegated)` so future sessions know it's queued. Stop — Cursor picks it up via Linear, opens a PR; the user runs `commit-review` later.
+  - If "redirect to local" → continue to Step 4 (plan mode) with the task as if it weren't marked `[CSR]`. Optionally remove or update the `[CSR]` marker in ROADMAP.md.
+
+- **Task has any other future cloud-agent marker** → halt. Same discipline shape — ask the user before silently executing locally. The marker convention is in flight (see `cloud-agent-environments.md` for the agents currently documented); when in doubt, treat any `[X*]`-shaped marker on a row as a delegation signal and ask.
+
+- **No cloud-agent marker** → continue to Step 4 (existing local flow).
 
 ### Step 4: Enter Plan Mode — Design the Implementation
 
@@ -218,5 +227,5 @@ When choosing which tasks to recommend:
 | Adding counts/stats to CHANGELOG | Describe what was built, not numeric inventories |
 | Starting blocked tasks | Check dependencies before recommending |
 | Forgetting to mark task as 🔄 before starting | Update ROADMAP status before first code change |
-| Silently executing a `[CX]` task locally | Step 3.5 routes `[CX]`. Per `critical-rules.md` § "DON'T STEAL `[CX]` TASKS", halt and ask before redirecting to local. The marker is a fence; user override is the gate |
+| Silently executing a `[CX]` / `[CSR]` (or any cloud-agent-marked) task locally | Step 3.5 routes every cloud-agent delegation marker. Per `critical-rules.md` § "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS", halt and ask before redirecting to local. The marker is a fence; user override is the gate. Don't reason "but Cursor could've done what Codex was given" — that's second-guessing the marker, not respecting it |
 | Skipping `commit-review` on `[CX]` + `🔄 in-review` | Step 3.5 invokes `staged-review:commit-review` for those rows. Don't try to plan-mode an already-implemented Codex PR |

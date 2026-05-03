@@ -4,7 +4,34 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**Cloud-delegation plugin (new) — marketplace v1.2.0**
+- New `cloud-delegation` plugin with two skills, both bodies auto-synced from canonical `~/.claude/includes/` sources:
+  - `linear-workflow` — Linear-as-queue + cloud-agent delegation flows (Codex, Cursor), per-agent eligibility, polling for ready-to-review (PR-attachment is the authoritative signal), push-back-vs-fix-locally matrix split by agent capability, fetching existing comments from both the GitHub PR and the Linear issue, cross-repo coordination via `relatedTo` / `blocks`, issue-body-as-prompt template.
+  - `cloud-agent-environments` — operational reference for what each cloud agent's harness can/can't reach (hex.pm, mix tasks, Tidewave, external HTTP), runtime gotchas (Cursor's Erlang/Elixir non-asdf paths, asdf shim interception, Credo TODO exit-code-2 expected behavior), self-validation expectations (Cursor SHOULD run the harness pre-PR; Codex can't), AGENTS.md generation workflow.
+- Both skills added to `scripts/sync-skills-from-includes.sh` MAPPINGS and `scripts/sync-codex-plugins.py` (`PLUGIN_ORDER` + `PLUGIN_CONFIG`). No `skills:` allow-list — both sync to Codex wholesale (matches `staged-review` / `task-driver` pattern).
+- Skill count: 29 → 31. Marketplace version bumped 1.1.0 → 1.2.0 (catalog structure change — adding a plugin is a registry-level change per project convention).
+
 ### Changed
+
+**Status-transition responsibility documented (Linear support clarification)**
+- New `~/.claude/includes/linear-workflow.md` § "Agent Status-Transition Guidance" — Linear support confirmed that the "open PR → flip status to `In Review`" transition is the cloud agent's responsibility, not a built-in Linear setting. Linear syncs PR state from GitHub but does not auto-flip issue status. The canonical fix is to add an instruction under workspace-level (or team-level) "Additional guidance for agents" telling Cursor / Codex / future agents to perform the flip.
+- Codex + Cursor delegation flows Step 2 cross-reference the new section. The broadened polling shape in § "Polling for 'Ready for Review'" is reframed as the **compensation pattern** for agents that don't read workspace guidance reliably; both layers can coexist (set the guidance AND keep the broader polling).
+- Includes auto-synced into `cloud-delegation:linear-workflow` SKILL.md and `AGENTS.md`.
+
+**Cloud-agent delegation rule broadened from `[CX]`-only to all cloud-agent markers**
+- `~/.claude/includes/critical-rules.md` § "DON'T STEAL `[CX]` TASKS" → renamed "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS." Body broadened to cover `[CX]` (Codex), `[CSR]` (Cursor), and any future cloud-agent delegation marker. New "How to apply" bullet warns against second-guessing per-agent eligibility (e.g. "Cursor could've done this Codex task — let me redirect" — don't, the user chose).
+- `task-driver` SKILL.md Step 3.5 ("Cloud-Agent Delegation Router") expanded with parallel `[CX]` / `[CSR]` branches and a fallthrough for future markers. Cross-references in body + Common Mistakes table updated to the new heading.
+- AGENTS.md regenerated so the inlined `critical-rules.md` content reflects the broader rule.
+
+**Workspace-specific leak cleanup in global includes**
+- Stripped workspace-specific identifiers (issue keys like `INE-7`, PR numbers like `PR #4`, comment hashes, project names) from `~/.claude/includes/linear-workflow.md` and `~/.claude/includes/cloud-agent-environments.md`. Per the includes' own `linear-workflow.md` § "Workspace-Specific Layout" convention, workspace specifics belong in `<workspace>-workspace.md` or per-repo `CLAUDE.md`, not generic global includes. Replacements use empirical-evidence phrasing ("verified in early Cursor round-trip testing", "observed failure mode") that survives without rotting.
+- Cross-repo coordination examples in `linear-workflow.md` genericized — "Hieroglyph release → Cartouche bump" → "Library release → downstream-app bump."
+
+**Comment-fetch broadening: GitHub PR comments + Linear issue comments**
+- Renamed `linear-workflow.md` § "Fetch Existing PR Review Comments Before Auditing" → "Fetch Existing Comments Before Auditing." Added a Linear-comment-fetch sub-block (`mcp__linear-server__list_comments` / `get_issue`) alongside the existing `gh pr view` / `gh api` block. New triage list covers scope drift (Linear comment usually wins over original issue body), prior-reviewer notes, agent self-summary, and prior `@codex` / `@cursor` push-back rounds. Fixes the prior gap: the rule said "fetch upstream comments" but only covered GitHub PR comments, missing the Linear thread which carries delegating-user clarifications and prior push-back history.
+- `staged-review:commit-review` SKILL.md updated to match: Step 5 retitled "Fetch Existing Comments — GitHub PR AND Linear Issue" with both sub-blocks; frontmatter `description:` mentions both streams; "Common Mistakes" row about Step 5 expanded; workflow diagram updated. Plugin version bumped 1.9.0 → 1.10.0 (backward-compatible skill update).
 
 **staged-review v1.9.0: fetch upstream PR review comments + push-back-vs-fix-locally matrix in `commit-review`**
 - New Step 5 in `commit-review`: before auditing, fetch existing PR review comments via `gh pr view --json reviews,comments` and `gh api repos/OWNER/REPO/pulls/<n>/comments`. Reviewer was previously running the audit blind to upstream feedback (Copilot, CodeRabbit, humans), duplicating their findings and missing context they had documented. Step 8 (the 5-category audit) now integrates the upstream comments — overlapping findings get attributed instead of re-flagged, disagreements surface in the verdict as `disputed`.

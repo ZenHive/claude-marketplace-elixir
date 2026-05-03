@@ -40,6 +40,8 @@ MAPPINGS=(
   "plugins/elixir/skills/agent-economy/SKILL.md:agent-economy.md"
   "plugins/elixir/skills/api-toolkit/SKILL.md:api-toolkit.md"
   "plugins/elixir/skills/upstream-pr-workflow/SKILL.md:upstream-pr-workflow.md"
+  "plugins/cloud-delegation/skills/linear-workflow/SKILL.md:linear-workflow.md"
+  "plugins/cloud-delegation/skills/cloud-agent-environments/SKILL.md:cloud-agent-environments.md"
 )
 
 synced=0
