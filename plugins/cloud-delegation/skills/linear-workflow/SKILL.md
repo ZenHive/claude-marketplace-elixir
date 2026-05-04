@@ -135,6 +135,8 @@ What Cursor still can't do (assume — pending verification):
 
 #### Push-Back-vs-Fix-Locally Matrix by Agent
 
+**The matrix is the exception list, not the default.** Default action on a blocker is push-back to the agent (PR review comment for line-level findings, Linear comment for scope/intent drift — see `staged-review:commit-review` § "Asymmetric Push-Back Channels"). Local fix is reserved for items in the rows below — typically env-constraint cases the agent fundamentally can't verify (hex.pm for Codex, Tidewave for both, external specs for Codex). With CI handling the mechanical harness gates (see `elixir-ci-harness` skill in the marketplace), the local-fix surface shrinks further: format / credo / dialyzer / coverage drift becomes a CI failure that pushes back to the agent automatically, not a local fix-up step.
+
 When `commit-review` finds blockers in a cloud-agent PR, classify by what the agent can fix from its env:
 
 | Bug class | Codex action | Cursor action |

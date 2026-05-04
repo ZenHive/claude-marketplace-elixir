@@ -74,14 +74,14 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 
 | Plugin | Description |
 |--------|-------------|
-| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 23 skills |
+| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 24 skills |
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns — setup and Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 
-## Available Skills (31)
+## Available Skills (32)
 
-**Elixir plugin** (23 skills):
+**Elixir plugin** (24 skills):
 
 | Skill | Description |
 |-------|-------------|
@@ -108,6 +108,7 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 | agent-economy | Designing APIs for AI agents — Descripex, manifests, MCP tools, EIP-8004 verification |
 | api-toolkit | ApiToolkit — InboundLimiter, RateLimiter, Cache, Metrics, Provider DSL, Discovery |
 | upstream-pr-workflow | Contributing PRs to forked libraries without leaking personal tooling into the diff |
+| elixir-ci-harness | Copy-ready `harness.yml` GitHub Actions workflow — drift-free version sourcing from `.tool-versions`, format/compile/credo/doctor/sobelow/test+cover/dialyzer gate; closes the Codex-Cloud-no-hex.pm gap |
 
 **Phoenix plugin** (2 skills):
 
@@ -127,7 +128,7 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 | Skill | Description |
 |-------|-------------|
 | code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
-| commit-review | Cloud-agent PR review (Codex) — Linear `In Review` poll, harness fixes, verdict-only (user merges) |
+| commit-review | Tier 2 cloud-agent PR review (Codex/Cursor) — CI-as-gate, tiny-PR fast path, asymmetric push-back channels (PR=line-level / Linear=scope), optional Codex CLI second-opinion (default off), verdict-only (user merges) |
 
 **Task-driver plugin** (1 skill):
 

@@ -34,6 +34,7 @@ PLUGIN_CONFIG = {
         "category": "Developer Tools",
         "display_name": "Elixir",
         "skills": {
+            "elixir-ci-harness",
             "git-worktrees",
             "hex-docs-search",
             "integration-testing",

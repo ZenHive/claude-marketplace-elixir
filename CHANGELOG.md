@@ -6,7 +6,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Added
 
-**Cloud-delegation plugin (new) — marketplace v1.2.0**
+**`elixir-ci-harness` skill (new) — elixir plugin v1.22.0**
+- New skill in the `elixir` plugin providing copy-ready GitHub Actions workflows for Elixir delegation-target repos. Runs format / compile (warnings-as-errors) / credo --strict --ignore TagTODO,TagFIXME / doctor --raise / sobelow / test.json with coverage gate (default 85%) / dialyzer on every PR push.
+- **Drift-free version sourcing** — `setup-beam@v1` with `version-file: .tool-versions, version-type: strict` (no matrix-pin drift). Local + CI guaranteed identical Elixir/OTP versions, closing the `mix format` drift class (e.g. cartouche's current 1.18.4 CI vs 1.20-rc.4 dev).
+- **Two template variants** — `harness.yml` (default, single-version, drift-free); `harness-multi-version.yml` (addendum, explicit matrix for forward-compat — catches dep-version issues at PR-open time so cloud agents fix autonomously). Worked example: cartouche's session-discovered insight that adding OTP 29-RC to a matrix would have caught a `meck` pin issue without a human round-trip.
+- Documents threshold tuning (80% standard / 85% project default / 95% critical with cartouche's reasoning preserved), per-module 95% ratchet pattern, integration-tag exclusion, branch-trigger customization, required deps (ex_unit_json, dialyxir, doctor, sobelow), and TagTODO/FIXME design (tracked-debt visibility, not regression gating). Inline comments in the templates preserve cartouche's worked-example rationale verbatim.
+- Skill count: 31 → 32. Elixir plugin version 1.21.1 → 1.22.0.
+
+
 - New `cloud-delegation` plugin with two skills, both bodies auto-synced from canonical `~/.claude/includes/` sources:
   - `linear-workflow` — Linear-as-queue + cloud-agent delegation flows (Codex, Cursor), per-agent eligibility, polling for ready-to-review (PR-attachment is the authoritative signal), push-back-vs-fix-locally matrix split by agent capability, fetching existing comments from both the GitHub PR and the Linear issue, cross-repo coordination via `relatedTo` / `blocks`, issue-body-as-prompt template.
   - `cloud-agent-environments` — operational reference for what each cloud agent's harness can/can't reach (hex.pm, mix tasks, Tidewave, external HTTP), runtime gotchas (Cursor's Erlang/Elixir non-asdf paths, asdf shim interception, Credo TODO exit-code-2 expected behavior), self-validation expectations (Cursor SHOULD run the harness pre-PR; Codex can't), AGENTS.md generation workflow.
@@ -14,6 +21,22 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 - Skill count: 29 → 31. Marketplace version bumped 1.1.0 → 1.2.0 (catalog structure change — adding a plugin is a registry-level change per project convention).
 
 ### Changed
+
+**`commit-review` flipped to CI-as-gate + tiered + fast-path + push-back-first — staged-review v1.11.0**
+- **Tier 2 framing** — skill description and new § "When to Invoke vs Defer to CodeRabbit" reserve `commit-review` for PRs that touch critical-tier code paths (signing, RPC, ABI, money, crypto, migrations) OR where CodeRabbit/Copilot (Tier 1) flagged ambiguity OR explicit user invocation. Routine PRs defer to CodeRabbit + CI. Stops paying CLI tokens for "everything looks fine" reviews.
+- **Tiny-PR fast path (new Step 5.5)** — PRs <100 LOC with no `lib/` changes route to a 3-line verdict (CI check only, no 5-category audit, no Codex second-opinion offer). Reasoning surfaced in verdict so user knows *why* the audit was skipped. Override available for forced full machinery on small PRs.
+- **CI-as-gate (Step 6)** — replaces "run full local harness" with `gh pr checks <number>` against the PR head. CI green → proceed; CI red → blocker (push-back default); CI absent → fall back to running the local harness inline AND surface a `TODO(setup-ci)` finding pointing at the new `elixir-ci-harness` skill so the next iteration of the PR has CI. Brief poll (`--watch --interval 30 --fail-fast`, ~5m cap) for in-flight checks.
+- **Push-back-first posture (Step 7)** — default action on a blocker is push back to the agent (PR review for line-level findings, Linear comment for scope/intent drift), not local fix. Local fix is the exception, governed by a per-agent push-back-vs-fix-locally matrix that distinguishes Codex Cloud (no hex.pm / no Tidewave / no internet) from Cursor Cloud (hex.pm + mix tasks + internet).
+- **Asymmetric push-back channels** — PR review = LINE-LEVEL CODE FEEDBACK (cite file:line, prefix `@codex`/`@cursor`); Linear comment = ONE PARAGRAPH ON SCOPE/INTENT MATCH. Never duplicate content across surfaces. Two channels exist because each has a different audience: PR for the implementing agent (line-level iteration), Linear for the dispatching user (scope verification). Drafts only — user posts; never auto-post.
+- **Optional Codex CLI second-opinion (Step 10, default off)** — observed cost ~15m per PR, frequently exceeding implementation savings from delegation. Evaluator separation already comes from cloud-agent + CI + Claude (three parties); adding Codex CLI is a fourth opinion with diminishing returns. Surface as a one-line offer in the verdict for high-stakes PRs (auth, money, migrations, 95% critical tier).
+- **`code-review` (pre-commit local) is untouched** — Codex CLI second-opinion stays mandatory there. That skill reviews code Claude itself just wrote — single-judge failure mode is the whole reason it exists. Different evaluator-separation problem.
+- Workflow diagram updated with Step 5.5 (classification) routing fast-path PRs directly to verdict. Common Mistakes table extended with rows for Tier 2 misuse, fast-path bypass, channel duplication, auto-posting, per-agent reachability, and auto-dispatching second-opinion.
+- Plugin version 1.10.0 → 1.11.0.
+
+**Cross-reference updates in cloud-delegation includes**
+- `~/.claude/includes/linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent": added "matrix is the exception list, not the default" note above the table — default action on a blocker is push-back; local fix is the exception governed by env constraints. With CI handling mechanical harness gates (via `elixir-ci-harness`), the local-fix surface shrinks further.
+- `~/.claude/includes/cloud-agent-environments.md`: added § "CI as the Shared Harness" cross-referencing the `elixir-ci-harness` skill — when target repo has `harness.yml`, every PR push runs the full Elixir harness as a GitHub check. Closes the Codex-Cloud-no-hex.pm gap. Documents the shift this enables (reviewer reads `gh pr checks`; push-back becomes default; local-fix shrinks to env-constraint cases) and the adoption path (`templates/harness.yml` from `elixir-ci-harness` skill).
+- Both auto-sync to `cloud-delegation` skill mirrors via `scripts/sync-skills-from-includes.sh`.
 
 **Status-transition responsibility documented (Linear support clarification)**
 - New `~/.claude/includes/linear-workflow.md` § "Agent Status-Transition Guidance" — Linear support confirmed that the "open PR → flip status to `In Review`" transition is the cloud agent's responsibility, not a built-in Linear setting. Linear syncs PR state from GitHub but does not auto-flip issue status. The canonical fix is to add an instruction under workspace-level (or team-level) "Additional guidance for agents" telling Cursor / Codex / future agents to perform the flip.

@@ -64,17 +64,31 @@ Recommended pre-PR checklist:
 mix format --check-formatted
 mix compile --warnings-as-errors
 mix credo --strict
-mix test                # or `mix test.json --quiet` if ex_unit_json is in deps
+mix test.json --quiet
 ```
 
 #### Gotchas
 
-- **Credo TODO/FIXME exit code** — Credo flags `TODO:` / `FIXME:` tags as design suggestions and exits with code 2 even when nothing else is wrong. Per `~/.claude/includes/development-philosophy.md` § "TODO Comment Requirements", surfaced TODOs are *tracked debt working as intended*, not regressions. Don't strip them. Treat exit code 2 with only TODO/FIXME findings as expected, not as a blocker.
+- **Credo TODO/FIXME exit code** — Credo flags `TODO:` / `FIXME:` tags as design suggestions and exits with code 2 even when nothing else is wrong. Per `~/.claude/includes/development-philosophy.md` § "TODO Comment Requirements", surfaced TODOs are _tracked debt working as intended_, not regressions. Don't strip them. Treat exit code 2 with only TODO/FIXME findings as expected, not as a blocker.
 - **`mix format --check-formatted` on pre-existing drift** — repos that aren't fully formatted may surface format violations on files outside the diff. Only fix drift on files the PR touches (per `critical-rules.md` § "FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH"); leave the rest for the repo owner.
 
 #### Linear handle
 
 Cursor's Background Agent has Linear-displayName `cursor` (verified id: `b8668f6b-992f-4152-9e59-13b6fe1f599b`). Reviewers push back via Linear comments with `@cursor` mention; Cursor picks up the mention within ~5 min and amends the PR with a fresh commit, posting confirmation comments back on the issue. **Verified end-to-end** in early Cursor round-trip testing (2026-05): a verbatim code-suggestion push-back was applied surgically, no scope creep. Linear @-mention preferred over GitHub PR comment — keeps the conversation thread on the issue.
+
+### CI as the Shared Harness
+
+When the target repo has a `harness.yml` (see `elixir-ci-harness` skill in `claude-marketplace-elixir`), every PR push runs the full Elixir harness as a GitHub check — visible to user, agent, and PR review tooling. This is the canonical fix for the Codex-Cloud-no-hex.pm gap: even when Codex's env can't run `mix dialyzer` or `mix doctor`, the PR check does. Cursor's env can run mix tasks but doesn't *guarantee* it pre-PR; CI enforces the gate uniformly across both agents.
+
+The shift this enables:
+
+- **Reviewer reads `gh pr checks <n>`** instead of running the full local harness (was 15+ min per PR via local mix; CI runs in parallel with the agent's work and is done by the time the reviewer looks)
+- **Push-back becomes the default for harness drift.** When CI flags a format / credo / dialyzer / coverage issue, the reviewer's job is to point the agent at the failing check — not to fix it locally. The cloud agent (Cursor especially, since it has hex.pm + can run mix) iterates against the same CI signal the reviewer sees
+- **Local fix shrinks to the env-constraint exception cases.** Per `linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent", local-fix is reserved for items the agent fundamentally can't verify — hex.pm for Codex, Tidewave for both, external specs for Codex. CI handles everything else
+
+`staged-review:commit-review` defers to CI status when present (Step 6 reads `gh pr checks` and treats green as the harness-gate signal). When CI is absent, it falls back to running the local harness inline and surfaces a `TODO(setup-ci)` finding pointing at this skill so the next iteration of the PR has CI.
+
+**Adoption path for delegation-target repos without CI:** copy `templates/harness.yml` from the `elixir-ci-harness` skill into the target repo's `.github/workflows/`, customize the four marked points (branch, MIX_ENV, coverage threshold, integration tag), commit. The next PR push gets the harness check.
 
 ### AGENTS.md Generation
 
@@ -110,4 +124,5 @@ Cursor's setup task can autonomously open a PR scaffolding an `AGENTS.md` for it
 - `linear-workflow.md` § "Cursor Delegation Flow" / "Codex Delegation Flow" — issue creation, PR review, merge gate
 - `task-prioritization.md` § "Codex Delegation (`[CX]`)" — eligibility criteria for delegation
 - `critical-rules.md` § "FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH" — touched-file scope for harness fixes
+- `elixir-ci-harness` skill (claude-marketplace-elixir) — copy-ready CI workflow that closes the Codex-Cloud-no-hex.pm gap
 - `feedback_codex_sandbox_pr_gap.md` — observed Codex env gaps post-allowlist
