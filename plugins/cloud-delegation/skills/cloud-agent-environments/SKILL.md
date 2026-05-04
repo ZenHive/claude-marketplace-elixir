@@ -31,6 +31,18 @@ Codex PRs that ship without local test evidence are expected — the local revie
 - **Flag uncertainty explicitly** — "I'm assuming `assert_receive/3` here based on training-data recall; please verify against ExUnit's hex docs."
 - **Don't fabricate test counts or runtime claims** you can't verify.
 
+#### Review-only tasks (review delegation)
+
+When you (Codex Cloud) are assigned an issue whose body opens with `REVIEW-ONLY task. Do NOT open a PR, commit code, or edit files`, the deliverable is a Linear comment — not a PR.
+
+1. The issue body embeds the full PR diff inline under "## PR Diff". Read it from the issue body; you do NOT need `gh pr diff`.
+2. Optionally — if `gh` CLI is available in your sandbox — run read-only commands `gh pr view <N> --json reviews,comments`, `gh api repos/<OWNER>/<REPO>/pulls/<N>/comments`, `gh pr checks <N>` for additional context. If `gh` is unavailable, skip this; the embedded diff is sufficient.
+3. Post ONE comment on the delegation issue with: verdict line (APPROVED / BLOCKED / DISCUSS), findings table (`file:line | category | severity (1-10) | description`), one paragraph on acceptance-criteria coverage.
+4. Transition the issue to Done.
+5. Do **not** open a pull request. Do **not** commit code. Do **not** edit any file. Do **not** post review comments on the GitHub PR — verdict goes on the Linear issue only.
+
+**Pilot status (2026-05):** the "no PR" instruction's reliability is unverified. If your harness pushes you toward opening a PR for a review-only issue, **stop and post a Linear comment instead**. Stray review-PRs are a known v1 risk.
+
 ### Cursor Cloud
 
 #### Runtime

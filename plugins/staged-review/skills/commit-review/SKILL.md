@@ -73,13 +73,17 @@ digraph commit_review {
   pushback  [label="7. Push-back-first posture\nDefault: draft PR/Linear comments\nLocal fix only per per-agent matrix"];
   audit     [label="8. 5-category audit\non `gh pr diff <number>`,\nintegrated with upstream comments"];
   cross     [label="9. Cross-reference Linear\nacceptance criteria"];
-  codex     [label="10. Optional Codex CLI second-opinion\n(default OFF — opt in for high-stakes)"];
+  codex     [label="10a. Optional Codex CLI second-opinion\n(default OFF — opt in for high-stakes)"];
+  delegate  [label="10b. Cursor PR? → Delegate to Codex Cloud\n(fire-and-fetch via Linear; CI-green required)"];
   verdict   [label="11. Present verdict\n✅ ready / ⚠️ blockers / 💬 discussion\nDraft push-back comments\nOffer Linear post"];
 
   detect -> list -> spec -> checkout -> comments -> classify;
   classify -> ci [label="full"];
   classify -> verdict [label="fast-path"];
-  ci -> pushback -> audit -> cross -> codex -> verdict;
+  ci -> pushback -> audit -> cross -> codex;
+  codex -> delegate [label="Cursor PR + CI green"];
+  codex -> verdict  [label="Codex PR or fast-path"];
+  delegate -> verdict;
 }
 ```
 
@@ -358,7 +362,7 @@ Walk the acceptance criteria from Step 3 (and any scope amendments from Step 5's
 
 Acceptance criteria not met are **always blockers** — and per the matrix they get **Linear-channel push-back** (one paragraph on what's missing), not PR-channel line-level feedback. The PR shouldn't merge until the spec is satisfied or the user decides to descope.
 
-### Step 10: Optional Codex CLI Second-Opinion (Default OFF)
+### Step 10a: Optional Codex CLI Second-Opinion (Default OFF)
 
 Unlike `code-review` (where Codex CLI second-opinion is **mandatory** because the only reviewer is Claude itself), this skill defaults to **off**. Evaluator separation already comes from three parties:
 
@@ -383,6 +387,127 @@ If the user opts in, dispatch `codex:codex-rescue` with the `code-review` Step 3
 If Codex is dispatched and unreachable, surface that in the verdict closing line as `Codex second-opinion dispatched but unreachable — single-reviewer pass`. Don't silently drop it.
 
 **`code-review` (pre-commit, local work) keeps Codex CLI mandatory.** That skill reviews code Claude itself just wrote — single-judge failure mode is the whole reason it exists. Don't change that behavior; this opt-in scope is `commit-review` only.
+
+### Step 10b: Cursor PR — Delegate Review to Codex Cloud (Fire-and-Fetch)
+
+When the PR being reviewed was implemented by Cursor, delegate the **review itself** to Codex Cloud. Codex is a stronger bug-finder than Claude on this user's PR surface; Cursor PRs ship with green CI and self-validation, so the high-value remaining work is deeper code-review, which Codex does well. This step composes the existing `linear-workflow.md` flows (Cursor implements + Codex delegates) into a single review-delegation pattern. See `linear-workflow.md` § "Codex-Reviews-Cursor Pattern (Review Delegation)" for the cross-flow shape.
+
+**Trigger condition (BOTH must hold):**
+
+- Source Linear issue's `delegate` field = Cursor (verified id `b8668f6b-992f-4152-9e59-13b6fe1f599b`)
+- CI status from Step 6 is **green**
+
+If CI is red, missing, or pending → **skip this step**. Push back to Cursor as normal via the Step 7 path. Rationale: don't spend Codex compute on a PR that CI has already rejected, and don't delegate a review when the harness signal isn't yet conclusive.
+
+If `delegate = Codex`, fast-path PR, or non-cloud-agent PR → skip; proceed straight to Step 11.
+
+**Path detection (fire vs fetch):**
+
+A tracking comment on the GitHub PR is the durable cross-session anchor:
+
+```bash
+gh pr view <N> --json comments --jq '.comments[] | select(.body | test("Codex Cloud review delegated"))'
+```
+
+- **No match** → **fire path** (this is the first invocation; create the delegation issue and stop).
+- **Match** → **fetch path** (delegation already happened; read Codex's verdict).
+
+Linear issue ID embedded in tracking comment is `(id: <UUID>)`; extract it for the fetch path.
+
+#### Fire path
+
+1. **Discover team + project.** Call `mcp__linear-server__list_teams`; pick the team scoped to this repo's workspace. Then `mcp__linear-server__list_projects` and pick the project whose name matches the PR's repo. Workspace shape is **not hardcoded** — always live discovery (same pattern as Step 2).
+2. **Capture diff for embedding.** `gh pr diff <N>` — store output for the issue body's `## PR Diff` section. Embedding the diff side-steps the unverified-`gh`-availability risk inside Codex's sandbox; Codex doesn't need `gh` to read the PR.
+3. **Pull acceptance criteria + file paths verbatim** from the originating Linear issue (already fetched in Step 3). Don't paraphrase — preserve the exact text so Codex audits against the same surface the user signed off on.
+4. **Create delegation issue** via `mcp__linear-server__save_issue` (omit ID to create):
+   - `title`: `Review PR #<N> — <PR title>`
+   - `team`, `project`: from step 1
+   - `labels`: `["cx-eligible"]`
+   - `delegate`: `Codex` (verified id `cbb4823b-2de9-493b-8238-9697da57a07b`)
+   - `state`: `Todo`
+   - `body`: REVIEW-ONLY template (see below)
+5. **Post tracking comment on the GitHub PR:**
+   ```bash
+   gh pr comment <N> --body "Codex Cloud review delegated: <LINEAR_ISSUE_URL>  (id: <LINEAR_ISSUE_ID>)"
+   ```
+6. **Surface to user and STOP. Do NOT proceed to Step 11.**
+   > *"Cursor PR #<N>: review delegated to Codex Cloud → `<LINEAR_ISSUE_URL>`. Codex typically posts a verdict within 10–20 minutes. Re-run `/commit-review` on PR #<N> to fetch the verdict."*
+
+#### Fetch path
+
+1. **Extract delegation issue ID** from the tracking PR comment (regex on `(id: <UUID>)`).
+2. **Read the issue + comments** via `mcp__linear-server__get_issue` and `mcp__linear-server__list_comments`.
+3. **No verdict comment yet** (issue still `Todo` or `In Progress` with no Codex comment) →
+   > *"Codex hasn't posted a verdict yet (issue: `<URL>`). Try again in a few minutes."*
+   Stop.
+4. **Verdict present** → parse:
+   - Verdict line: `APPROVED` / `BLOCKED` / `DISCUSS`
+   - Findings table: `file:line | category | severity (1-10) | description`
+   - One-paragraph acceptance-criteria coverage
+5. **Apply push-back-vs-fix matrix** (Step 7 lines 310–319) using **Cursor's row** — the matrix is implementer-keyed (the implementer is who will fix it), not reviewer-keyed.
+   - Codex hex-API findings on a Cursor PR → **discuss/verify locally before pushing back** (Codex hex-API findings can hallucinate; Cursor *can* reach hex.pm so Cursor is in a better position than Codex was to know the truth).
+   - Codex external-spec findings (RFCs, EIPs, vendor docs) → discuss/verify locally before pushing back (Codex couldn't fetch the spec to confirm).
+   - All other classes → push back to Cursor via Linear `@cursor` mention with the finding verbatim.
+6. **Proceed to Step 11** with merged verdict, attributing findings as `Codex Cloud review — <delegation issue URL>`.
+
+#### Stray-PR pilot guard
+
+If the fetch path finds the delegation issue at status `Done` for >30 min with NO verdict comment, surface:
+
+> *"⚠️ Codex marked the delegation `Done` with no verdict comment — possible stray PR. Check `gh pr list --author codex-bot` (or equivalent Codex bot account) and close any rogue review-PRs manually. The delegation issue may need re-firing."*
+
+No automated cleanup in v1.
+
+#### Issue body template
+
+```
+## Context
+REVIEW-ONLY task. Do NOT open a PR, commit code, or edit files.
+Originating issue: <ORIGINATING_ID> (<ORIGINATING_URL>)
+PR to review: <PR_URL>
+PR author: Cursor Background Agent
+Reviewer: Codex Cloud (you)
+
+## Task
+Review the PR diff embedded below against the acceptance criteria.
+
+The full diff is in the "PR Diff" section of this issue body — you do NOT need `gh` CLI to read it.
+If `gh` is available in your sandbox, you may optionally run:
+  gh pr view <N> --json reviews,comments
+  gh api repos/<OWNER>/<REPO>/pulls/<N>/comments
+  gh pr checks <N>
+
+## Acceptance criteria (verbatim from originating issue)
+<ACCEPTANCE_CRITERIA>
+
+## File paths (verbatim from originating issue)
+<FILE_PATHS>
+
+## Out of scope
+- Opening pull requests
+- Committing any code
+- Editing any file
+- Posting review comments on the GitHub PR — verdict goes on THIS Linear issue only
+
+## Deliverable
+Post ONE comment on THIS Linear issue with:
+1. Verdict line: APPROVED / BLOCKED / DISCUSS
+2. Findings table:
+   | file:line | category | severity (1-10) | description |
+3. One paragraph on acceptance-criteria coverage.
+
+Then transition this issue to Done.
+
+## PR Diff
+\`\`\`diff
+<EMBED `gh pr diff <N>` OUTPUT>
+\`\`\`
+
+## Reviewer note
+If your environment cannot complete the review, post "tooling unavailable" and transition to Done. The local reviewer will run the harness.
+```
+
+(Codex-side env behavior for review-only tasks is documented in `cloud-agent-environments.md` § "Review-only tasks (review delegation)".)
 
 ### Step 11: Present Verdict — Don't Merge
 
@@ -481,3 +606,5 @@ Default is **don't post** — wait for explicit user confirmation. The verdict i
 | Running this skill when Linear MCP isn't installed | Step 1 aborts cleanly with install instructions. Don't fall back to `gh`-only — Linear → PR linkage is the workflow |
 | Surfacing CI mechanical drift as "blockers" requiring local fix | CI red on format/credo/dialyzer/doctor is push-back-default per the matrix. Both Codex and Cursor can iterate against the same CI signal once told what failed |
 | Inventing Linear acceptance criteria not in the issue body | If the body lacks explicit criteria, mark "criteria implicit" in the verdict and lean on the 5-category audit. Don't fabricate a checklist |
+| **Auto-delegating to Codex Cloud when CI is red** | **Step 10b requires CI green. Red CI → push back to Cursor first (the failing check is a stronger signal than a code review would be); only delegate the review once CI passes. Saves Codex compute on already-rejected PRs** |
+| **Searching Linear by title to find the delegation issue on the second invocation** | **Use the GitHub PR tracking comment (`Codex Cloud review delegated: <URL>  (id: <UUID>)`) as the cross-session anchor — title search is fragile when PR numbers collide across projects, and the comment is the durable state record** |

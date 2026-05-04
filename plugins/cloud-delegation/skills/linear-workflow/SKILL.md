@@ -101,6 +101,18 @@ Same shape as the Codex flow with **broader eligibility**. Cursor's cloud enviro
 
 5. **User merges.** Same rule — verdict is informational, user merges per `critical-rules.md` § "DON'T AUTO-MERGE PRS".
 
+### Codex-Reviews-Cursor Pattern (Review Delegation)
+
+A specific composition of the two flows above: Cursor implements, Codex reviews. Activated by `staged-review:commit-review` Step 10b when the polled PR's source Linear issue has `delegate = Cursor` and CI is green.
+
+**Shape:** `commit-review` creates a second Linear issue (`cx-eligible`, `delegate: "Codex"`, status `Todo`) whose body is a REVIEW-ONLY prompt referencing the Cursor PR (with the diff embedded inline). A tracking comment on the GitHub PR (`Codex Cloud review delegated: <URL>`) stores the delegation issue ID across sessions. On the second `commit-review` invocation, the skill reads Codex's verdict comment from that issue and applies the push-back-vs-fix matrix using **Cursor's row** — the matrix is implementer-keyed, not reviewer-keyed.
+
+**Key constraint:** delegation is gated on CI being green. Red CI → push back to Cursor as normal; the delegation issue is not created until CI passes.
+
+**Pilot guard:** if Codex opens a stray PR despite the REVIEW-ONLY instruction, surface a warning on the next fetch-path invocation. No automated cleanup in v1 — user closes the rogue PR manually.
+
+**State:** no local state files. Linear delegation issue + GitHub PR tracking comment is the full state machine.
+
 ### Cloud Agent Environments
 
 Cloud-agent envs differ in what they can reach during their work session. The differences shape both delegation eligibility and the push-back-vs-fix-locally calculus when reviewing their PRs.
