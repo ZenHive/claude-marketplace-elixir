@@ -26,13 +26,15 @@ Each finding is rated 1-10 priority. Actionable items are fixed directly, not ju
 For the Codex delegation workflow (`[CX]` task marker → Linear → Codex PR → `commit-review`):
 
 1. Polls Linear for `In Review` issues delegated to Codex
-2. `gh pr checkout <number>` — fetches the PR branch locally
-3. Runs the full local harness Codex's environment lacks: `mix format --check-formatted`, `mix compile --warnings-as-errors`, `mix credo --strict`, `mix dialyzer.json`, `mix test.json --cover`, `mix doctor`, `mix sobelow`
-4. Stages mechanical fixes (format, credo nits, doc gaps) — does **not** commit
-5. Applies `code-review`'s 5-category audit + Codex second-opinion against `gh pr diff`
-6. Cross-references findings against the Linear issue's acceptance criteria
-7. Presents verdict: ✅ ready to merge / ⚠️ blockers / 💬 discussion items
-8. Offers to post the verdict as a Linear comment (user decides)
+2. **Spins up a sibling worktree** (`../<repo>-review-pr-<n>`) so the host session's branch is never touched and parallel sessions can review different PRs concurrently — see the `git-worktrees` skill for the convention
+3. `gh pr checkout <number>` inside the worktree — fetches the PR branch
+4. Runs the full local harness Codex's environment lacks: `mix format --check-formatted`, `mix compile --warnings-as-errors`, `mix credo --strict`, `mix dialyzer.json`, `mix test.json --cover`, `mix doctor`, `mix sobelow`
+5. Stages mechanical fixes (format, credo nits, doc gaps) — does **not** commit
+6. Applies `code-review`'s 5-category audit + Codex second-opinion against `gh pr diff`
+7. Cross-references findings against the Linear issue's acceptance criteria
+8. Presents verdict: ✅ ready to merge / ⚠️ blockers / 💬 discussion items
+9. Offers to post the verdict as a Linear comment (user decides)
+10. Cleans up the worktree — auto-removes when clean; surfaces manual cleanup when staged local fixes are present
 
 Per `critical-rules.md` § "DON'T AUTO-MERGE PRS", the skill **does not run `gh pr merge`** — the user merges. Expects this repo's `AGENTS.md` to be current (generate via `claude-marketplace-elixir/scripts/sync-agents-md.sh`) so Codex follows the same rules our local hooks would enforce.
 

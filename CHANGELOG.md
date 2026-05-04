@@ -22,6 +22,15 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**`commit-review` runs the PR checkout in an isolated worktree — staged-review v1.13.0**
+- **Step 4 rewritten** — instead of `gh pr checkout <n>` in the host session's working tree, the skill now creates a sibling worktree at `../<repo>-review-pr-<n>` (matching the `git-worktrees` skill's `<project>-<purpose>` convention) and runs `gh pr checkout` inside it. Every subsequent step runs from `$WORKTREE_PATH` as CWD. The host session's branch is never touched.
+- **New Step 12 (Cleanup)** — after the verdict, auto-removes the worktree when its tree is clean (`git diff --quiet && git diff --cached --quiet`). When Step 7's fix-locally path staged changes inside the worktree, surfaces a manual cleanup line with the path so the user can commit + push the fixes (amending the PR branch) or `git worktree remove --force` to discard them — never silently destroys intentional state.
+- **Step 10b fire path** — Cursor → Codex Cloud delegation runs its own narrower cleanup before the STOP (the audit was delegated, so the local worktree never accumulated fixes; tree should be clean).
+- **Why:** the prior in-place `gh pr checkout` left the host session on the PR branch after the verdict (Step 11 had no cleanup) and made parallel `/commit-review` invocations across two Claude Code sessions impossible — the same working tree can only be on one branch (`fatal: 'branch' is already checked out`). Worktree-based review eliminates both problems and aligns with the parallel-sessions model the `git-worktrees` skill already documents.
+- Common Mistakes table extended with two rows: skipping the worktree (regression), and `--force`-removing a dirty review worktree (silent destruction of fix-locally staging).
+- Workflow diagram extended with `cleanup` node (`verdict -> cleanup`).
+- Plugin version 1.12.0 → 1.13.0.
+
 **`commit-review` flipped to CI-as-gate + tiered + fast-path + push-back-first — staged-review v1.11.0**
 - **Tier 2 framing** — skill description and new § "When to Invoke vs Defer to CodeRabbit" reserve `commit-review` for PRs that touch critical-tier code paths (signing, RPC, ABI, money, crypto, migrations) OR where CodeRabbit/Copilot (Tier 1) flagged ambiguity OR explicit user invocation. Routine PRs defer to CodeRabbit + CI. Stops paying CLI tokens for "everything looks fine" reviews.
 - **Tiny-PR fast path (new Step 5.5)** — PRs <100 LOC with no `lib/` changes route to a 3-line verdict (CI check only, no 5-category audit, no Codex second-opinion offer). Reasoning surfaced in verdict so user knows *why* the audit was skipped. Override available for forced full machinery on small PRs.
