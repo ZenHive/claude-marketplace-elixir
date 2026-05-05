@@ -3,6 +3,14 @@
 # credo / doctor / sobelow / test+cover / dialyzer evidence as PR checks, instead
 # of needing a local reviewer to fetch the branch and run the suite.
 #
+# **Dialyzer-in-CI default: KEEP it.** If your repo's CI shows OOM during PLT
+# module-add (signature: `runner has received a shutdown signal` mid-
+# construction), see the comment block above the `Dialyzer` step at the
+# bottom of this file — the recommended fix ordering is `:plt_ignore_apps`
+# trim first, then a separate larger-runner workflow, drop only as last
+# resort. "Dialyzer doesn't fit in CI" is NOT the generic claim — most
+# Elixir repos fit comfortably.
+#
 # No untrusted-input interpolation — only matrix, runner, beam outputs, hashFiles.
 #
 # Customization points (search for "[CUSTOMIZE]"):
@@ -99,5 +107,30 @@ jobs:
       - name: Tests + coverage gate (>=85%)
         run: mix test.json --cover --cover-threshold 85 --summary-only --exclude integration   # [CUSTOMIZE 3,4]
 
+      # Dialyzer-in-CI guidance (default: KEEP this step):
+      #
+      # Most Elixir repos fit dialyzer into 16 GB `ubuntu-latest` comfortably.
+      # If your repo's CI shows OOM during PLT module-add (signature:
+      # `runner has received a shutdown signal` mid-construction), the fix
+      # ordering is:
+      #
+      #   1. Trim heavy generated-API deps via `:plt_ignore_apps` in mix.exs.
+      #      Common candidates: `:google_api_*` (each Google API client ships
+      #      ~600 generated REST modules), `:goth`, `:google_gax`, `:tesla`,
+      #      `:jose`. Add `.dialyzer_ignore.exs` entries for the resulting
+      #      `:unknown_function` warnings on files that use the trimmed deps.
+      #      Reference: googleapis/elixir-google-api `presubmit.yml` runs
+      #      zero dialyzer in their own CI — `:plt_ignore_apps` IS the
+      #      canonical pattern for this dep family; there's no further
+      #      upstream slimming lever to leverage.
+      #
+      #   2. Move dialyzer to a separate workflow on a larger runner
+      #      (`ubuntu-latest-large`, 32 GB) triggered only on push-to-main
+      #      or scheduled cron — keeps PR CI fast; dialyzer signal arrives
+      #      at merge/nightly cadence.
+      #
+      #   3. Drop the dialyzer step entirely ONLY as a last resort, after
+      #      both 1 and 2 have been ruled out. This is a repo-specific
+      #      decision; don't generalize.
       - name: Dialyzer
         run: mix dialyzer

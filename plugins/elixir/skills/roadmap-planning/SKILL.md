@@ -68,7 +68,13 @@ Mark independent tasks with `[P]`. Before starting: update status to 🔄 with b
 
 ### Codex Delegation (`[CX]`)
 
-Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meeting all criteria below are `[CX]` unless there's a stated reason otherwise.** Claude's bias is to grab work; this default is a counterweight.
+> **🚨 SUSPENDED — code-mutation delegation only (Elixir projects, 2026-05-05).** Codex Cloud's harness has no Elixir/Erlang runtime — `mix`/`iex`/`elixir` not installed, every mix invocation fails with `command not found`. Verified against in-flight cartouche PRs where Codex shipped commits with zero harness evidence. **Do not create new `[CX]` tasks that involve writing or modifying code in an Elixir repo until the Codex Cloud env is restored.** Route all such work to `[CSR]` (Cursor) — Cursor's env has Elixir/OTP and runs the full mix toolchain.
+>
+> **Still permitted:** review-only `[CX]` delegations (e.g. the Codex-Reviews-Cursor pattern in `linear-workflow.md`). Reading a PR diff and posting a verdict comment doesn't need a runtime. Treat as exception-not-default while the suspension is in force; expect to revisit when the broader env is verified healthy.
+>
+> See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the verification details and the path back to `[CX]` eligibility once the env is fixed.
+
+Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meeting all criteria below are `[CX]` unless there's a stated reason otherwise.** Claude's bias is to grab work; this default is a counterweight. (NB: while the suspension above is in force, the operative default is "no new `[CX]` code-mutation tasks at all" — the criteria below describe what `[CX]` *would* mean if/when delegation resumes, not what to file today.)
 
 **Criteria (all must be true):**
 - Self-contained — single module or feature, no orchestration with other in-flight work
@@ -89,6 +95,31 @@ Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meetin
 | Task 80 `[CX]` | ⬜              | Delegate to Codex        |
 | Task 81 `[CX]` | 🔄 in-review   | Codex PR open, awaiting review |
 ```
+
+### Ceremony Floor — When NOT to Open a Task
+
+**Scope:** applies to **review-surface findings** (`staged-review:commit-review`, `staged-review:code-review`). Discoveries during `/research`, `/plan`, or implementation follow the promote-to-ROADMAP rules in § Roadmap Maintenance — not this floor.
+
+Findings during code review or PR review have a ceremony floor below which they are NEVER tracked as ROADMAP entries. ROADMAP-as-queue earns its overhead only when work spans sessions; an inline `defp` extraction does not.
+
+| Finding shape                                         | Action                                              |
+|-------------------------------------------------------|-----------------------------------------------------|
+| ≤ 5 LOC, cosmetic / abstraction / nit                 | Push back inline OR drop — never track              |
+| ≤ 5 LOC, **bug or correctness gap**                   | Push back inline — **never drop, never silently track** |
+| > 5 LOC, cosmetic / abstraction / nit                 | Push back if cheap, else drop                       |
+| > 5 LOC, **bug or correctness gap**                   | Push back inline                                    |
+| Cross-session coordination cost (any size)            | ROADMAP candidate (e.g. public-API rename, schema migration, deprecation downstream repos must track) |
+| Scope-affecting / architectural / breaks acceptance criteria | Surface for judgment (`discuss`-tier)        |
+
+**Hard rules:**
+- Bugs and correctness gaps are NEVER silently dropped, regardless of size or score. They are always pushed back inline.
+- Cosmetic / abstraction findings ≤ 5 LOC are NEVER ROADMAP candidates unless they have cross-session coordination cost.
+- "Drop" is permitted ONLY when the diff is genuinely better-as-is AND pushback would generate noise without value (e.g., a stylistic preference the implementing agent's choice is also defensible). When in doubt between drop and push-back, push back.
+- Questions like "File a new ROADMAP task for X (single-line entry under Phase Y, scored [D:N/B:N/U:N])?" are forbidden for findings that fit the current PR — that prompt format implies the floor is broken.
+
+**Why "correctness × size" not "D/B/U × LOC":** D/B/U scores prioritize tracked work; they don't decide whether work should be tracked. A D:1 finding can still be a real bug (3-line missing nil-check) — dropping it because the score is low is exactly the failure mode "iterate fast but error-free" forbids. Correctness vs cosmetic is the load-bearing axis; LOC is just a tiebreaker for tracking-vs-inline.
+
+**Cross-references:** push-back-vs-fix-locally calculus is in `linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Hard rule against pushing to cloud-agent branches is in `critical-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
 
 ### Task Descriptions as Prompts
 

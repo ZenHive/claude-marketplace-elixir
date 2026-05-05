@@ -14,22 +14,30 @@ For the **reviewer / dispatcher** view (push-back-vs-fix calculus, eligibility m
 
 ### Codex Cloud
 
-#### Constraints (no internet)
+#### 🚨 Code-mutation delegation SUSPENDED (Elixir projects, 2026-05-05)
 
-Codex cloud has no network reachability beyond the configured sandbox allowlist. Even with the allowlist, hex.pm and external HTTP remain effectively unreachable (per `feedback_codex_sandbox_pr_gap.md`). Plan around:
+**Codex Cloud has no Elixir/Erlang runtime.** `mix`, `iex`, `elixir`, and `erl` are not installed in the harness — verified 2026-05-05 against in-flight cartouche PRs where Codex's own testing log surfaced `mix: command not found in this container` for every attempted `mix` invocation (compile, format, test, credo, dialyzer). PRs landed with zero harness evidence; every check the agent claimed to run was a no-op.
 
-- **No hex.pm** — third-party hex-package API signatures cannot be verified at runtime. Stick to API surface that's reliably in training data; flag any uncertainty as `# TODO: verify against hex_docs` for the local reviewer rather than guessing.
-- **No Tidewave** — `mcp__tidewave__project_eval` is not available. Tasks needing live-data diagnosis or runtime-state inspection should not be in scope.
-- **No external HTTP** — RFCs, EIPs, reference implementations, vendor docs cannot be fetched. Cite the spec the user already pasted into the issue body; don't speculate from training-data recall.
-- **No `mix test` against current deps reliably** — without hex.pm reach, `mix deps.get` may fail mid-run if the PLT/lock cache isn't already warmed. Document any test gaps in the PR description so the local reviewer can fill them.
+This is a structural env gap, not a configuration miss. Until the Codex Cloud harness is restored to a working Elixir env, **`[CX]` code-mutation delegation is suspended** for any Elixir repo. See `task-prioritization.md` § "Codex Delegation (`[CX]`)" for the policy lock; route everything to `[CSR]` (Cursor) in the meantime — Cursor's harness has Elixir/OTP and runs the full mix toolchain.
 
-#### What to ship in the PR
+**What's still permitted (no runtime needed):** review-only delegations — see § "Review-only tasks" below. Codex reads PR diffs from the issue body and posts a verdict comment; no `mix` invocation, no compile, no test runner involved. The Codex-Reviews-Cursor pattern (in `linear-workflow.md`) remains usable while the code-mutation suspension is in force, but treat as exception-not-default until the broader env is verified healthy.
 
-Codex PRs that ship without local test evidence are expected — the local reviewer (via `staged-review:commit-review`) runs the harness Codex couldn't. Make the reviewer's job easier:
+#### Constraints (no internet, no Elixir runtime)
+
+Even setting aside the suspended-delegation policy above, Codex Cloud's env has structural gaps that scope what it can do at all:
+
+- **No Elixir runtime.** `mix`, `iex`, `elixir`, `erl` not installed. Codex cannot run any mix task — compile, format, test, credo, dialyzer all unavailable. Verified 2026-05-05.
+- **No hex.pm.** Even if mix were installed, `mix deps.get` would fail — third-party hex-package API signatures cannot be verified at runtime. Stick to API surface that's reliably in training data; flag any uncertainty as `# TODO: verify against hex_docs` for the local reviewer rather than guessing.
+- **No Tidewave.** `mcp__tidewave__project_eval` is not available. Tasks needing live-data diagnosis or runtime-state inspection should not be in scope.
+- **No external HTTP.** RFCs, EIPs, reference implementations, vendor docs cannot be fetched. Cite the spec the user already pasted into the issue body; don't speculate from training-data recall.
+
+#### What to ship in the PR (when delegation is restored)
+
+When the runtime gap is fixed and `[CX]` code-mutation delegation resumes, Codex PRs may still ship without full local test evidence depending on what's been restored — the local reviewer (via `staged-review:commit-review`) runs the harness Codex couldn't. Make the reviewer's job easier:
 
 - **List acceptance criteria you addressed** in the PR description (one bullet per criterion).
 - **Flag uncertainty explicitly** — "I'm assuming `assert_receive/3` here based on training-data recall; please verify against ExUnit's hex docs."
-- **Don't fabricate test counts or runtime claims** you can't verify.
+- **Don't fabricate test counts or runtime claims** you can't verify. Past failure mode (2026-05-05): Codex PRs claimed harness runs that the env couldn't actually execute. CI is the only honest signal until the env is verified — see `linear-workflow.md` § "CI as the Shared Harness".
 
 #### Review-only tasks (review delegation)
 
@@ -68,16 +76,24 @@ Cursor cloud has internet + can run mix tasks (verified in round-trip testing):
 
 #### Self-validation expectation
 
-Cursor SHOULD run the harness before opening the PR. The local reviewer's job is the **5-category audit + acceptance-criteria cross-reference**, not "did the harness pass." A Cursor PR that ships with failing tests is a Cursor harness gap to flag, not an env limitation.
+**Cursor MUST run the full harness green before opening the PR.** A PR that opens with any harness check failing is a defect, not a draft for review — the local reviewer's job is the 5-category audit + acceptance-criteria cross-reference, *not* triaging mechanical harness failures the agent could have caught itself. A red harness in a Cursor PR is a push-back finding regardless of severity: stop the audit, post a Linear `@cursor` comment naming the failing check, wait for re-push.
 
-Recommended pre-PR checklist:
+**Mandatory pre-PR checklist** (every check must exit clean — exit 0 for tools that don't have content-aware exit codes; for `mix credo` see the TODO/FIXME exit-2 carve-out below):
 
 ```bash
-mix format --check-formatted
-mix compile --warnings-as-errors
-mix credo --strict
-mix test.json --quiet
+mix format --check-formatted     # MUST be clean — no drift on touched files
+mix compile --warnings-as-errors # MUST compile with no warnings
+mix credo --strict               # MUST be clean (TODO/FIXME exit-2 is the only acceptable non-zero — see Gotchas)
+mix sobelow --exit Low           # MUST be clean — security scanner; project's `.sobelow-skips` baseline applies
+mix doctor                       # MUST be clean — every public function has @doc + @spec; honors `.doctor.exs` ignore_paths
+mix test.json --quiet            # MUST be green — every test passes
+mix test.json --cover --cover-threshold N  # MUST meet repo's coverage tier (≥80 standard, ≥95 critical)
+mix dialyzer                     # MUST be clean — first-run PLT cost is on Cursor's clock, subsequent runs are cached
 ```
+
+**Why MUST not SHOULD:** Cursor's env has the runtime to do this work; if the harness fails post-push, every reviewer/CI cycle that catches it is wasted ceremony. Push-back-on-red-harness is the cheapest enforcement loop — Cursor amends, re-pushes, CI re-runs in parallel with whatever else is in flight. The reviewer's audit attention should land on the diff's *substance* (acceptance criteria coverage, design judgment, edge cases the harness can't catch), not on `mix format` complaints.
+
+**For the issue body's acceptance criteria:** see `linear-workflow.md` § "Mandatory Acceptance-Criteria Bullets" — every delegated issue carries an explicit "harness green at PR open" bullet, so a failing harness is a blocking acceptance-criterion miss, not a "soft polish" item.
 
 #### Gotchas
 
@@ -90,7 +106,7 @@ Cursor's Background Agent has Linear-displayName `cursor` (verified id: `b8668f6
 
 ### CI as the Shared Harness
 
-When the target repo has a `harness.yml` (see `elixir-ci-harness` skill in `claude-marketplace-elixir`), every PR push runs the full Elixir harness as a GitHub check — visible to user, agent, and PR review tooling. This is the canonical fix for the Codex-Cloud-no-hex.pm gap: even when Codex's env can't run `mix dialyzer` or `mix doctor`, the PR check does. Cursor's env can run mix tasks but doesn't *guarantee* it pre-PR; CI enforces the gate uniformly across both agents.
+When the target repo has a `harness.yml` (see `elixir-ci-harness` skill in `claude-marketplace-elixir`), every PR push runs the full Elixir harness as a GitHub check — visible to user, agent, and PR review tooling. CI was originally pitched as the canonical fix for Codex's hex.pm gap (the harness could verify what Codex's env couldn't), but the 2026-05-05 finding that Codex's env has no Elixir runtime *at all* makes CI a fix-only-on-paper for Codex code-mutation delegation: a PR with no harness-validated commits is one CI green away from the same uncertainty either way. This is one of the reasons code-mutation `[CX]` delegation is currently suspended (§ "Codex Cloud → Code-mutation delegation SUSPENDED"). Cursor's env can run mix tasks but doesn't *guarantee* it pre-PR; CI still enforces the gate uniformly for Cursor PRs and remains the authoritative harness signal.
 
 The shift this enables:
 

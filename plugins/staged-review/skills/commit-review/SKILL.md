@@ -1,6 +1,6 @@
 ---
 name: commit-review
-description: Use as Tier 2 deep audit for Codex/Cursor PRs that touch critical-tier code paths (signing, RPC, ABI, money, crypto, migrations) OR when CodeRabbit/Copilot (Tier 1) flagged ambiguity — for routine PRs, defer to CodeRabbit + CI. Polls Linear for cloud-agent-delegated issues with an open PR attachment (status ∈ In Review or In Progress, since transitions are unreliable), fetches the PR branch via `gh pr checkout`, fetches existing comments from both the GitHub PR (Copilot, CodeRabbit, humans) and the Linear issue (user clarifications, prior reviewer notes, prior `@codex`/`@cursor` push-back rounds), classifies tiny PRs (<100 LOC, no `lib/` changes) onto a 3-line fast path, otherwise reads `gh pr checks <n>` as the harness gate (CI replaces local mix runs — falls back to local harness if CI absent, surfacing a `TODO(setup-ci)` finding pointing at the `elixir-ci-harness` skill), reviews the diff against Linear acceptance criteria, drafts asymmetric push-back comments (PR review = line-level code; Linear = ONE paragraph on scope/intent — never duplicate), defaults push-back over local fix per the per-agent reachability matrix, optionally dispatches a Codex CLI second-opinion for high-stakes PRs (default off), and surfaces a verdict — but does NOT merge (user merges).
+description: Use as Tier 2 deep audit for Codex/Cursor PRs that touch critical-tier code paths (signing, RPC, ABI, money, crypto, migrations) OR when CodeRabbit/Copilot (Tier 1) flagged ambiguity — for routine PRs, defer to CodeRabbit + CI. Polls Linear for cloud-agent-delegated issues with an open PR attachment (status ∈ In Review or In Progress, since transitions are unreliable), fetches PR diff and upstream comments via `gh pr view` / `gh pr diff` / `gh api` without checkout by default — spins up a review worktree only when fix-locally is required or CI is absent. Fetches existing comments from both the GitHub PR (Copilot, CodeRabbit, humans) and the Linear issue (user clarifications, prior reviewer notes, prior `@codex`/`@cursor` push-back rounds), classifies tiny PRs (<100 LOC, no `lib/` changes) onto a 3-line fast path, otherwise reads `gh pr checks <n>` as the harness gate (CI replaces local mix runs — falls back to local harness if CI absent, surfacing a `TODO(setup-ci)` finding pointing at the `elixir-ci-harness` skill), reviews the diff against Linear acceptance criteria, drafts asymmetric push-back comments (PR review = line-level code; Linear = ONE paragraph on scope/intent — never duplicate), defaults push-back over local fix per the per-agent reachability matrix, optionally dispatches a Codex CLI second-opinion for high-stakes PRs (default off), and surfaces a verdict — but does NOT merge (user merges).
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 ---
 
@@ -13,7 +13,7 @@ Read the PR diff. Read upstream reviewer comments (PR + Linear). Read CI status.
 WHAT THIS SKILL DOES:
   - **Tier 2 framing** — reserved for PRs that warrant deep audit (critical-tier code paths, CodeRabbit-flagged ambiguity, or explicit user invocation). Routine PRs defer to CodeRabbit + CI
   - Poll Linear for cloud-agent-delegated issues (Codex / Cursor) with an open PR attachment (status ∈ {In Review, In Progress} — agent transitions are unreliable, so the PR attachment is the authoritative signal)
-  - **Spin up an isolated review worktree** (`../<repo>-review-pr-<n>`) and `gh pr checkout` the PR branch inside it — host session's branch is never touched, parallel sessions can review different PRs concurrently. Step 12 auto-removes the worktree when clean; surfaces manual cleanup when Step 7 staged local fixes
+  - **Default review-only flow** — read PR diff + comments via `gh pr diff`, `gh pr view`, and `gh api repos/.../pulls/<n>/comments` without checkout. Worktree-checkout is on demand: spin up an isolated review worktree (`../<repo>-review-pr-<n>`) ONLY when Step 7 routes to fix-locally OR Step 6 falls back to local harness (CI absent). When a worktree IS created, the host session's branch is never touched, parallel sessions can review different PRs concurrently, and Step 12 auto-removes when clean / surfaces manual cleanup when Step 7 staged local fixes
   - **Fetch existing comments from both the GitHub PR and the Linear issue** before auditing — so the audit doesn't duplicate Copilot/CodeRabbit/human findings and inherits Linear-side context (user clarifications, scope amendments, prior push-back rounds)
   - **Classify tiny PRs onto the fast path** (Step 5.5) — <100 LOC + no `lib/` changes → 3-line verdict, no full audit
   - **Read CI status** as the harness gate (`gh pr checks <number>`) — CI green → proceed; CI red → blocker; CI absent → fall back to running the local harness inline and surface a `TODO(setup-ci)` finding pointing at the `elixir-ci-harness` skill
@@ -35,7 +35,7 @@ WHAT THIS SKILL DOES NOT DO:
 
 | Aspect | `code-review` | `commit-review` (this skill) |
 |---|---|---|
-| Input | `git diff --staged` | `gh pr diff <number>` after `gh pr checkout` in an isolated worktree, plus upstream PR + Linear comments |
+| Input | `git diff --staged` | `gh pr diff <number>` + `gh pr view --json reviews,comments` + `gh api repos/.../pulls/<n>/comments` (no checkout by default); worktree-checkout only on fix-locally or CI-absent |
 | Trigger | Local pre-commit | Cloud-agent (Codex/Cursor) PR awaiting Tier 2 review |
 | Harness gate | Local hooks ran inline | CI checks (`gh pr checks`) — falls back to local harness if absent |
 | Codex CLI second-opinion | **Mandatory** (single-judge failure mode is the reason `code-review` exists) | **Optional, default off** (evaluator separation already comes from cloud-agent + CI + Claude) |
@@ -66,22 +66,28 @@ digraph commit_review {
   detect    [label="1. Detect Linear MCP\n(abort with install instructions if missing)"];
   list      [label="2. List cloud-agent PRs awaiting review\n(delegate ∈ {Codex, Cursor},\nstatus ∈ {In Review, In Progress},\nfiltered to issues with open PR attachment)"];
   spec      [label="3. Read Linear issue body\nspec + acceptance criteria"];
-  checkout  [label="4. Worktree-based checkout\n`git worktree add ../<repo>-review-pr-<n>`\nthen `gh pr checkout <n>` inside it"];
+  resolve   [label="4. Resolve PR + read diff\n(no checkout — gh pr view/diff/api)"];
   comments  [label="5. Fetch existing comments\nGitHub PR (Copilot/CodeRabbit/humans)\n+ Linear issue (user clarifications,\nprior reviewer notes, prior push-back)"];
   classify  [label="5.5. Classify PR for fast-path\n<100 LOC + no lib/ → fast path\nelse → full machinery"];
   ci        [label="6. Read CI status\n`gh pr checks <number>`\nCI green → proceed\nCI red → blocker\nCI absent → fall back to local harness\n+ surface TODO(setup-ci)"];
   pushback  [label="7. Push-back-first posture\nDefault: draft PR/Linear comments\nLocal fix only per per-agent matrix"];
+  worktree  [label="7b. Worktree on demand (lazy)\nOnly when Step 6 falls back to local harness\nOR Step 7 routes to fix-locally\n`git worktree add ../<repo>-review-pr-<n>`\nthen `gh pr checkout <n>` inside it"];
   audit     [label="8. 5-category audit\non `gh pr diff <number>`,\nintegrated with upstream comments"];
   cross     [label="9. Cross-reference Linear\nacceptance criteria"];
   codex     [label="10a. Optional Codex CLI second-opinion\n(default OFF — opt in for high-stakes)"];
   delegate  [label="10b. Cursor PR? → Delegate to Codex Cloud\n(fire-and-fetch via Linear; CI-green required)"];
   verdict   [label="11. Present verdict\n✅ ready / ⚠️ blockers / 💬 discussion\nDraft push-back comments\nOffer Linear post"];
-  cleanup   [label="12. Cleanup worktree\nauto-remove if clean,\nleave + instruct if dirty"];
+  cleanup   [label="12. Cleanup worktree (no-op if none was created)\nauto-remove if clean,\nleave + instruct if dirty"];
 
-  detect -> list -> spec -> checkout -> comments -> classify;
+  detect -> list -> spec -> resolve -> comments -> classify;
   classify -> ci [label="full"];
   classify -> verdict [label="fast-path"];
-  ci -> pushback -> audit -> cross -> codex;
+  ci -> pushback;
+  ci -> worktree [label="CI absent"];
+  pushback -> worktree [label="fix-locally row"];
+  pushback -> audit [label="default (review-only)"];
+  worktree -> audit;
+  audit -> cross -> codex;
   codex -> delegate [label="Cursor PR + CI green"];
   codex -> verdict  [label="Codex PR or fast-path"];
   delegate -> verdict;
@@ -139,9 +145,9 @@ Call `mcp__linear-server__get_issue`. The issue body **is** the spec — full pr
 
 You'll cross-reference this in Step 9.
 
-### Step 4: Resolve PR and Check It Out — In a Worktree
+### Step 4: Resolve PR and Read Diff (No Checkout by Default)
 
-**Worktree-based review.** Instead of switching the host session's branch, the skill spins up a sibling worktree at `../<repo>-review-pr-<n>` (matching the `git-worktrees` skill convention — see `plugins/elixir/skills/git-worktrees`). This keeps the host session's branch untouched, lets multiple Claude Code sessions review different PRs in parallel without `fatal: 'branch' is already checked out` collisions, and isolates any Step 7 "fix locally" staging to a working tree the user can inspect or discard. **Every subsequent step in this skill runs from `$WORKTREE_PATH` as CWD.**
+**Default flow is review-only — no worktree, no checkout.** The reviewer reads the diff via `gh` commands against the PR head; the host session's branch and working tree are never touched. Worktree-checkout is **lazy**: spawned only later, when Step 6 falls back to local harness OR Step 7 routes a finding to a fix-locally matrix row. This default avoids the silent bias toward "I'll amend this" that branch checkout creates, and keeps the push-back-default posture (per `~/.claude/includes/linear-workflow.md` § "Default flow is review-only").
 
 Find the PR linked to the Linear issue. Linear surfaces linked PRs in the issue's `attachments` or in the body. If unsure, search:
 
@@ -150,7 +156,29 @@ gh pr list --search "in:title <issue-identifier>" --state open
 gh pr list --search "<issue-identifier>" --state open
 ```
 
-Create the worktree, then check out the PR branch inside it. The two-step shape (`git worktree add` then `gh pr checkout` from inside the worktree) handles fork PRs cleanly — `gh pr checkout` sets up the tracking remote, while `git worktree add <branch>` alone can't materialize a PR head from a fork:
+Then read the PR's diff and metadata directly from `gh` (no clone/checkout):
+
+```bash
+gh pr view <number> --json headRefName,headRefOid,baseRefName,reviews,comments,statusCheckRollup
+gh pr diff <number>                                # full diff vs base
+gh pr diff <number> --stat                         # file-level summary (used in Step 5.5 fast-path classify)
+gh api repos/OWNER/REPO/pulls/<number>/comments    # line-level review comments (Copilot/CodeRabbit/humans)
+```
+
+The repo's `OWNER/REPO` is whatever `gh repo view --json nameWithOwner --jq .nameWithOwner` returns. Capture the diff once and reuse it across Steps 5.5, 6, 8 — no need to re-fetch.
+
+**Subsequent steps run from the host session's CWD by default.** No `cd $WORKTREE_PATH` until Step 7b actually creates one.
+
+#### Step 7b: On-Demand Worktree (Lazy)
+
+Run this block ONLY when one of these triggers fires:
+
+1. **Step 6 reports CI absent** — the local-harness fallback path requires a checked-out tree to run `mix format`, `mix test.json`, etc.
+2. **Step 7 routes a blocker to a fix-locally matrix row** — env-constraint cases (Codex hex-API, Tidewave, external-spec) where the local reviewer must produce a code patch.
+
+In every other case, **skip this block entirely** — the review never enters a worktree.
+
+When the trigger fires, create the worktree, then check out the PR branch inside it. The two-step shape (`git worktree add` then `gh pr checkout` from inside the worktree) handles fork PRs cleanly — `gh pr checkout` sets up the tracking remote, while `git worktree add <branch>` alone can't materialize a PR head from a fork:
 
 ```bash
 # Capture the PR branch name (don't switch yet)
@@ -173,7 +201,7 @@ git branch --show-current  # should be the PR's head branch
 git log -1 --oneline
 ```
 
-The host session's working tree and branch are untouched — verify with `git -C <host-repo-path> branch --show-current` if you want to double-check. Step 12 cleans the worktree up after the verdict.
+This matches the `git-worktrees` skill convention — see `plugins/elixir/skills/git-worktrees`. The host session's working tree and branch are untouched — verify with `git -C <host-repo-path> branch --show-current` if you want to double-check. Once a worktree exists, all later mix/test/local-harness commands run inside `$WORKTREE_PATH`. Step 12 cleans up after the verdict (and is a no-op when no worktree was ever created).
 
 ### Step 5: Fetch Existing Comments — GitHub PR AND Linear Issue
 
@@ -338,11 +366,14 @@ For each blocker, classify by whether **the implementing agent can realistically
 | Coverage below tier on a touched module | New code → **push back**. Pre-existing debt the PR uncovered → **fix locally** | New code → **push back**. Pre-existing debt the PR uncovered → **fix locally** | New-code coverage is the agent's responsibility; legacy gap surfacing now → local fix per `critical-rules.md` § "RAISE COVERAGE BEFORE MUTATING" |
 | CI format / credo / dialyzer / doctor drift | **Push back** — quote the failing check + log link | **Push back** — quote the failing check + log link | Both agents can re-run the checks against CI signal. Cursor especially (mix tasks runnable). Local fix-up was the old default; the harness-via-CI shift makes push-back viable |
 
-**When fixing locally:**
-- Stage only — don't commit (per `critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST")
-- The user decides whether to push as a follow-up commit on the PR branch, ask the agent to amend, or merge as-is and clean up in a follow-up PR
+**When a matrix row routes to fix-locally, the default channel is paste-as-`@cursor`-comment with a verbatim code block** (per `~/.claude/includes/linear-workflow.md` § "Preferred channel for fix-locally-required findings"). The reviewer composes the fix locally — using hex_docs MCP, Tidewave, WebFetch on RFC/EIP, etc. — and pastes the code block into a Linear `@cursor` / `@codex` mention. The agent applies, re-pushes, CI verifies the combined state in **one** harness run. Authorship preserved; single error gate.
 
-**Hybrid is fine:** a single PR may have both push-back and fix-locally blockers. Surface them in two groups; the user can decide whether to push fixes locally and amend the PR branch, push back to the agent with the logic bugs and only fix the hex-API ones locally, or any other split.
+**Fallback (separate branch off the PR's base commit)** — only when the fix is too large to paste, too context-sensitive to apply verbatim, or requires generated artifacts the agent can't reproduce. This triggers Step 7b's worktree creation; the worktree is the staging surface, then a separate branch off the PR base. **Never amend `cursor/...` or `codex/...` branches directly** (per `critical-rules.md` § "🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH").
+
+- Stage only — don't commit (per `critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST")
+- The user decides whether to push as a separate branch off the PR base, paste the code block as a Linear comment, or merge as-is and clean up in a follow-up PR
+
+**Hybrid is fine:** a single PR may have both push-back and fix-locally blockers. Surface them in two groups; the user can decide whether to paste-as-comment some fixes and push back the rest, or any other split.
 
 ### Step 8: Apply the 5-Category Audit (Integrated with Upstream Comments)
 
@@ -362,6 +393,17 @@ Categories (full text in `staged-review:code-review` SKILL.md):
 6. **Documentation Gaps** — ROADMAP.md, CHANGELOG.md, CLAUDE.md, README.md, in-code `@doc`/`@spec` drift
 
 Same confidence filter as `code-review`: only report bugs you can name the triggering input for. Same rating scale (1–10 or `discuss-trivial`/`discuss-design`).
+
+**Use Tidewave to verify suspected bugs before push-back.** Local Claude has `mcp__tidewave__project_eval` and live runtime access — neither Codex nor Cursor does. When the audit suspects a runtime/data-shape bug, verify in the **host project's** running BEAM (not the PR's worktree — Tidewave queries don't require the PR checked out, and the default review flow stays read-only). Paste the verified result into the push-back comment as evidence.
+
+This is a push-back **strengthener**, not a fix-locally trigger. Per `~/.claude/includes/linear-workflow.md` § "Tidewave is verification, not necessarily fix": Claude is the evidence generator; the implementing agent owns the fix. Only when the verified finding's fix can't be pasted does the matrix route to local-fix.
+
+Verification examples worth pasting into push-back comments:
+
+- Hex-package signature confirmations (e.g., `assert_receive/3` arity vs `assert_received/2`)
+- Live database shape vs schema (when the PR assumes a field that's actually different)
+- Upstream library behavior on edge cases (nil, empty list, malformed input)
+- RFC / spec correctness via runtime test (e.g., binary encoder output for a known input)
 
 **Integrate upstream comments from Step 5:** when a finding overlaps with an existing reviewer's comment, attribute it (`also flagged by <reviewer>`) instead of presenting it as a fresh discovery. When you disagree with an upstream comment, mark it `disputed` and include both positions in Step 11. When upstream has marked something "won't fix" or "intentional," don't re-raise unless you have new evidence.
 
@@ -551,6 +593,19 @@ If CI is absent on a fast-path PR, append:
 
 > `TODO(setup-ci)` — adopt the `elixir-ci-harness` skill so the next iteration of this PR has CI.
 
+#### Ceremony Floor for Findings
+
+Apply the **correctness × size** floor from `~/.claude/includes/task-prioritization.md` § "Ceremony Floor — When NOT to Open a Task" before deciding which findings make it into the verdict's recommended-action list:
+
+- **≤ 5 LOC, cosmetic / abstraction / nit:** push back inline (paste-as-`@cursor`-comment) OR drop with one-line rationale. **NEVER offer to file as a ROADMAP task.**
+- **≤ 5 LOC, bug or correctness gap:** push back inline. **NEVER drop, NEVER silently track.**
+- **> 5 LOC, cosmetic:** push back if cheap, else drop with rationale. ROADMAP only if cross-session coordination cost is genuine.
+- **Bugs at any size:** always surface, always push back. Never drop.
+- **Cross-session coordination cost (any size):** legitimate ROADMAP candidate — surface as one offer to the user.
+- **Scope-affecting / breaks acceptance criteria:** surface as `💬 discuss-design` per Step 9.
+
+The forbidden phrasing is "File a new ROADMAP task for <small inline finding> (scored [D:N/B:N/U:N])?" for findings that fit the current PR. If the finding fits the PR, it goes back to the implementing agent — not into ROADMAP queue overhead.
+
 #### Full machinery — three top-level shapes
 
 **✅ Ready to merge:**
@@ -607,12 +662,14 @@ Default is **don't post** — wait for explicit user confirmation. The verdict i
 
 **Do NOT run `gh pr merge`.** Per `critical-rules.md` § "DON'T AUTO-MERGE PRS", merge is the user's call. After the verdict, the skill's last responsibility is Step 12 (worktree cleanup).
 
-### Step 12: Cleanup the Review Worktree
+### Step 12: Cleanup the Review Worktree (No-Op if None Was Created)
 
-After the verdict (whether ✅, ⚠️, or 💬 — and regardless of whether the user opted to post the Linear comment), check the worktree's tree state:
+**Early exit:** if Step 7b was never reached (default review-only flow — neither CI-absent fallback nor fix-locally row triggered), there is no worktree to clean up. Step 12 is a no-op; skip the block below.
+
+When Step 7b *did* create a worktree, after the verdict (whether ✅, ⚠️, or 💬 — and regardless of whether the user opted to post the Linear comment), check the worktree's tree state:
 
 ```bash
-# Run from inside the worktree (where every step since Step 4 has been running)
+# Run from inside the worktree (where every step since Step 7b has been running)
 if git diff --quiet && git diff --cached --quiet; then
   cd ..  # back out of the worktree before removing it (don't remove our own CWD)
   git worktree remove "$WORKTREE_PATH"
@@ -626,9 +683,9 @@ else
 fi
 ```
 
-**Auto-remove only when the worktree is clean** (no staged or unstaged changes). When the Step 7 matrix routed any blocker to "fix locally," the staged changes live in the worktree by design — auto-removal would silently destroy intentional state. Surface the manual cleanup command instead and let the user decide whether to push the fixes (amending the PR branch) or discard them.
+**Auto-remove only when the worktree is clean** (no staged or unstaged changes). When the Step 7 matrix routed any blocker to "fix locally," the staged changes live in the worktree by design — auto-removal would silently destroy intentional state. Surface the manual cleanup command instead and let the user decide whether to push the fixes (paste-as-`@cursor`-comment is preferred over a direct branch push — see `~/.claude/includes/linear-workflow.md` § "Preferred channel for fix-locally-required findings").
 
-The fast-path verdict (Step 11 fast-path block) cannot have local fixes (Step 7 is skipped on fast-path), so it always auto-removes.
+The fast-path verdict (Step 11 fast-path block) cannot have local fixes (Step 7 is skipped on fast-path), so when a worktree exists on the fast path it always auto-removes.
 
 The Step 10b fire path runs its own narrower cleanup before STOP — it intentionally does not invoke this section since the audit was delegated to Codex Cloud and the local worktree never accumulated fixes.
 
@@ -656,5 +713,24 @@ The Step 10b fire path runs its own narrower cleanup before STOP — it intentio
 | Inventing Linear acceptance criteria not in the issue body | If the body lacks explicit criteria, mark "criteria implicit" in the verdict and lean on the 5-category audit. Don't fabricate a checklist |
 | **Auto-delegating to Codex Cloud when CI is red** | **Step 10b requires CI green. Red CI → push back to Cursor first (the failing check is a stronger signal than a code review would be); only delegate the review once CI passes. Saves Codex compute on already-rejected PRs** |
 | **Searching Linear by title to find the delegation issue on the second invocation** | **Use the GitHub PR tracking comment (`Codex Cloud review delegated: <URL>  (id: <UUID>)`) as the cross-session anchor — title search is fragile when PR numbers collide across projects, and the comment is the durable state record** |
-| **Skipping the worktree and running `gh pr checkout` in the host session** | **Switches the host session's branch silently — breaks parallel reviews (`fatal: 'branch' is already checked out`) and leaves the user on the PR branch after the verdict. Always go through Step 4's worktree machinery (`git worktree add ../<repo>-review-pr-<n>` then `gh pr checkout` inside it). The host session must end on the same branch it started on** |
-| **Running `git worktree remove --force` to clean up a dirty review worktree silently** | **Discards Step 7 fix-locally staged changes the user explicitly intended to push to the PR branch. Step 12 auto-removes only when clean; dirty worktree → surface manual cleanup with the path. Forced removal is the user's call** |
+| **Running `gh pr checkout` directly in the host session when a worktree IS needed** | **When Step 7b triggers (CI absent OR fix-locally row), checkout must go through `git worktree add ../<repo>-review-pr-<n>` first, then `gh pr checkout` inside it. Host-session checkout switches the host branch silently — breaks parallel reviews (`fatal: 'branch' is already checked out`) and leaves the user on the PR branch after the verdict. The host session must end on the same branch it started on. (Default review-only flow doesn't reach Step 7b — no worktree, no checkout, no problem.)** |
+| **Running `git worktree remove --force` to clean up a dirty review worktree silently** | **Discards Step 7 fix-locally staged changes the user explicitly intended to use as a paste-as-`@cursor`-comment fix. Step 12 auto-removes only when clean; dirty worktree → surface manual cleanup with the path. Forced removal is the user's call** |
+| **Pushing fixes to `cursor/...` or `codex/...` branch directly** | **Per `critical-rules.md` § "🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — paste as Linear comment with verbatim code block (preferred), or fallback to a separate branch off the PR base. Never amend the agent's branch. Override only with explicit user authorization, scope-bound to that PR** |
+| **Offering to file ≤5 LOC cosmetic findings as ROADMAP tasks** | **Ceremony floor (per `~/.claude/includes/task-prioritization.md` § "Ceremony Floor — When NOT to Open a Task") — push back inline OR drop with one-line rationale. ROADMAP queue is for cross-session coordination cost, not in-PR cleanup. Bugs at any size still always surface — never silently drop** |
+| **Treating "Tidewave verified" as a fix-locally trigger** | **Tidewave is verification, not fix. Verified evidence belongs in the push-back comment — the agent still owns the code (per `~/.claude/includes/linear-workflow.md` § "Tidewave is verification, not necessarily fix"). Only when the verified finding's CODE FIX is too large to paste does the matrix route to local-fix** |
+| **Running Tidewave from inside the PR's worktree** | **Tidewave runs against the host project's running BEAM. Use it from the host (default read-only flow), NOT from a checked-out worktree. Worktree-checkout for verification is unnecessary and contradicts the read-only default — verification can happen without ever entering Step 7b** |
+| **Spinning up a worktree before knowing whether fix-locally is required** | **Step 4 reads diff via `gh pr diff` / `gh pr view` / `gh api`; Step 7b creates a worktree only when CI is absent OR a finding routes to fix-locally. Eager worktree creation biases the review toward "I'll amend this," contradicting the push-back default. Defer worktree creation until the trigger fires** |
+
+## Cross-References
+
+Closely related includes and skills the workflow composes with:
+
+- `~/.claude/includes/task-prioritization.md` § "Ceremony Floor — When NOT to Open a Task" — correctness × size floor for review-surface findings; bug-vs-cosmetic and small-vs-large guardrails on whether to push back, drop, or open a ROADMAP task
+- `~/.claude/includes/linear-workflow.md` § "Default flow is review-only" — the read-only default that gates worktree creation in Step 4 / 7b
+- `~/.claude/includes/linear-workflow.md` § "Preferred channel for fix-locally-required findings: paste-as-`@cursor`-comment" — the preferred channel for the rare fix-locally rows of the matrix
+- `~/.claude/includes/linear-workflow.md` § "Tidewave is verification, not necessarily fix" — Tidewave-as-evidence-generator pattern that strengthens push-back without triggering local fix
+- `~/.claude/includes/critical-rules.md` § "🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — hard rule against amending `cursor/...` or `codex/...` branches; user-scoped override
+- `~/.claude/includes/critical-rules.md` § "DON'T AUTO-MERGE PRS" — verdict deliverable, not merge
+- `~/.claude/includes/cloud-agent-environments.md` — per-agent reachability matrix (hex.pm, Tidewave, internet) feeding Step 7's classification
+- `staged-review:code-review` — pre-commit local-work counterpart; shares the 5-category audit but mandates Codex CLI second-opinion (single-judge failure mode)
+- `elixir-ci-harness` — the canonical `harness.yml` adopted when Step 6 surfaces `TODO(setup-ci)`; closes the CI-as-shared-error-gate loop
