@@ -150,6 +150,9 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 **Code-quality plugin** - Language-agnostic LLM gate (separate from Elixir plugin so it installs cleanly on Rust/Go/Python projects):
 1. **Code quality gate** (blocking, PreToolUse, `type: prompt`): Before Edit/Write/MultiEdit on source files (`.ex`, `.exs`, `.go`, `.rs`, `.js`, `.ts`, `.py`, `.rb`, `.java`, `.c`, `.cpp`, `.h`), the LLM itself evaluates the diff and denies untracked TODO/FIXME markers, unmarked deferred-work comments ("for now", "temporarily", …), stub functions, and silent workarounds. Markdown/config files bypass the check.
 
+**Cloud-delegation plugin** - Cross-cutting AGENTS.md sync:
+1. **agents-md-sync.sh** (non-blocking, PostToolUse): After editing `~/.claude/CLAUDE.md`, any direct child of `~/.claude/includes/`, or any `~/_DATA/code/<repo>/CLAUDE.md`, regenerates `AGENTS.md` via `scripts/sync-agents-md.sh` in every affected repo that has an existing `AGENTS.md` (never auto-creates). Idempotent; never stages or commits. Closes the staleness window between edit and the next SessionStart drift check.
+
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
 ### Skills (32 total)

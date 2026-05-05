@@ -43,3 +43,29 @@ The two SKILL.md files are kept in sync with the canonical includes via the mark
 ```
 
 This preserves the SKILL.md frontmatter (name, description, allowed-tools) and replaces the body with the include content.
+
+## Hook: AGENTS.md auto-sync
+
+`scripts/agents-md-sync.sh` is a PostToolUse hook (matcher `Edit|Write|MultiEdit`) that regenerates `AGENTS.md` whenever a file flowing into it is edited.
+
+**Trigger set:**
+- `~/.claude/CLAUDE.md` → walks `~/_DATA/code/*/`, regenerates `AGENTS.md` in every repo that has *both* `CLAUDE.md` and an existing `AGENTS.md`
+- `~/.claude/includes/*.md` (direct children only — nested subdirs are excluded) → same portfolio walk
+- `~/_DATA/code/<repo>/CLAUDE.md` → regenerates only that repo's `AGENTS.md`, *if* it already has one
+- Anything else → silent no-op
+
+**Behavior:**
+- Calls the marketplace's `scripts/sync-agents-md.sh` (idempotent — running twice writes byte-identical output, so `git status` stays clean unless upstream content actually changed)
+- Repos without an existing `AGENTS.md` are skipped (the hook doesn't auto-create — keep your repo opt-in)
+- No git operations: never stages, never commits — the user controls integration timing
+- Failures in one repo don't abort the run; the output flags `⚠️ failed: <repo>` per failing repo and continues
+- Output: one `🔄 AGENTS.md regenerated:` line per affected repo (suppressed when no-op)
+
+**Env-var overrides** (for tests / non-default layouts):
+- `AGENTS_SYNC_PORTFOLIO_ROOT` (default `$HOME/_DATA/code`)
+- `AGENTS_SYNC_USER_CLAUDE_ROOT` (default `$HOME/.claude`)
+- `AGENTS_SYNC_SCRIPT` (default resolves to the marketplace's `sync-agents-md.sh`)
+
+**Why a hook here:** the SessionStart drift checks (`check-setup-guide.sh`, `check-project-includes.sh`) catch staleness reactively at the *next* session; between an edit and that session, `AGENTS.md` lies. This hook closes that window — cloud agents picking up work after a Claude Code edit see the same instruction set the local session wrote.
+
+**Opt-out:** uninstall the plugin, or remove `AGENTS.md` from a repo that should stop participating.
