@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Generate AGENTS.md for Codex by inlining @-imports from the project's CLAUDE.md.
 #
-# Run this from inside a target repo. Reads ./CLAUDE.md, resolves @-imports
-# (e.g. @~/.claude/includes/critical-rules.md), inlines their content, and
+# Run this from inside a target repo. Reads ./CLAUDE.md, recursively resolves
+# @-imports (e.g. @~/.claude/includes/critical-rules.md, including umbrella
+# includes that themselves @-import other files), inlines their content, and
 # writes ./AGENTS.md. Codex doesn't inherit our local hooks, so AGENTS.md
 # carries the rules our hooks would have enforced.
+#
+# Recursion depth-limit matches Claude Code's documented @-import behavior
+# (https://code.claude.com/docs/en/memory#import-additional-files): 5 levels.
 #
 # Usage:
 #   ./sync-agents-md.sh             # write AGENTS.md
@@ -19,6 +23,7 @@ fi
 
 CLAUDE_MD="./CLAUDE.md"
 AGENTS_MD="./AGENTS.md"
+MAX_DEPTH=5
 
 if [[ ! -f "$CLAUDE_MD" ]]; then
   echo "ERROR: $CLAUDE_MD not found in current directory" >&2
@@ -38,27 +43,45 @@ resolve_path() {
 errors=0
 output=""
 
+# inline_file <path> <depth> [<raw_label>]
+# Reads <path> line by line; on `@<path>` lines, recursively inlines the target
+# (up to MAX_DEPTH levels). Appends to the global $output.
+inline_file() {
+  local path="$1"
+  local depth="$2"
+  local raw_label="${3:-$path}"
+
+  if (( depth > MAX_DEPTH )); then
+    echo "ERROR: @-import depth exceeded $MAX_DEPTH at $raw_label" >&2
+    errors=$((errors + 1))
+    return
+  fi
+
+  local line nested_raw nested_resolved
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^@([^[:space:]]+)[[:space:]]*$ ]]; then
+      nested_raw="${BASH_REMATCH[1]}"
+      nested_resolved=$(resolve_path "$nested_raw")
+
+      if [[ ! -r "$nested_resolved" ]]; then
+        echo "ERROR: cannot read @-import: $nested_raw (resolved to $nested_resolved)" >&2
+        errors=$((errors + 1))
+        continue
+      fi
+
+      output+="<!-- @-import: ${nested_raw} -->"$'\n'
+      inline_file "$nested_resolved" $((depth + 1)) "$nested_raw"
+      output+=$'\n'
+    else
+      output+="${line}"$'\n'
+    fi
+  done < "$path"
+}
+
 output+="<!-- Auto-generated from CLAUDE.md by claude-marketplace-elixir/scripts/sync-agents-md.sh — do not edit manually -->"$'\n'
 output+=$'\n'
 
-while IFS= read -r line || [[ -n "$line" ]]; do
-  if [[ "$line" =~ ^@([^[:space:]]+)[[:space:]]*$ ]]; then
-    raw_path="${BASH_REMATCH[1]}"
-    resolved=$(resolve_path "$raw_path")
-
-    if [[ ! -r "$resolved" ]]; then
-      echo "ERROR: cannot read @-import: $raw_path (resolved to $resolved)" >&2
-      errors=$((errors + 1))
-      continue
-    fi
-
-    output+="<!-- @-import: ${raw_path} -->"$'\n'
-    output+="$(cat "$resolved")"$'\n'
-    output+=$'\n'
-  else
-    output+="${line}"$'\n'
-  fi
-done < "$CLAUDE_MD"
+inline_file "$CLAUDE_MD" 1 "./CLAUDE.md"
 
 if [[ "$errors" -gt 0 ]]; then
   echo "Aborting — $errors @-import(s) unreadable." >&2

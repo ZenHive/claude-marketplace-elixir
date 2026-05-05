@@ -47,6 +47,7 @@ run_test_suite() {
 run_test_suite "Elixir Plugin Tests" "$SCRIPT_DIR/plugins/elixir/test-elixir-hooks.sh" || true
 run_test_suite "Cloud-Delegation Plugin Tests" "$SCRIPT_DIR/plugins/cloud-delegation/test-cloud-delegation-hooks.sh" || true
 run_test_suite "Codex Sync Script Tests" "$SCRIPT_DIR/test-sync-codex-plugins.sh" || true
+run_test_suite "AGENTS.md Sync Script Tests" "$SCRIPT_DIR/test-sync-agents-md.sh" || true
 
 echo ""
 echo -e "${BLUE}================================${NC}"

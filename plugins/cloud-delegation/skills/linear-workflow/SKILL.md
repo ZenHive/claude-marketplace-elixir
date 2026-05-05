@@ -406,9 +406,38 @@ Plus ~20 more (milestones, cycles, attachments, documents). Use `ToolSearch` wit
 
 **MCP server instruction (from `linear-server`):** when passing strings, send literal newlines and special characters directly — do not use escape sequences (`\n`, etc.). The server treats input as raw text.
 
+### Codex Delegation Markers (`[CX]` / `[CSR]`)
+
+> **🚨 SUSPENDED — code-mutation delegation only (Elixir projects, 2026-05-05).** Codex Cloud's harness has no Elixir/Erlang runtime — `mix`/`iex`/`elixir` not installed, every mix invocation fails with `command not found`. Verified against in-flight cartouche PRs where Codex shipped commits with zero harness evidence. **Do not create new `[CX]` tasks that involve writing or modifying code in an Elixir repo until the Codex Cloud env is restored.** Route all such work to `[CSR]` (Cursor) — Cursor's env has Elixir/OTP and runs the full mix toolchain.
+>
+> **Still permitted:** review-only `[CX]` delegations (e.g. the Codex-Reviews-Cursor pattern in this file). Reading a PR diff and posting a verdict comment doesn't need a runtime. Treat as exception-not-default while the suspension is in force; expect to revisit when the broader env is verified healthy.
+>
+> See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the verification details and the path back to `[CX]` eligibility once the env is fixed.
+
+Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meeting all criteria below are `[CX]` unless there's a stated reason otherwise.** Claude's bias is to grab work; this default is a counterweight. (NB: while the suspension above is in force, the operative default is "no new `[CX]` code-mutation tasks at all" — the criteria below describe what `[CX]` *would* mean if/when delegation resumes, not what to file today.)
+
+**Criteria (all must be true):**
+- Self-contained — single module or feature, no orchestration with other in-flight work
+- No Tidewave / live-data exploration required (Codex has no internet — no Tidewave, no live-app exploration)
+- No hex-docs lookup required for niche or version-pinned third-party APIs (Codex has no hex.pm access — it can't verify signatures of `assert_receive/3` vs `assert_received/2`-class macros, version-bumped libraries, or anything outside reliable training coverage)
+- No dependency changes (`mix.exs`, lockfile)
+- No `.mcp.json`, hooks, or CI changes
+- Spec is fully captured in the Linear issue body — no live clarifications mid-flight
+
+**Workflow:**
+1. Create Linear issue with `delegate: "Codex"` and label `cx-eligible`. Body is the prompt — full spec, acceptance criteria, file paths.
+2. Codex picks it up, opens PR, transitions issue to `In Review`.
+3. Local Claude Code session invokes `staged-review:commit-review` to fetch and review the PR.
+4. Claude Code surfaces "ready to merge" but the **user** merges (see `delegation-rules.md` § "DON'T AUTO-MERGE PRS").
+
+```
+| Task 79 `[P]`  | ⬜              | Independent, local       |
+| Task 80 `[CX]` | ⬜              | Delegate to Codex        |
+| Task 81 `[CX]` | 🔄 in-review   | Codex PR open, awaiting review |
+```
+
 ### Cross-References
 
-- `task-prioritization.md` § "Codex Delegation (`[CX]`)" — eligibility criteria, status flow, when to delegate
 - `task-writing.md` — body-as-prompt principle (issue bodies follow the same rule as ROADMAP rows)
 - `critical-rules.md` § "DON'T AUTO-MERGE PRS" — `In Review` → user-merge boundary
 - `critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST" — local review verdict is informational, not merge authorization
