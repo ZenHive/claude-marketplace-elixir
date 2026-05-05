@@ -119,6 +119,46 @@ A specific composition of the two flows above: Cursor implements, Codex reviews.
 
 **State:** no local state files. Linear delegation issue + GitHub PR tracking comment is the full state machine.
 
+### Review Tiering: When Full Tier 2 Earns Its Cost
+
+`staged-review:commit-review` is expensive — multi-step (poll → fetch → harness → 5-category audit → verdict) and consumes real attention even on clean PRs. Running it uniformly on every cloud-agent PR over-applies the cost.
+
+**The bot ensemble does the correctness layer.** CodeRabbit, GitHub Copilot, and Codex's GitHub review bot run automatically on every PR. Audit (cartouche INE-19 iteration chain, 2026-05-05) found these bots, taken as a 3-bot ensemble, caught **every substantive code-correctness defect** local Tier 2 caught at critical tier — wrong arg shapes, missing nil-handling, panic-table swaps, selector-dropping. Not nits-only. Codex's GitHub bot specifically does evidence-based fact-checking with P-tier severity and reaches the most subtle bugs.
+
+**So local Tier 2's unique value at critical tier is NOT second-line code review.** It's the orchestration layer above the bots:
+
+1. **Triage** — turning a CodeRabbit "consider this" into a verbatim push-back patch with `@cursor` mention; deferring out-of-scope bot findings (e.g. global `@spec` floods) instead of letting them dilute push-back
+2. **Project-specific rule enforcement** — `.sobelow-skips` regen workflow, `TODO(Task N):` marker preservation, ROADMAP/CHANGELOG acceptance bullets, `harness.yml` conventions — rules bots can't see because they're not in the code
+3. **Procedural orchestration** — merge-conflict surfacing, duplicate PR closure, CI-red triage, status transitions, push-back-vs-fix matrix routing
+4. **Deep diagnosis** — test-isolation failures, GenServer state pollution across tests, runtime/compile-time interaction bugs — the class of finding that requires reading beyond the diff and reaching into Tidewave or harness logs
+
+If you find yourself re-finding what CodeRabbit already flagged, you're duplicating bot work — pivot to the four roles above.
+
+**Tier the review by what the diff touches:**
+
+| Tier | What it covers | Action |
+|---|---|---|
+| **Critical** | signing, transaction encoding/decoding (V0/V1/V2/V3/V4), ABI codec, RPC client, KMS, anything in the ≥95% coverage tier per `critical-rules.md` § "RAISE COVERAGE BEFORE MUTATING" | Full Tier 2 — but role-shifted to triage + project rules + orchestration + diagnosis (above), not redundant correctness review |
+| **Standard** | type/spec fixes, doc updates, coverage pushes, generator changes, test additions, refactors outside the critical-tier list | Read `gh pr checks <n>`. If green AND CodeRabbit/Copilot/Codex-bot reviews are clean: merge. If any bot flagged something: 5-min skim + decide. No full Tier 2. |
+| **Ceremony** | close-out PRs, AGENTS.md tweaks, README-only changes, ROADMAP/CHANGELOG-only updates | Read CI status. Merge if green. No skim required. |
+
+**Supersedes** the prior "tiny-PR fast path (<100 LOC + no `lib/`)" heuristic surfaced in the `staged-review:commit-review` skill description. Touched-files semantic > LOC count: a 50-LOC change in `lib/cartouche/signer/` is critical; a 200-LOC docs change is ceremony. The LOC rule is brittle; this one is semantic.
+
+**Empirical caveat on standard tier:** the cartouche audit covered n=1 standard-tier PR (no findings on either side). The "trust bots, skip Tier 2" recommendation rests as much on the structural argument (standard-tier blast radius is bounded by definition — non-critical code paths can't lose funds, can't corrupt wire formats, can't break consensus) as on the data. If a standard-tier PR ever ships a real bug post-merge, revisit.
+
+**How to apply:**
+
+1. Check what the diff touches first — `gh pr diff <n> --name-only` against the critical-tier list.
+2. Critical-tier files touched → full Tier 2 with the role-shifted focus above.
+3. Only standard-tier files → CI-green check + bot-review check. Merge if both clean. Skim if anything flagged.
+4. Only ceremony-tier files → CI-green check. Merge.
+
+**Asymmetric application by reviewer-type — interaction with Codex-Reviews-Cursor:**
+
+The Codex-Reviews-Cursor pattern (§ above) overlaps with the bot ensemble. With CodeRabbit + Copilot + Codex's own GitHub bot already running on every Cursor PR, the delegation pattern earns its keep only when **all three** hold: the PR is critical-tier AND a bot flagged ambiguity needing a deeper read AND local Tier 2 needs a second perspective on the triage decision. Skip the delegation issue creation on standard- and ceremony-tier PRs entirely; the GitHub-side bots already cover those.
+
+The push-back-vs-fix matrix below applies to Tier-2 reviews only. Standard- and ceremony-tier PRs don't engage the calculus — they merge or they fail CI; that's the loop.
+
 ### Cloud Agent Environments
 
 Cloud-agent envs differ in what they can reach during their work session. The differences shape both delegation eligibility and the push-back-vs-fix-locally calculus when reviewing their PRs.

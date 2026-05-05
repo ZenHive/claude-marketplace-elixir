@@ -2,9 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-@~/.claude/includes/across-instances.md
-
 @~/.claude/includes/critical-rules.md
+
+@~/.claude/includes/delegation-rules.md
 
 @~/.claude/includes/task-prioritization.md
 

@@ -1,6 +1,6 @@
 {
   "name": "cloud-delegation",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow — issue creation, polling, push-back-vs-fix matrix, agent env constraints, AGENTS.md auto-sync hook",
   "author": {
     "name": "DeltaHedge",
