@@ -535,6 +535,17 @@ Both gates protect against partial fixes — if one doesn't take effect (agent t
 
 Use this fallback when the project hasn't onboarded Linear, when Linear is intentionally out-of-scope (e.g. a one-off public-repo contribution), or as a safety net during Linear MCP outages. The reviewer skill works either way — Linear is an upgrade-path, not a hard dependency.
 
+### Tooling
+
+**`~/.claude/scripts/flow-stats.sh`** — reconstruct cloud-agent PR delegation-flow stats from GitHub timeline events. Quantifies the dimensions this workflow optimizes (round count via `head_ref_force_pushed`, draft time via `convert_to_draft`/`ready_for_review`, time-to-first-review, merge lag, reviewer breakdown).
+
+```bash
+~/.claude/scripts/flow-stats.sh <PR#> [--repo OWNER/REPO] [--json]
+~/.claude/scripts/flow-stats.sh https://github.com/OWNER/REPO/pull/<PR#>
+```
+
+Auto-detects `--repo` from current git dir. Use after a cloud-agent PR merges to verify the workflow is actually reducing round-trips (target: 1-2 force-pushes, draft time → 0, merge lag low). Linear-side augmentation (issue create→done timestamps, comment turnaround) is intentionally not in the script — MCP isn't bash-callable; invoke from a Claude session and ask Claude to layer `mcp__linear-server__list_comments` + `get_issue` data when needed.
+
 ### Cross-References
 
 - `task-writing.md` — body-as-prompt principle (issue bodies follow the same rule as ROADMAP rows); plan-shape vs roadmap-shape distinction
