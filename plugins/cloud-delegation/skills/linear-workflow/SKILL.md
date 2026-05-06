@@ -547,6 +547,52 @@ Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meetin
 
 **`.sobelow-skips` exception:** for repos with sobelow line-fingerprint drift (cartouche pattern — see § "Linear GH Auto-Transitions" cross-reference and `staged-review:commit-review` Step 14), the harness fails-loud-with-diff if drift is detected; commit-review applies the regen at merge in the same post-merge commit. Agent never touches the file.
 
+### Bundled Code-Revisions in Bookkeeping Commit (Variant)
+
+The canonical `staged-review:commit-review` Step 14–16 sequence expects the post-merge follow-up commit on `main` to be **doc-only** — ROADMAP / CHANGELOG / README per § "Code-Only PRs from Cloud Agents". This variant uses the same skeleton with **code revisions bundled into that bookkeeping commit**, trading evaluator separation for round-trip-cost savings when push-back is high-cost / low-yield.
+
+**When this variant fires.** All four conditions hold:
+
+- Cloud-agent PR is mostly-good but ships some dead/unwanted code that should NOT block merge.
+- Reviewer's diff to remove the dead code is small enough to land safely without another agent round-trip (rough threshold: same as `task-prioritization.md` § "Ceremony Floor" — ≤ a few small edits, no logic changes, no behavior shift).
+- Pushing back to the agent would cost more than it saves — typically because the verification the agent needs is one **its own harness can't run** (e.g. `mix dialyzer` OOMs in Cursor's cloud VM, no hex.pm in Codex Cloud, no Tidewave anywhere). The agent literally cannot self-validate the fix.
+- The PR contains something **worth keeping** that rejecting the whole PR would drop (a useful spec narrowing, a real fix that landed alongside the noise). If the PR is net-negative, close-without-merging instead.
+
+**The shape.**
+
+1. **Merge the PR as-is** — `gh pr merge --squash --delete-branch` (or repo default policy). Do NOT push back, do NOT close-without-merging.
+2. **One follow-up commit on `main`** that bundles two scopes:
+   - **Code revisions:** drop dead/unwanted code from the merged PR. Standard `Edit`s, no separate branch, no separate PR.
+   - **Standard bookkeeping** (canonical Step 15): ROADMAP row → ✅, CHANGELOG `[Unreleased]` entry, README/cross-ref updates if user-facing.
+   Single commit, single message — frame as `Update docs for PR #N (INE-M) + remove dead X` so the bundled scope is discoverable as an INE-attached follow-up via `git log --grep INE-M`.
+3. **Linear close-out** (canonical Step 16) with one variant-specific addition: the closing comment **explicitly distinguishes what was merged from what was reverted in the bookkeeping commit, and why the agent couldn't have caught it** (env constraint — preserves the no-blame framing). Then flip status → `Done` manually if Linear's auto-transition didn't fire (it only fires on the merge event itself, not on the bookkeeping commit).
+
+**What it preserves vs. canonical.**
+
+- **Evaluator separation:** implementer (Cursor / Codex) ≠ reviewer (this session) ≠ merger-of-truth (this session, but via `git` not via "approve PR + merge"). The reviewer DOES grade the merged work this time — that's the trade — but it's grading against a hard ground truth (dialyzer / hex / live-data) which is harder to fake than self-review.
+- **INE traceability:** the bookkeeping commit's body still names PR #N (INE-M), so `git log --grep INE-M` still surfaces the full story (PR + bundled revisions).
+- **Touched-file scope rule:** the dropped code is on files PR #N already touched — this is `critical-rules.md` § "FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH" applied transitively to a merged PR's touched files. Doesn't widen scope to untouched files.
+
+**What it loses vs. canonical.**
+
+- **PR diff drift on GitHub:** anyone reading `gh pr view N` sees the original PR's diff (including the dead code that no longer exists on `main`). Mitigation: the closing comment on Linear documents the divergence explicitly. Cross-readers reach Linear before GitHub for in-flight context.
+- **Revert atomicity:** `git revert <bookkeeping-sha>` reverts both the doc updates AND the code revisions. Acceptable only because the doc updates describe the merged code (and the revisions to it) — they're not independently meaningful. If the doc updates and the code revisions are about genuinely independent things, split into two commits.
+
+**When NOT to use this variant.**
+
+- The dead/unwanted code is large enough that the diff would be reviewable as its own PR → push back via `@cursor` / `@codex` Linear comment instead (see § "Wake-Mention Discipline" + § "Push-Back-vs-Fix-Locally Matrix by Agent").
+- The agent CAN run the necessary verification on its branch (Cursor for hex-API, either agent for stdlib-only). No env constraint → no excuse to skip push-back.
+- The PR is net-negative — useful core but the noise outweighs it. Close-without-merging and ask the agent to retry with tighter scope.
+- The user has explicitly said "always push back" in this session.
+
+**Cross-references:**
+
+- Inbound: § "Code-Only PRs from Cloud Agents" — establishes the doc-only post-merge baseline this variant extends.
+- Inbound: `staged-review:commit-review` Step 14–16 — canonical sequence; variant uses the same skeleton with bundled code revisions.
+- Outbound: `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — the variant explicitly avoids amending the agent's branch; revisions land on `main` only.
+- Outbound: § "Push-Back-vs-Fix-Locally Matrix by Agent" — the worth-it heuristic for choosing this variant vs. push-back lives there.
+- Outbound: `task-prioritization.md` § "Ceremony Floor" — the size threshold ("small enough to bundle") is the same shape as the floor's correctness × size axis.
+
 ### Plan-Shaped Linear Task Specs
 
 **Linear specs handed to cloud agents are plan-shaped, not roadmap-shaped.** Same distinction as `task-writing.md`'s prompt-vs-plan split: ROADMAP rows are durable cross-instance prompts (vague enough to survive codebase changes); a Linear task delegated to a cloud agent is a single-instance, single-shot consumer — same shape as a `/plan` file.
