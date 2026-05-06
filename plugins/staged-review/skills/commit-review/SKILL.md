@@ -6,7 +6,9 @@ allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 
 # Commit Review — Cloud-Agent PR Workflow (Tier 2, CI-as-Gate)
 
-Read the PR diff. Read upstream reviewer comments (PR + Linear). Read CI status. Audit against acceptance criteria. **Default to push-back over local fix.** Surface a verdict with explicit push-back-vs-fix-locally guidance. **Don't merge** — the user merges (per `critical-rules.md` § "DON'T AUTO-MERGE PRS").
+Read the PR diff. Read upstream reviewer comments (PR + Linear). Read CI status. Audit against acceptance criteria. **Default to push-back over local fix.** Surface a verdict with explicit push-back-vs-fix-locally guidance. On a `✅ ready` verdict, ask a one-line user gate (`merge and close out? (y/n)`); on `y`, merge the PR + update ROADMAP/CHANGELOG/README on `main` + close the Linear ticket. Without explicit `y`, never merge (per `delegation-rules.md` § "DON'T AUTO-MERGE PRS" — the one-line user gate IS the explicit-user-approval the rule requires).
+
+**Tier-2 Codex-Reviews-Cursor delegation is currently DISABLED** (2026-05-06; see `linear-workflow.md` § "Codex-Reviews-Cursor Pattern"). This skill is the single review path for cloud-agent PRs in v1. Step 10b retains its body as legacy reference but is gated behind the disabled-callout — do NOT spawn delegation issues.
 
 ## Scope
 
@@ -25,11 +27,12 @@ WHAT THIS SKILL DOES:
   - Surface a verdict (✅ ready / ⚠️ blockers / 💬 discussion items) and offer to post to Linear (user decides)
 
 WHAT THIS SKILL DOES NOT DO:
-  - Merge the PR (user merges — see `critical-rules.md` § "DON'T AUTO-MERGE PRS")
+  - **Auto-merge the PR** — Step 13 gates merge on a one-line user confirmation (`merge and close out? y/n`). Without an explicit `y` in the same session, the skill never merges (per `delegation-rules.md` § "DON'T AUTO-MERGE PRS")
   - Auto-post draft comments to PR or Linear (drafts only; user posts)
-  - Commit any local fix edits (stage only; user decides whether to push as a follow-up commit on the PR branch)
+  - Commit any local fix edits to the cloud-agent branch — staged in a worktree only; preferred fix-locally channel is paste-as-`@cursor`-comment per the matrix
   - Review local staged work (use `staged-review:code-review` for that)
   - Replace the cloud agent's dispatch — the agent is the implementer here, not the reviewer
+  - Spawn Tier-2 Codex-Reviews-Cursor delegation issues (the pattern is currently disabled — see preamble)
 
 **Distinction from `code-review`:**
 
@@ -66,18 +69,23 @@ digraph commit_review {
   detect    [label="1. Detect Linear MCP\n(abort with install instructions if missing)"];
   list      [label="2. List cloud-agent PRs awaiting review\n(delegate ∈ {Codex, Cursor},\nstatus ∈ {In Review, In Progress},\nfiltered to issues with open PR attachment)"];
   spec      [label="3. Read Linear issue body\nspec + acceptance criteria"];
-  resolve   [label="4. Resolve PR + read diff\n(no checkout — gh pr view/diff/api)"];
-  comments  [label="5. Fetch existing comments\nGitHub PR (Copilot/CodeRabbit/humans)\n+ Linear issue (user clarifications,\nprior reviewer notes, prior push-back)"];
+  resolve   [label="4. Auto-undraft on green CI\n+ resolve PR + read diff\n(no checkout — gh pr view/diff/api)"];
+  comments  [label="5. Fetch existing comments\nGitHub PR (Copilot/CodeRabbit/humans)\n+ Linear issue (user clarifications,\nprior reviewer notes, prior push-back)\n+ Bot cite-and-skip policy"];
   classify  [label="5.5. Classify PR for fast-path\n<100 LOC + no lib/ → fast path\nelse → full machinery"];
   ci        [label="6. Read CI status\n`gh pr checks <number>`\nCI green → proceed\nCI red → blocker\nCI absent → fall back to local harness\n+ surface TODO(setup-ci)"];
   pushback  [label="7. Push-back-first posture\nDefault: draft PR/Linear comments\nLocal fix only per per-agent matrix"];
   worktree  [label="7b. Worktree on demand (lazy)\nOnly when Step 6 falls back to local harness\nOR Step 7 routes to fix-locally\n`git worktree add ../<repo>-review-pr-<n>`\nthen `gh pr checkout <n>` inside it"];
   audit     [label="8. 5-category audit\non `gh pr diff <number>`,\nintegrated with upstream comments"];
+  drift     [label="8.5. Sobelow drift check\nif PR touches files in .sobelow-skips fingerprints\n→ informational ping for verdict\n(actual regen in Step 14)"];
   cross     [label="9. Cross-reference Linear\nacceptance criteria"];
   codex     [label="10a. Optional Codex CLI second-opinion\n(default OFF — opt in for high-stakes)"];
-  delegate  [label="10b. Cursor PR? → Delegate to Codex Cloud\n(fire-and-fetch via Linear; CI-green required)"];
+  delegate  [label="10b. DISABLED (2026-05-06)\nTier-2 Codex-Reviews-Cursor paused\nskip; proceed to verdict"];
   verdict   [label="11. Present verdict\n✅ ready / ⚠️ blockers / 💬 discussion\nDraft push-back comments\nOffer Linear post"];
   cleanup   [label="12. Cleanup worktree (no-op if none was created)\nauto-remove if clean,\nleave + instruct if dirty"];
+  gate      [label="13. User gate: 'merge and close out? (y/n)'\nONLY on ✅ verdict;\nblockers/discussion → skip to end"];
+  merge     [label="14. Merge PR + apply post-merge\nfix-locally items (sobelow regen on main\nif Step 8.5 flagged drift)"];
+  bookkeep  [label="15. Update ROADMAP/CHANGELOG/README\non main in single follow-up commit\n`Update docs for PR #N (INE-M)`"];
+  close     [label="16. Linear close-out\nverify auto-transition to Done\n+ post closing comment"];
 
   detect -> list -> spec -> resolve -> comments -> classify;
   classify -> ci [label="full"];
@@ -87,11 +95,14 @@ digraph commit_review {
   pushback -> worktree [label="fix-locally row"];
   pushback -> audit [label="default (review-only)"];
   worktree -> audit;
-  audit -> cross -> codex;
-  codex -> delegate [label="Cursor PR + CI green"];
-  codex -> verdict  [label="Codex PR or fast-path"];
+  audit -> drift -> cross -> codex;
+  codex -> delegate [label="DISABLED — skip"];
+  codex -> verdict;
   delegate -> verdict;
-  verdict -> cleanup;
+  verdict -> cleanup -> gate;
+  gate -> merge [label="y"];
+  gate -> "END" [label="n / blockers / discussion"];
+  merge -> bookkeep -> close;
 }
 ```
 
@@ -146,6 +157,16 @@ Call `mcp__linear-server__get_issue`. The issue body **is** the spec — full pr
 You'll cross-reference this in Step 9.
 
 ### Step 4: Resolve PR and Read Diff (No Checkout by Default)
+
+**Auto-undraft on green CI.** Before fetching the diff, check whether the PR is still draft AND CI is green:
+
+```bash
+IS_DRAFT=$(gh pr view <number> --json isDraft -q .isDraft)
+CI_STATE=$(gh pr checks <number> --json bucket -q '[.[] | .bucket] | unique')
+# CI_STATE = ["pass"] means all checks succeeded
+```
+
+If `IS_DRAFT == "true"` AND `CI_STATE == ["pass"]`, run `gh pr ready <number>` to flip the PR to ready-for-review. Conservative — never flip a still-running, failing, or mixed-state PR (drafts the user kept intentionally as drafts must have CI not-yet-green; if a reviewer wants to reset, they un-ready manually). This compensates for cloud-agent template drift where Cursor opens a PR with `--draft` and Linear's PR-opened-non-draft → In Progress auto-transition (per `~/.claude/includes/linear-workflow.md` § "Linear GH Auto-Transitions") doesn't fire until the PR is undrafted. The cartouche audit (PR #36) showed drafts sat for ~31 minutes before manual flip — this check eliminates that delay class for any PR that already passed CI.
 
 **Default flow is review-only — no worktree, no checkout.** The reviewer reads the diff via `gh` commands against the PR head; the host session's branch and working tree are never touched. Worktree-checkout is **lazy**: spawned only later, when Step 6 falls back to local harness OR Step 7 routes a finding to a fix-locally matrix row. This default avoids the silent bias toward "I'll amend this" that branch checkout creates, and keeps the push-back-default posture (per `~/.claude/includes/linear-workflow.md` § "Default flow is review-only").
 
@@ -244,7 +265,16 @@ Triage the Linear thread for:
 - **Disputed** — your audit disagrees with an existing comment. Surface explicitly in Step 11 (verdict) so the user sees the disagreement and decides
 - **Scope-shifting** — a Linear comment re-scopes what the PR should do. Treat the comment's scope as authoritative for Step 9's acceptance-criteria cross-reference
 
-If there are no existing comments on either stream (fresh PR, fresh Linear issue), proceed normally.
+**Bot-finding policy: cite-and-skip, don't re-litigate.** CodeRabbit, Copilot, and Codex's GitHub bot run on every PR by default and produce high-signal findings (`linear-workflow.md` § "Review Tiering" cartouche audit: the 3-bot ensemble caught every substantive code-correctness defect this skill caught at critical tier). The verdict's job is to ORCHESTRATE these — list bot findings explicitly with attribution + agree/disagree disposition, and only ADD findings the bots missed (project-specific rule enforcement, scope/intent drift, deep diagnosis, runtime/Tidewave-verified evidence). Format in the verdict:
+
+> **Bot findings (CodeRabbit, Copilot, Codex GitHub bot):**
+> - `lib/foo/bar.ex:42` — CodeRabbit flagged missing nil-guard. **Agreed** — push back to agent for fix.
+> - `lib/foo/baz.ex:15` — Copilot flagged dead branch. **Disagreed** — branch is reachable from `do_thing/2` callsite (verified). Drop.
+>
+> **New findings (not raised by bots):**
+> - `lib/cartouche/sleuth.ex:88` — TODO marker missing per project convention (cite ROADMAP)
+
+If a finding overlaps with a bot finding, do NOT present it as fresh — that's the duplicating-bot-work failure mode `linear-workflow.md` § "Review Tiering" warns against. If there are no existing comments on either stream (fresh PR, fresh Linear issue), proceed normally.
 
 ### Step 5.5: Classify PR for Fast-Path Routing
 
@@ -409,6 +439,35 @@ Verification examples worth pasting into push-back comments:
 
 **Delegate the survey to Explore** if the PR touches ~20+ files or needs cross-file tracing — same pattern as `code-review` Step 3a.
 
+### Step 8.5: Sobelow Drift Check (`.sobelow-skips` Fingerprints)
+
+If the PR diff touches files referenced by line-fingerprint in `.sobelow-skips`, the committed skip entries may be stale post-merge — sobelow's skip mechanism is line-keyed, so any line-shift invalidates fingerprints and fails the next sobelow run on `main`.
+
+**Detect (no checkout needed):**
+
+```bash
+# Fetch the committed .sobelow-skips at the PR's HEAD
+gh api repos/OWNER/REPO/contents/.sobelow-skips?ref=$(gh pr view <number> --json headRefOid -q .headRefOid) \
+  | jq -r .content | base64 -d > /tmp/sobelow-skips.committed
+
+# Extract files referenced by the committed fingerprints
+grep -oE '[a-zA-Z0-9_/\.]+\.(ex|exs)' /tmp/sobelow-skips.committed | sort -u > /tmp/skip-files
+
+# Compare to PR-modified files
+gh pr diff <number> --name-only > /tmp/pr-files
+comm -12 /tmp/skip-files /tmp/pr-files
+```
+
+If `comm -12` returns any matches → **likely drift**. The fingerprints will be invalidated by any line-shift in those files; sobelow on `main` post-merge will fail until `.sobelow-skips` is regenerated.
+
+**This is NOT a blocker.** It's an informational ping for Step 11 (verdict). The actual regen happens in Step 14 (post-merge) on `main` — `commit-review` owns the regen as part of the post-merge bookkeeping commit per `linear-workflow.md` § "Code-Only PRs from Cloud Agents". Surface in the verdict block as:
+
+> **Sobelow drift watch:** PR touches `lib/mix/cartouche.gen.ex` (referenced by 4 of 8 `.sobelow-skips` fingerprints). Step 14 will regenerate `.sobelow-skips` on `main` after merge as part of the bookkeeping commit.
+
+If the repo's harness has the `Sobelow drift check` step (per `cartouche/.github/workflows/harness.yml`'s pattern; see `linear-workflow.md` § "Code-Only PRs from Cloud Agents"), CI will already have surfaced the drift loudly with a diff in the harness output. Cross-reference: cite the failing CI step in the verdict and confirm Step 14 will apply the regen.
+
+If the repo lacks the drift check step, surface a one-line follow-up: *"Consider adopting the harness sobelow-drift check (template in `cartouche/.github/workflows/harness.yml` lines 78–91) so drift is visible in CI output instead of inferred from diff inspection."*
+
 ### Step 9: Cross-Reference Linear Acceptance Criteria
 
 Walk the acceptance criteria from Step 3 (and any scope amendments from Step 5's Linear comments — those override the original body). For each one:
@@ -446,7 +505,11 @@ If Codex is dispatched and unreachable, surface that in the verdict closing line
 
 **`code-review` (pre-commit, local work) keeps Codex CLI mandatory.** That skill reviews code Claude itself just wrote — single-judge failure mode is the whole reason it exists. Don't change that behavior; this opt-in scope is `commit-review` only.
 
-### Step 10b: Cursor PR — Delegate Review to Codex Cloud (Fire-and-Fetch)
+### Step 10b: Cursor PR — Delegate Review to Codex Cloud (Fire-and-Fetch) — **DISABLED (2026-05-06)**
+
+> **🚨 DISABLED.** Tier-2 Codex-Reviews-Cursor delegation is paused — see `linear-workflow.md` § "Codex-Reviews-Cursor Pattern (Review Delegation)" for the structural-race rationale (INE-26 was canceled when PR #32 closed before Codex picked up the polling task) and the re-enable conditions. **Skip this step entirely on every invocation; proceed straight to Step 11 verdict.** The body below retains its content as historical reference for if/when delegation resumes.
+>
+> The bot ensemble (CodeRabbit, Copilot, Codex's own GitHub bot) already runs on every cloud-agent PR and covers correctness; this skill's role is the orchestration layer above the bots (triage, project-rule enforcement, deep diagnosis, push-back routing) per `linear-workflow.md` § "Review Tiering". Don't re-introduce delegation issues for fresh PRs while this disable is in force.
 
 When the PR being reviewed was implemented by Cursor, delegate the **review itself** to Codex Cloud. Codex is a stronger bug-finder than Claude on this user's PR surface; Cursor PRs ship with green CI and self-validation, so the high-value remaining work is deeper code-review, which Codex does well. This step composes the existing `linear-workflow.md` flows (Cursor implements + Codex delegates) into a single review-delegation pattern. See `linear-workflow.md` § "Codex-Reviews-Cursor Pattern (Review Delegation)" for the cross-flow shape.
 
@@ -615,12 +678,14 @@ The forbidden phrasing is "File a new ROADMAP task for <small inline finding> (s
 
 **Acceptance criteria:** all met (cite each, including any scope amendments from Linear comments)
 **Upstream comments (Step 5):** N integrated, 0 disputed
+**Bot findings (CodeRabbit/Copilot/Codex GitHub bot):** N integrated (cite-and-skip per Step 5 policy)
 **Harness:** CI green (Harness check passed in Xm) — link to checks page
 **5-category audit:** N findings, all priority ≤ 4 / discuss-trivial
 **Coverage:** N% on touched modules (≥ tier)
+**Sobelow drift watch:** none / present-Step-14-will-regen
 **Codex second-opinion:** not run (default off — high stakes? offer below)
 
-User: when ready, run `gh pr merge <number>` (rebase / squash / merge per repo policy).
+Proceeding to Step 13 — single one-line user gate (`merge and close out? y/n`) before merge + bookkeeping + Linear close.
 ```
 
 **⚠️ Blockers:**
@@ -660,7 +725,9 @@ Surface any `disputed` upstream comments here too.]
 
 Default is **don't post** — wait for explicit user confirmation. The verdict in this session's chat is the deliverable; the Linear comment is optional persistence.
 
-**Do NOT run `gh pr merge`.** Per `critical-rules.md` § "DON'T AUTO-MERGE PRS", merge is the user's call. After the verdict, the skill's last responsibility is Step 12 (worktree cleanup).
+**Don't run `gh pr merge` without the Step 13 user gate.** The merge gate (Step 13) collects the user's one-line `y` — that's the explicit-this-session approval `delegation-rules.md` § "DON'T AUTO-MERGE PRS" requires. Without it, the skill never merges. After verdict + Step 12 cleanup, the flow continues into Step 13 (gate) → Step 14 (merge + fix-locally apply) → Step 15 (ROADMAP/CHANGELOG/README on `main`) → Step 16 (Linear close-out).
+
+On a `⚠️ Blockers` or `💬 Discussion` verdict, Step 13 is **skipped** — there is no merge to gate. The deliverable is the verdict + draft push-back; user decides on next-action manually.
 
 ### Step 12: Cleanup the Review Worktree (No-Op if None Was Created)
 
@@ -688,6 +755,127 @@ fi
 The fast-path verdict (Step 11 fast-path block) cannot have local fixes (Step 7 is skipped on fast-path), so when a worktree exists on the fast path it always auto-removes.
 
 The Step 10b fire path runs its own narrower cleanup before STOP — it intentionally does not invoke this section since the audit was delegated to Codex Cloud and the local worktree never accumulated fixes.
+
+### Step 13: User Gate for Merge (one-line confirmation)
+
+**Only fires on a `✅ Ready to merge` verdict.** On `⚠️ Blockers` or `💬 Discussion`, skip Steps 13–16 entirely; the deliverable is the verdict + draft push-back, and the user decides the next action manually.
+
+Print the lead-in header (`[INE-N · PR #M]` per `delegation-rules.md` § "Commit-Review Header") followed by:
+
+> **Verdict:** `✅ Ready to merge` (recap the key bullets — acceptance criteria met / CI green / N bot findings cite-and-skipped / N new findings handled).
+>
+> **Merge and close out?** Type `y` to proceed:
+> - merge the PR (`gh pr merge <N>` per repo policy — rebase / squash / merge)
+> - apply post-merge fix-locally items (sobelow regen if Step 8.5 flagged drift)
+> - update `ROADMAP.md` / `CHANGELOG.md` / `README.md` on `main` in a single follow-up commit
+> - confirm Linear ticket transitioned to `Done` (transition manually via MCP if integration didn't fire)
+>
+> Type `n` to stop here (verdict-only; you handle the rest).
+
+**Wait for explicit `y`.** Anything other than `y` (`n`, blank, "let me check the diff first," etc.) → stop and wait. Do NOT proceed to Step 14 without an explicit `y`. This is the single explicit-user-approval point that satisfies `delegation-rules.md` § "DON'T AUTO-MERGE PRS"; without it, the skill ends at the verdict.
+
+The user's `y` authorizes the entire post-merge bookkeeping sequence (Steps 14-16) — they don't need to confirm again per step. One gate, full sequence.
+
+### Step 14: Merge + Apply Post-Merge Fix-Locally Items
+
+On `y` from Step 13:
+
+1. **Merge the PR.** Use the repo's preferred policy (squash/rebase/merge); when ambiguous, default to `gh pr merge <N> --squash --delete-branch --auto` if the repo has CI as a required check, else `--merge --delete-branch`. Confirm `mergedAt` populated:
+   ```bash
+   gh pr view <N> --json state,mergedAt -q '{state, mergedAt}'
+   ```
+   On merge failure (mergeable: CONFLICTING, required check pending) → surface the gh error and stop. Don't retry.
+
+2. **Move to `main` on the host repo.** Pull latest:
+   ```bash
+   git checkout main
+   git pull
+   ```
+
+3. **Apply sobelow drift regen if Step 8.5 flagged drift.** From the host repo (no worktree needed — the merged state is on `main`):
+   ```bash
+   mix sobelow --mark-skip-all
+   git diff --quiet .sobelow-skips || git add .sobelow-skips
+   ```
+   If `.sobelow-skips` was unchanged, the drift detection in Step 8.5 was a false positive; that's fine — Step 15's commit will simply not include the file.
+
+4. **Apply any other harness-flagged drift** in commit-review-owned files. The list of files commit-review may apply at merge time is bounded — `.sobelow-skips`, ROADMAP, CHANGELOG, README. Anything else flagged by harness should have been a push-back blocker in Step 7 or 11; do NOT widen scope here.
+
+**Never push to the cloud-agent's branch.** The merge happens via `gh pr merge` on `main`; subsequent fixes happen on `main`. Direct pushes to `cursor/...` or `codex/...` are forbidden per `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
+
+### Step 15: Update ROADMAP / CHANGELOG / README on `main`
+
+Continue on `main` (not the merged PR's branch — already deleted). One follow-up commit consolidates all doc updates:
+
+1. **ROADMAP.md** — find the row that the merged PR completed. Mark it `✅` (preserve the `[CX]` / `[CSR]` marker for history audit, e.g. `Task 12 [CSR]` → `Task 12 [CSR] ✅`). Update Current Focus section if the completed task was named in it. For phase summaries, increment the completed-task count.
+
+2. **CHANGELOG.md** — add an entry under `## [Unreleased]`. Format:
+   ```markdown
+   ### Task M (PR #N)
+   Brief description of what was built and why. Match the repo's existing CHANGELOG style.
+   ```
+   No counts/stats per `task-prioritization.md` § "No counts or stats in entries". Refer to PR by number AND Linear issue ID (`PR #N (INE-M)`) so future readers can cross-reference both.
+
+3. **README.md** — update only if the merged PR added or changed user-facing functionality (new public API, changed CLI flags, new env vars, breaking changes). Skip for internal refactors, test-only changes, doc-only changes elsewhere.
+
+4. **`.sobelow-skips`** — if Step 14 staged a regenerated version, include it in this commit.
+
+**Single commit, message format:**
+
+```bash
+git add ROADMAP.md CHANGELOG.md README.md .sobelow-skips 2>/dev/null  # README + skips optional
+git commit -m "Update docs for PR #<N> (INE-<M>)" -m "$(cat <<'EOF'
+- ROADMAP: Task <M> marked ✅
+- CHANGELOG: entry added under [Unreleased]
+- README: <updated section> / no changes
+- .sobelow-skips: regenerated post-merge / no drift detected
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+EOF
+)"
+git push
+```
+
+If the user has explicitly said "don't push" in this session, stage only and stop. Same shape as the global `NEVER COMMIT WITHOUT EXPLICIT REQUEST` rule — but here, the user's `y` to Step 13 IS explicit approval for the bookkeeping commit. If they meant `y for merge but not the docs commit`, they would have said so; commit-review's contract is a single gate covers the whole sequence.
+
+**On commit-message-hook failure:** investigate and fix the underlying issue. Don't `--no-verify`. If the hook flags something in the staged docs (e.g., trailing whitespace), fix it and recommit (a NEW commit, not `--amend`).
+
+### Step 16: Linear Close-Out
+
+If the project doesn't use Linear (per `linear-workflow.md` § "ROADMAP-Fallback Flow"), skip this step entirely.
+
+Otherwise:
+
+1. **Verify Linear issue auto-transitioned to `Done`.** Linear's GH integration (per `linear-workflow.md` § "Linear GH Auto-Transitions") should fire PR-merged-to-default → `Done` within ~10 sec of merge. Check:
+   ```
+   mcp__linear-server__get_issue with the issue ID from Step 3
+   ```
+   If `state.name == "Done"` → integration fired correctly. Skip to step 3.
+
+2. **Manual transition if integration didn't fire.** Use the workspace's "Done" status ID (look up via `mcp__linear-server__list_issue_statuses` filtered by team). Then:
+   ```
+   mcp__linear-server__save_issue with id + state: <Done state ID>
+   ```
+   Surface a one-line note in the verdict: *"Linear auto-transition didn't fire — manually transitioned to Done. Consider verifying workspace config per `linear-workflow.md` § 'Linear GH Auto-Transitions'."*
+
+3. **Post a closing comment on the Linear issue.** Single comment, scope: PR-link + one-line summary + flag any post-merge follow-up tasks (e.g. uncovered drift, deferred discussion items). Format:
+   ```
+   mcp__linear-server__save_comment with issueId + body:
+
+   Merged PR #<N>: <PR title>.
+
+   Post-merge bookkeeping commit on main: <main commit SHA>.
+   - ROADMAP: Task <M> ✅
+   - CHANGELOG: [Unreleased] entry added
+   - <other notes — sobelow regen if applied, README update if applied, deferred discussion items if any>
+
+   Closing this issue. Follow-up tasks tracked in ROADMAP / new Linear issues if needed.
+   ```
+
+4. **Final session output.** Print a one-line confirmation:
+   > `[INE-<M> · PR #<N>] Merged ✅ — main bookkeeping commit <SHA>; Linear ticket Done; verdict + push-backs sent earlier.`
+
+Skill ends here. The user can verify the state via Linear UI / `gh pr view` / `git log main` if they want.
 
 ## Common Mistakes
 

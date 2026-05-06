@@ -63,7 +63,7 @@ Recommended pattern:
 
 > **🚨 Code-mutation delegation suspended (Elixir projects, 2026-05-05).** Codex Cloud has no Elixir runtime — `mix`/`iex`/`elixir` not installed. See `task-prioritization.md` § "Codex Delegation (`[CX]`)" and `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for verification details and the path back to eligibility.
 
-**Currently permitted:** review-only Codex delegations (see § "Codex-Reviews-Cursor Pattern" below). The agent reads a PR diff embedded in the issue body and posts a verdict comment — no runtime needed.
+**Currently permitted:** none. Code-mutation `[CX]` is suspended (Elixir runtime missing); Tier-2 review-only `[CX]` (Codex-Reviews-Cursor pattern) is also disabled per the next section's status callout — INE-26 polling-race failure mode. New `[CX]` issues of any flavor should not be created until at least one of the two suspensions lifts.
 
 **When restored:** the flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. The implementer/reviewer handoff shape is identical. Until restored, treat any new code-mutation `[CX]` issue as a routing mistake — redirect to `[CSR]` (Cursor).
 
@@ -79,7 +79,7 @@ Same shape as the Codex flow with **broader eligibility**. Cursor's cloud enviro
    - **Body = the prompt** — same template as Codex (Context / Task / Acceptance criteria / Out of scope / File paths / Scoring / Reviewer note).
    - Initial status: `Todo`.
 
-2. **Cursor picks it up.** *Intended* flow: Cursor's Background Agent transitions `Todo` → `In Progress`, opens a PR with body markers (`<!-- CURSOR_AGENT_PR_BODY_BEGIN -->` / `<!-- CURSOR_AGENT_PR_BODY_END -->`), transitions to `In Review`. **Observed** flow: in early Cursor round-trips, the PR auto-opened but status stayed at `In Progress` — same partial-transition failure mode as Codex. Don't rely on `In Review` as the readiness signal. **Canonical fix:** see § "Agent Status-Transition Guidance" — Linear confirmed the status flip is the agent's responsibility, not a built-in Linear behavior, and is enforced via workspace-level "Additional guidance for agents."
+2. **Cursor picks it up.** *Intended* flow: Cursor's Background Agent transitions `Todo` → `In Progress`, opens a PR with body markers (`<!-- CURSOR_AGENT_PR_BODY_BEGIN -->` / `<!-- CURSOR_AGENT_PR_BODY_END -->`), transitions to `In Review`. **Observed** flow: in early Cursor round-trips, the PR auto-opened but status stayed at `In Progress` — same partial-transition failure mode as Codex. Don't rely on `In Review` as the readiness signal. **Canonical fix:** see § "Agent Status-Transition Guidance" — Linear confirmed the status flip is the agent's responsibility, not a built-in Linear behavior, and is enforced via workspace-level "Additional guidance for agents." **Required:** Cursor's `gh pr create` should NOT use `--draft` — Linear's PR-opened-non-draft → In Progress auto-transition (see § "Linear GH Auto-Transitions") only fires for non-draft PRs, and drafts force a manual undraft step on every PR. Set this expectation explicitly in the issue body's `## Reviewer note`.
 
 3. **Cursor self-validates before opening the PR** — verified `mix test.json --quiet`, `mix credo --strict`, `mix format --check-formatted`, targeted `mix test test/...` runs all happen in Cursor's harness. PRs ship with the harness already green from Cursor's side. The local `commit-review` reviewer's job becomes the **5-category audit** + acceptance-criteria cross-reference, not "did the harness pass" (that's expected baseline).
 
@@ -107,7 +107,7 @@ Same shape as the Codex flow with **broader eligibility**. Cursor's cloud enviro
 
 ### Codex-Reviews-Cursor Pattern (Review Delegation)
 
-> **Status (2026-05-05):** review-only Codex delegations remain permitted under the broader `[CX]` code-mutation suspension — Codex reads the PR diff embedded in the issue body and posts a verdict comment, no `mix`/runtime invocation involved. Treat as exception-not-default while the suspension is in force; if review verdicts start arriving with fabricated harness claims (the failure pattern that drove the code-mutation suspension), pause this pattern too and surface to the user.
+> **Status (2026-05-06): DISABLED.** Tier-2 Codex-Reviews-Cursor is paused. Failure mode: the polling task races the review-target PR's lifecycle — INE-26 was canceled because PR #32 closed before Codex picked up the polling task. The bot ensemble (CodeRabbit, Copilot, Codex's own GitHub bot) already covers correctness on every PR; orchestration / project-rule enforcement / triage / deep diagnosis are local Tier 2's role via `staged-review:commit-review` from this Claude Code session. Re-enable when (a) commit-SHA-pinned polling lands so PR closure no longer breaks the delegation, OR (b) a real driver appears for double-review on cloud-agent PRs that bots + commit-review can't cover. Until then, do NOT create Codex-Reviews-Cursor delegation issues. Existing pre-2026-05-06 references retain history but are not active.
 
 A specific composition of the two flows above: Cursor implements, Codex reviews. Activated by `staged-review:commit-review` Step 10b when the polled PR's source Linear issue has `delegate = Cursor` and CI is green.
 
@@ -153,9 +153,9 @@ If you find yourself re-finding what CodeRabbit already flagged, you're duplicat
 3. Only standard-tier files → CI-green check + bot-review check. Merge if both clean. Skim if anything flagged.
 4. Only ceremony-tier files → CI-green check. Merge.
 
-**Asymmetric application by reviewer-type — interaction with Codex-Reviews-Cursor:**
+**Asymmetric application by reviewer-type — interaction with Codex-Reviews-Cursor (legacy / disabled):**
 
-The Codex-Reviews-Cursor pattern (§ above) overlaps with the bot ensemble. With CodeRabbit + Copilot + Codex's own GitHub bot already running on every Cursor PR, the delegation pattern earns its keep only when **all three** hold: the PR is critical-tier AND a bot flagged ambiguity needing a deeper read AND local Tier 2 needs a second perspective on the triage decision. Skip the delegation issue creation on standard- and ceremony-tier PRs entirely; the GitHub-side bots already cover those.
+Historical: the Codex-Reviews-Cursor pattern (§ above) overlapped with the bot ensemble; the prior recommendation was to skip the delegation pattern on standard- and ceremony-tier PRs and only use it on critical-tier-with-bot-ambiguity. **As of 2026-05-06 the pattern is disabled outright** (see § "Codex-Reviews-Cursor Pattern" status callout) — the conditions for using the delegation never need to be evaluated. Tier 2 review goes through `staged-review:commit-review` from this Claude Code session for every cloud-agent PR that warrants it; the bot ensemble (CodeRabbit, Copilot, Codex's GitHub bot) covers correctness; commit-review owns orchestration / project-rule enforcement / triage / deep diagnosis.
 
 The push-back-vs-fix matrix below applies to Tier-2 reviews only. Standard- and ceremony-tier PRs don't engage the calculus — they merge or they fail CI; that's the loop.
 
@@ -363,17 +363,17 @@ The `Acceptance criteria` and `Reviewer note` sections are what make the issue r
 
 ### Mandatory Acceptance-Criteria Bullets
 
-**Every delegated issue's `## Acceptance criteria` section MUST include explicit bullets for ROADMAP.md and CHANGELOG.md updates** — verbatim, not paraphrased into vague "update docs" wording. Cloud agents (Codex, Cursor, future) do NOT reliably propagate the "task without updated docs is incomplete" rule from `task-prioritization.md` § "Roadmap Maintenance" into their PR scope unless it's a checked acceptance bullet on the specific issue.
+**Every delegated issue's `## Acceptance criteria` section MUST include the harness-green bullet.** ROADMAP.md / CHANGELOG.md / README.md updates are explicitly NOT in the agent's scope — those land in `commit-review`'s post-merge follow-up commit on `main` (see § "Code-Only PRs from Cloud Agents" below). The historical pattern of putting ROADMAP/CHANGELOG bullets in agent acceptance criteria created a per-PR merge-conflict surface (cartouche audit 2026-05-06: 11 of 14 merged PRs touched both files, PR #36 hit `mergeable: CONFLICTING DIRTY` against PR #33's earlier merge of the same files). Flipping to code-only PRs eliminates the conflict class entirely and gives the reviewer a deliberate moment to verify doc updates are consistent with the merged code.
 
-Required bullets, copy-paste shape:
+Required bullet, copy-paste shape:
 
 - **Full harness green at PR open** — `mix format --check-formatted`, `mix compile --warnings-as-errors`, `mix credo --strict` (TODO/FIXME exit-2 carve-out only), `mix sobelow --exit Low`, `mix doctor`, `mix test.json --quiet`, `mix test.json --cover --cover-threshold N` at the repo's coverage tier, and `mix dialyzer` all clean. CI runs the same checks; pre-PR self-validation just shifts the failure round-trip earlier. A red harness on PR open is a blocking acceptance-criterion miss, not a "soft polish" item — see `cloud-agent-environments.md` § "Cursor Cloud → Self-validation expectation" for the per-tool semantics.
-- **ROADMAP.md updated** — task row marked ⬜ → ✅ (or struck through with the new state); Current Focus section refreshed if the completed task affected it; for bundle-entrypoint tasks (e.g. a coverage push that gates downstream tasks), name the entrypoint AND the unblocked dependents in the bullet so the agent updates both
-- **CHANGELOG.md updated** — entry added under `## [Unreleased]` describing what was built and why; no test counts, function counts, or lines-changed tallies (per `task-prioritization.md` § "No counts or stats in entries")
 
-Place these alongside the technical / test acceptance bullets, not as a final note or in `Reviewer note`. They're not optional polish — they're part of the work's done-definition. Without them as explicit acceptance criteria, the `commit-review` reviewer has no grounds to block the PR for stale docs, and ROADMAP drift compounds across multiple delegated PRs (the failure mode that produces ROADMAP rows still showing ⬜ for tasks the corresponding Linear issue closed weeks ago).
+Place this alongside the technical / test acceptance bullets, not as a final note or in `Reviewer note`. The harness gate is part of the work's done-definition.
 
-**Exception:** review-only delegated issues (e.g. a Codex issue whose task is to review another agent's PR and post a verdict comment — see § "Codex-Reviews-Cursor Pattern") produce a verdict, not code. No ROADMAP/CHANGELOG row to update; skip these bullets and add a single bullet for "verdict comment posted on the delegation issue with finding table + acceptance-criteria coverage paragraph."
+**Files agents must NOT modify:** `ROADMAP.md`, `CHANGELOG.md`, `README.md`, `.sobelow-skips`. State this explicitly under § "Out of scope" in the issue body so the agent doesn't include doc updates in the diff. `commit-review` updates these files on `main` after the merge (see § "Code-Only PRs from Cloud Agents" for rationale).
+
+**Exception:** review-only delegated issues (legacy Codex-Reviews-Cursor pattern, currently disabled — see § "Codex-Reviews-Cursor Pattern (Review Delegation)") produce a verdict, not code. No ROADMAP/CHANGELOG row to update; skip the harness bullet and add "verdict comment posted on the delegation issue with finding table + acceptance-criteria coverage paragraph."
 
 ### Workspace-Specific Layout
 
@@ -410,7 +410,7 @@ Plus ~20 more (milestones, cycles, attachments, documents). Use `ToolSearch` wit
 
 > **🚨 SUSPENDED — code-mutation delegation only (Elixir projects, 2026-05-05).** Codex Cloud's harness has no Elixir/Erlang runtime — `mix`/`iex`/`elixir` not installed, every mix invocation fails with `command not found`. Verified against in-flight cartouche PRs where Codex shipped commits with zero harness evidence. **Do not create new `[CX]` tasks that involve writing or modifying code in an Elixir repo until the Codex Cloud env is restored.** Route all such work to `[CSR]` (Cursor) — Cursor's env has Elixir/OTP and runs the full mix toolchain.
 >
-> **Still permitted:** review-only `[CX]` delegations (e.g. the Codex-Reviews-Cursor pattern in this file). Reading a PR diff and posting a verdict comment doesn't need a runtime. Treat as exception-not-default while the suspension is in force; expect to revisit when the broader env is verified healthy.
+> **No longer permitted:** review-only `[CX]` (Codex-Reviews-Cursor pattern) is also disabled as of 2026-05-06 — see § "Codex-Reviews-Cursor Pattern (Review Delegation)" status callout. Both code-mutation and review-only `[CX]` are paused; do NOT create new `[CX]` issues of either flavor.
 >
 > See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the verification details and the path back to `[CX]` eligibility once the env is fixed.
 
@@ -436,9 +436,108 @@ Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meetin
 | Task 81 `[CX]` | 🔄 in-review   | Codex PR open, awaiting review |
 ```
 
+### Code-Only PRs from Cloud Agents
+
+**Cloud-agent PRs touch code + tests only. They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`.** These files are owned by `staged-review:commit-review` and updated in a single post-merge follow-up commit on `main`.
+
+**Why:** in the cartouche audit (2026-05-06), 11 of 14 merged PRs touched both `ROADMAP.md` and `CHANGELOG.md`. PR #36 hit `mergeable: CONFLICTING (DIRTY)` against PR #33's earlier merge of the same files — every PR adds a rebase round just to resolve doc conflicts. Centralizing the doc updates in one reviewer-owned commit per PR eliminates the conflict class entirely and gives the reviewer a deliberate moment to verify the updates are consistent with the merged code.
+
+**How to apply (issue body):**
+
+- Under `## Out of scope`, list these files explicitly:
+  > Out of scope: `ROADMAP.md`, `CHANGELOG.md`, `README.md`, `.sobelow-skips`. Reviewer (`staged-review:commit-review`) updates these on `main` after merge — leave them alone.
+- Under `## Acceptance criteria`, do NOT include "ROADMAP.md updated" or "CHANGELOG.md updated" bullets. Only "harness green" + technical acceptance items.
+
+**How to apply (commit-review):** Step 15 of `staged-review:commit-review`'s SKILL.md owns the post-merge follow-up commit. ROADMAP row marked ✅ (preserving the `[CX]` / `[CSR]` marker for history audit); CHANGELOG entry under `## [Unreleased]`; README updated if user-facing functionality changed; one commit, message format `Update docs for PR #M (INE-N)`.
+
+**`.sobelow-skips` exception:** for repos with sobelow line-fingerprint drift (cartouche pattern — see § "Linear GH Auto-Transitions" cross-reference and `staged-review:commit-review` Step 14), the harness fails-loud-with-diff if drift is detected; commit-review applies the regen at merge in the same post-merge commit. Agent never touches the file.
+
+### Plan-Shaped Linear Task Specs
+
+**Linear specs handed to cloud agents are plan-shaped, not roadmap-shaped.** Same distinction as `task-writing.md`'s prompt-vs-plan split: ROADMAP rows are durable cross-instance prompts (vague enough to survive codebase changes); a Linear task delegated to a cloud agent is a single-instance, single-shot consumer — same shape as a `/plan` file.
+
+Cloud agents do NOT carry context across sessions. Each pickup is a fresh session that reads the issue body once, implements once, and stops. Roadmap-shaped vagueness — "add X to the auth module" — burns round-trips because the agent has to rediscover paths, contracts, and conventions each round. INE-19's 7 round-trips on cartouche are partly an artifact of this — TODO-marker stripping, panic-table mislabel, doctest flake, and spec-nil-handling were all caused by missing context the spec didn't pin.
+
+**Template (paste into the Linear issue body alongside the existing `## Context` / `## Task` / `## Acceptance criteria` structure):**
+
+```markdown
+## Files to modify
+- `lib/foo/bar.ex` — add function `do_thing/2` with spec `(integer(), Keyword.t()) :: {:ok, term()} | {:error, atom()}`
+- `test/foo/bar_test.exs` — assert success path + 2 error paths (`:invalid_input`, `:not_found`)
+
+## Files to NOT modify
+- `ROADMAP.md`, `CHANGELOG.md`, `README.md` (commit-review handles post-merge)
+- `.sobelow-skips` (auto-regenerated; commit-review applies regen at merge)
+
+## Env constraints
+- Codex Cloud: no hex.pm, no Tidewave, no internet. Use stdlib + already-installed deps.
+- Cursor Cloud: hex.pm + internet OK; mix tasks OK. Tidewave NOT reachable.
+
+## Success criteria
+- `mix test.json --quiet --failed` returns 0 failures on touched files
+- `mix credo --strict` shows 0 issues
+- `mix dialyzer` 0 warnings
+- Full harness green per § "Mandatory Acceptance-Criteria Bullets"
+- PR title includes `(INE-N)`; PR opened non-draft (see § "Linear GH Auto-Transitions")
+```
+
+The four sections (`Files to modify`, `Files to NOT modify`, `Env constraints`, `Success criteria`) are load-bearing. Skip any of them and the agent fills the gap with assumptions — usually wrong assumptions that cost a round-trip.
+
+**Cross-reference:** `task-writing.md` § "Plan mode files include / exclude" — the rules that apply to local `/plan` files apply identically to Linear task bodies for cloud agents. Same shape of artifact, same single-instance consumption pattern, same need for concrete paths + contracts + reuse pointers.
+
+### Linear GH Auto-Transitions (workspace-level config)
+
+**Linear's GitHub integration can auto-transition issues based on PR events, but the auto-transitions are workspace-config, not on by default.** Without configured rules, agents transition status manually — observed in cartouche INE-19 where the 3-second offset between PR #36 merge and issue completion was the agent reacting to user instruction, not the integration firing.
+
+Configured auto-transitions eliminate two per-PR friction points the cartouche audit confirmed are universal:
+
+- Manual `Todo` → `In Progress` flip when PR opens
+- Manual `In Review` → `Done` flip when PR merges + manual close-out comment posted by an agent on user instruction
+
+**One-time setup (workspace admin):**
+
+1. Linear → **Workspace settings → Integrations → GitHub** → confirm the org is connected (e.g. `ZenHive`).
+2. Linear → **Workspace settings → Workflow** (or Team-scoped if narrower) → enable auto-transitions:
+   - **PR opened (non-draft)** on a branch tied to an issue → status `In Progress`
+   - **PR merged to default branch** on a branch tied to an issue → status `Done`
+3. Verify with a test PR: open a tiny PR on a branch named `INE-N-…` (substitute a real issue ID), confirm Linear flips to `In Progress` within ~10 sec; merge, confirm `Done` within ~10 sec.
+
+**Why drafts matter:** the integration's "PR opened (non-draft) → In Progress" rule explicitly excludes drafts. If agents open PRs with `gh pr create --draft`, the transition doesn't fire until the PR is undrafted — and the cartouche audit (PR #36) showed drafts sat for ~31 minutes before manual flip. Two complementary fixes:
+
+- **Agents stop opening drafts.** Set this in the issue body's `## Reviewer note` and in the per-flow guidance above (Cursor Delegation Flow Step 2 already updated). Cursor's `gh pr create` should not pass `--draft`.
+- **`commit-review` Step 4 auto-undrafts** via `gh pr ready` when CI is green AND the PR is still draft. Conservative — never flip a still-running or failing PR.
+
+Both gates protect against partial fixes — if one doesn't take effect (agent template drift, CI not yet green), the other still narrows the manual surface.
+
+### ROADMAP-Fallback Flow (projects without Linear)
+
+**ROADMAP.md is source of truth in all delegation flows; Linear is a queue *view* on top of it, not a replacement.** Projects that don't use Linear — or temporarily can't reach the Linear MCP — still run the same delegation pattern via `[CX]` / `[CSR]` markers in ROADMAP.md rows directly.
+
+**Pickup signal without Linear:**
+
+- Cloud agents poll ROADMAP.md for rows with `[CX]` / `[CSR]` markers and `⬜` status (or matching their delegate field).
+- Reviewer (this Claude Code session via `staged-review:commit-review`) discovers PRs via `gh pr list --state open` filtered to cloud-agent branch prefixes (`codex/`, `cursor/`).
+- Status updates are ROADMAP edits in the post-merge commit (Step 15 of commit-review): `🔄` → `✅` plus the marker preserved.
+
+**What changes vs the Linear-backed flow:**
+
+- No `mcp__linear-server__*` calls anywhere. Skip Step 16 (Linear close-out) of commit-review entirely.
+- No Linear `@cursor` / `@codex` push-back channel — push-back goes on the GitHub PR review (line-level findings + scope paragraph in one PR comment), per the wake-mention discipline rules adapted to PR-only.
+- No issue body — the ROADMAP row's prompt + the project's CLAUDE.md is the agent's full context. This pushes more weight onto ROADMAP rows being plan-shaped (see § "Plan-Shaped Linear Task Specs" — the same template applies, just lives in ROADMAP).
+
+**What stays identical:**
+
+- Code-only PRs (agent never touches ROADMAP/CHANGELOG/README).
+- Plan-shaped task specs.
+- Post-merge bookkeeping commit on `main` (Step 15) — ROADMAP + CHANGELOG + README updates.
+- Draft-PR handling (commit-review Step 4 still auto-undrafts; agents still asked to skip `--draft`).
+- Bot ensemble (CodeRabbit, Copilot, Codex GitHub bot) integration in commit-review Step 8.4.
+
+Use this fallback when the project hasn't onboarded Linear, when Linear is intentionally out-of-scope (e.g. a one-off public-repo contribution), or as a safety net during Linear MCP outages. The reviewer skill works either way — Linear is an upgrade-path, not a hard dependency.
+
 ### Cross-References
 
-- `task-writing.md` — body-as-prompt principle (issue bodies follow the same rule as ROADMAP rows)
-- `critical-rules.md` § "DON'T AUTO-MERGE PRS" — `In Review` → user-merge boundary
+- `task-writing.md` — body-as-prompt principle (issue bodies follow the same rule as ROADMAP rows); plan-shape vs roadmap-shape distinction
+- `critical-rules.md` § "DON'T AUTO-MERGE PRS" — `In Review` → user-merge boundary; commit-review's user-confirmed merge step preserves this
 - `critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST" — local review verdict is informational, not merge authorization
 - `workflow-philosophy.md` § "Implementer / Reviewer Handoff" — the handoff shape Linear+cloud-agent implements
