@@ -1,7 +1,7 @@
 {
   "name": "cloud-delegation",
-  "version": "1.5.0",
-  "description": "Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow — issue creation, polling, push-back-vs-fix matrix, agent env constraints, AGENTS.md auto-sync hook. v1.5: don't-push-to-default-branch rule while cloud-agent PRs are in flight (queue bookkeeping commits locally, push only when queue empty — eliminates rebase churn from post-merge ROADMAP/CHANGELOG pushes invalidating other PRs' base SHAs).",
+  "version": "1.6.0",
+  "description": "Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow — issue creation, polling, push-back-vs-fix matrix, agent env constraints, AGENTS.md auto-sync hook. v1.6: retire don't-push hedge in favor of merge-train mode (`flow-review`) — workflow-only batch processor for 2+ open cloud-agent PRs that classifies by tier, dependency-sorts the queue, and runs the rebase cascade after each user-confirmed merge under the new mechanical-only rebase carve-out in delegation-rules.md. Also adds pre-flight conflict detection on N≥2 batch issue creation (touch-matrix on `## Files to modify` blocks → bundle / serializer / local / parallel recommendation), preventing cartouche-style fan-out where 4 of 9 issues touched the same registry file.",
   "author": {
     "name": "DeltaHedge",
     "url": "https://github.com/ZenHive"

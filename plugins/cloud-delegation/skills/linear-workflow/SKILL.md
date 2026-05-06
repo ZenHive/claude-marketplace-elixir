@@ -159,6 +159,8 @@ Historical: the Codex-Reviews-Cursor pattern (§ above) overlapped with the bot 
 
 The push-back-vs-fix matrix below applies to Tier-2 reviews only. Standard- and ceremony-tier PRs don't engage the calculus — they merge or they fail CI; that's the loop.
 
+For batches of 2+ open cloud-agent PRs, § "Merge-Train Mode (`flow-review`)" applies this tier matrix automatically across the queue and handles inter-PR rebase cascade.
+
 ### Cloud Agent Environments
 
 Cloud-agent envs differ in what they can reach during their work session. The differences shape both delegation eligibility and the push-back-vs-fix-locally calculus when reviewing their PRs.
@@ -321,6 +323,8 @@ Group results into:
 
 This is the polling shape `staged-review:commit-review` Step 2 uses. Future skills/sessions matching this pattern (any cloud-agent → Linear → reviewer flow where the agent's status transitions are best-effort) should follow the same shape and be agent-agnostic in the filter.
 
+For batch processing of N≥2 cloud-agent PRs, see § "Merge-Train Mode (`flow-review`)" — same poll filter, extended with `mergeStateStatus` + tier classification + dependency-sorted action queue.
+
 ### Cross-Repo Coordination
 
 When work spans repos:
@@ -331,28 +335,96 @@ When work spans repos:
 
 If cross-repo coordination becomes a regular pattern (3+ linked issues per month), promote to a Linear **Initiative** as a grouping overlay. Skip until load-bearing — Initiatives are a UI flourish, not a workflow requirement.
 
-### Don't Push to the Default Branch While Cloud-Agent PRs Are In Flight
+### Merge-Train Mode (`flow-review`)
 
-When you have one or more open cloud-agent PRs (Codex / Cursor) against `main` / `development`, **don't push unrelated local commits to that default branch** — including `commit-review`'s post-merge bookkeeping commits (ROADMAP / CHANGELOG / README / `.sobelow-skips`). Each in-flight PR is anchored to a specific base SHA; advancing the default-branch tip invalidates that anchor and forces every cloud agent to rebase, which on Cursor and Codex Cloud is a non-trivial round-trip (re-pull, re-resolve, re-validate, re-push) that often surfaces phantom "conflicts" in untouched files.
+> **Retires:** the prior "Don't Push to the Default Branch While Cloud-Agent PRs Are In Flight" rule (don't-push-during-flight hedge). That rule traded "remote ROADMAP lags ✅" to keep the queue merge-clean — a workaround for the rebase-cascade tax. Merge-train owns the cascade explicitly, so the hedge becomes obsolete. If a sister project still imports the prior rule by name, point it here.
 
-**The pattern that breaks the queue:** PR #N merges → `commit-review` Step 15 commits + pushes ROADMAP/CHANGELOG → other in-flight PRs (#N+1, #N+2, ...) now show "out-of-date with base" and need rebase. With three or four PRs queued, you spend more time on rebase churn than on actual review.
+**Invocation:** workflow-only — no CLI, no skill wrapper, no slash command. When the trigger condition is met (2+ open cloud-agent PRs in the current repo), this Claude session executes the steps below directly. The name `flow-review` is the workflow's identity, not an artifact path. Trigger is a user request like "run flow-review" or an in-session decision once the queue exceeds N=1.
 
-**How to apply:**
+**The bottleneck the rule fixes.** With N parallel cloud-agent PRs in flight, each merge advances the default branch and invalidates every other PR's base SHA. Per-PR rebase round-trips (Cursor: re-pull, re-resolve, re-validate, re-push) often surface phantom "conflicts" in untouched files. Cartouche audit (PRs 33-41 cluster, 2026-05-06): merge lag 14m–2h36m dominated by reviewer-side rebase churn, not bot-or-CI time. With 3+ PRs queued, rebase tax exceeds review time.
 
-- After `gh pr merge` on a queued PR, run `git pull --rebase` locally to fold the merge commit + rebase any local-only commits on top — but **don't push**.
-- Build up bookkeeping commits locally across multiple merged PRs. Stage them; let them queue.
-- **Push only when the cloud-agent PR queue is empty** (no `cursor/...` or `codex/...` branches with open PRs). One coordinated push at the end of the batch beats N pushes that each invalidate the queue.
-- If a cloud-agent PR genuinely depends on the bookkeeping (e.g. a downstream PR's spec references the just-updated ROADMAP entry), the dependency is the issue — surface it on the dependent PR or close + re-dispatch with the new spec, rather than pushing the bookkeeping early.
+**Empirical caveat:** the merge-train design rests on a single 2026-05-06 cartouche audit cohort (PRs 33-41). If a future cohort exhibits a different bottleneck shape (e.g. CI churn dominates rebase churn), revisit before generalizing further.
 
-**Exception:** when only ONE PR is in flight and it's been merged (the queue just emptied), a coordinated single push of the bookkeeping is fine. The rule guards the in-flight case, not the post-flush state.
+**What `flow-review` does.** Single invocation that:
 
-**Why the bookkeeping commit can stay local indefinitely:**
+1. **Polls** all open cloud-agent PRs in the current repo (filter shape from § "Polling for 'Ready for Review'", scoped to current repo + extended to include `mergeStateStatus`).
+2. **Classifies** each PR by tier (per § "Review Tiering": critical / standard / ceremony) and by mergeability (CI green | CI red | conflicting | bot-flagged).
+3. **Dependency-sorts** the queue from a directed graph built on file-overlap (parsed from `## Files to modify` of each PR's source issue, same parser as § "Pre-Flight Conflict Detection") + Linear `blockedBy` / `relatedTo` relationships. PRs touching only their own files merge first; PRs touching shared coordination files merge last. Within each layer, sort by PR age (oldest first).
+4. **Surfaces** the ordered queue with per-PR action recommendations (table below).
+5. **Executes** the rebase cascade between merges (see "Rebase cascade" below). User owns merges; reviewer owns rebases.
 
-- Linear's GH integration auto-transitions the issue to `Done` on merge — independent of whether ROADMAP locally reflects ✅.
-- The CHANGELOG `[Unreleased]` entry is for human readers; it lands on remote at the next push, which is "soon enough" given the constraint.
-- README updates similarly aren't latency-sensitive.
+**Polling shape (extends § "Polling for 'Ready for Review'"):**
 
-This rule trades "remote ROADMAP reflects ✅ within seconds of merge" for "cloud-agent PR queue stays merge-clean." With Linear as the canonical issue tracker, the local-only ROADMAP lag isn't load-bearing.
+```
+filter:
+  project = <current repo>
+  delegate ∈ { Codex, Cursor }
+  status ∈ { In Review, In Progress }
+then:
+  join with open GitHub PR attachments
+  fetch mergeStateStatus + headRefForcePushed events for each PR
+  classify by tier (critical / standard / ceremony per § "Review Tiering")
+  classify by mergeability (CI green | CI red | conflicting | bot-flagged)
+```
+
+**Tier-based action matrix:**
+
+| Tier | CI | Bots | Conflicts | Action |
+|---|---|---|---|---|
+| Ceremony | green | clean | none | Surface as "ready, awaiting user `gh pr merge`" — user merges, rebase cascade fires for next PR in queue |
+| Standard | green | clean | none | Same as ceremony, plus 5-min skim if any bot finding present |
+| Critical | green | clean | none | Hand off to `staged-review:commit-review` (single-PR, full Tier 2), then back to merge-train queue |
+| Any | red | — | — | Surface for human triage; skip in current pass |
+| Any | — | — | conflicting/behind | Trigger rebase cascade (below) |
+| Any | — | flagged | — | Surface bot finding for triage (push-back vs. defer per § "Push-Back-vs-Fix-Locally Matrix") |
+
+**Rebase cascade (the load-bearing mechanism).** After the user runs `gh pr merge` on PR #N:
+
+```
+for each remaining PR in dependency order:
+  if PR.mergeStateStatus ∈ { BEHIND, DIRTY }:
+    git fetch && git checkout <agent-branch>          # cursor/... or codex/...
+    git rebase origin/<default-branch>
+    if conflicts:
+      attempt mechanical resolution (see invariants below)
+      if mechanical resolution succeeds:
+        git push --force-with-lease
+      else:
+        git rebase --abort
+        post Linear @cursor / @codex comment with conflict context
+        skip this PR (agent picks up the rebase)
+    else:
+      git push --force-with-lease
+    wait for CI re-run; loop
+```
+
+**Rebase-only carve-out invariants.** Authorized by `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH" → "Rebase-only carve-out (merge-train mode)". Strict; do not relax.
+
+- **Allowed:** `git rebase origin/<default>` + `git push --force-with-lease` to the cloud-agent branch.
+- **Mechanical-resolution test:** post-rebase diff vs. pre-rebase diff (against the new merge base) MUST be byte-identical except inside conflict regions. Verify with `git diff <pre-rebase-tip>..HEAD -- <files-not-in-conflict>` returning empty.
+- **Mechanical resolutions allowed:** alphabetical/sorted re-merge of registry append-only edits (`@descripex_modules`, plug-pipeline lists, supervisor children), test-file additions with no overlap, doc append-only blocks. Any case where the resolution is deterministic from the source.
+- **Forbidden:** semantic conflict resolution, any logic edit, any change to a function body during rebase, any push without `--force-with-lease`, any push to a non-cloud-agent branch under this carve-out.
+- **Abort path:** if mechanical resolution doesn't apply cleanly, `git rebase --abort` and post a Linear `@cursor` / `@codex` comment with the conflict file + context. Agent picks up the rebase. The carve-out adds a fast path; it does not replace push-back as the default for non-trivial conflicts.
+
+**User-confirmation gate.** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" stays strict. Merge-train surfaces ordered, rebase-clean PRs and shows the `gh pr merge` command per PR; **user runs the merges**. Reviewer (this Claude session) does the rebase cascade automatically per the carve-out; user owns merges. The asymmetry is deliberate: rebase is mechanical, merge is policy.
+
+**When to use merge-train vs single `commit-review`:**
+
+| Situation | Use |
+|---|---|
+| 1 cloud-agent PR open, critical tier | `staged-review:commit-review` (single-PR, full Tier 2) |
+| 1 cloud-agent PR open, standard or ceremony | `commit-review` or merge-train (either works; merge-train is overhead-equivalent at N=1) |
+| 2+ cloud-agent PRs open, mixed tiers | **Merge-train.** Cascades, sorts by dependency, hands critical-tier PRs off to `commit-review` inline |
+| 2+ cloud-agent PRs open, all ceremony/standard | **Merge-train.** Maximum gain — no per-PR Tier 2 cost, just cascade + user-confirms |
+
+**Bookkeeping commits (replaces the prior "don't push" hedge):** post-merge ROADMAP/CHANGELOG/README updates per `staged-review:commit-review` Step 15 still happen on `main` after each PR merges. Merge-train absorbs the rebase cost the bookkeeping push would have caused — reviewer rebases each remaining PR onto the new default tip immediately, force-with-leases, CI re-runs in parallel with the next PR's review. Net: no batched-bookkeeping delay, no rebase tax on the queue, agent commit history clean. Linear's GH integration auto-transitions issues to `Done` on merge regardless of whether the bookkeeping push has landed — so the local-bookkeeping latency affects human readers (CHANGELOG, README), not the queue's authoritative state. The cascade is safe to interleave with bookkeeping pushes.
+
+**Cross-references:**
+
+- Inbound: § "Polling for 'Ready for Review'" — single-PR poll; merge-train extends for batch.
+- Inbound: § "Review Tiering" — tier matrix is applied automatically across N PRs.
+- Outbound: `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH" → Rebase-only carve-out (this section's safety contract).
+- Outbound: `delegation-rules.md` § "DON'T AUTO-MERGE PRS" — user still owns each merge.
 
 ### Issue Body = The Prompt
 
@@ -508,6 +580,91 @@ The four sections (`Files to modify`, `Files to NOT modify`, `Env constraints`, 
 
 **Cross-reference:** `task-writing.md` § "Plan mode files include / exclude" — the rules that apply to local `/plan` files apply identically to Linear task bodies for cloud agents. Same shape of artifact, same single-instance consumption pattern, same need for concrete paths + contracts + reuse pointers.
 
+Before submitting a batch of N≥2 plan-shaped issues, run the check in § "Pre-Flight Conflict Detection (Batch Delegation)" below — the `## Files to modify` block IS the input to that check. Plan-shape is the prerequisite; pre-flight is the gate.
+
+### Pre-Flight Conflict Detection (Batch Delegation)
+
+**The bottleneck this fixes.** Cartouche batch (PRs 42-51, 9 Descripex annotation issues opened within 19 min, 2026-05-06): 4 of 9 PRs touched `lib/cartouche.ex` (the Descripex-modules registry) → 3 already conflicting, 4-hour merge lag on PR #42 with no logic change shipped, queue serialized into rebase churn. Per-task local effort was ~10 min. The delegation cost more than the work.
+
+**Empirical caveat:** the `<30 min`, `<90 min batch`, `≥4 batch` thresholds rest on the same 2026-05-06 cohort (PRs 42-51, n=9 isomorphic Descripex annotation issues). Heuristic, not measured across diverse projects — treat as a starting calibration to revisit after the next batch with different task shape.
+
+**The check.** Before any `mcp__linear-server__save_issue` call that would create a delegated issue, scan the existing open queue + the candidate set for file-overlap on coordination-tier files. Specifically:
+
+- Trigger 1: a batch of N≥2 candidate `delegate ∈ { Codex, Cursor }` issues being created in this session.
+- Trigger 2: a single new delegated issue when ≥2 open delegated issues already exist in `Todo` / `Backlog` for this project.
+
+The check consumes the `## Files to modify` block defined in § "Plan-Shaped Linear Task Specs" — which is why plan-shape is load-bearing for batch delegation, not just "a nice-to-have."
+
+**Mechanism:**
+
+```
+filter (existing queue):
+  project = <current>
+  status ∈ { Todo, Backlog }
+  delegate ∈ { Codex, Cursor }
+
+then:
+  parse `## Files to modify` from each issue body (existing + candidates)
+  build a touch matrix: file → [issues touching it]
+  classify each shared-file overlap:
+    coordination-tier  if file ∈ project's coordination set
+    ordinary           otherwise
+```
+
+**Coordination-tier signals** (project-overridable; default heuristic):
+
+- `lib/<app>.ex` — top-level public API / registry module
+- `mix.exs` — deps, version, aliases
+- `config/config.exs`, `config/runtime.exs` — config registry
+- `lib/<app>_web/router.ex` — Phoenix route registry
+- `lib/<app>/application.ex` — supervisor children list
+- Any file that appears in 3+ historical merged PRs in this project (run `flow-stats.sh` — see § Tooling — or `git log --pretty=format: --name-only` to identify)
+
+**Decision tree on overlap (priority order):**
+
+1. **(a) Isomorphic tasks + shared coordination file** → recommend **bundle into 1 issue** ("annotate all N modules in one PR"). Cursor opens 1 PR, registry edited once, no fan-out, no rebase cascade. *Cartouche example: 9 Descripex annotation issues → 1 "Annotate all 9 modules with Descripex" issue.*
+2. **(b) Real overlap, non-isomorphic, coordination cost <30% of total task effort** → recommend **extract a serializer issue**. Peer issues touch only their own files; the serializer issue (final in chain) does the registry edit and is `blockedBy` all peers. Cursor produces N peer PRs in parallel + 1 serializer PR after they all merge.
+3. **(c) Small per-task effort (<30 min) AND batch size ≥4 AND any shared file** → recommend **do locally**. Local sequential beats parallel-cloud-agent under these conditions; the delegation overhead exceeds the work.
+4. **(d) No conflict, OR overlap only on non-coordination files** → proceed with N parallel issues.
+
+**Worth-it heuristic — when delegation pays vs. when local Claude Code wins:**
+
+Delegation pays when:
+- Per-task effort ≥ 30 min, OR batch local-effort ≥ 90 min total
+- AND tasks are independent (no shared coordination file) OR can be restructured (bundle / serializer extract)
+- AND reviewer attention isn't already saturated by other in-flight queues
+
+Local Claude Code wins when:
+- Per-task effort < 30 min AND batch ≥ 4 AND any shared coordination file in the matrix
+- OR total batch local-effort < 90 min regardless of overlap (sub-90min batches don't recoup delegation overhead — Cursor average startup + first-push round is ~10 min, so a 60-min batch barely breaks even, and conflict cascade pushes it underwater)
+- OR the user has explicitly capped reviewer-attention budget for the day
+
+Output of the check is **always a recommendation + a decision request**. Workflow surfaces the touch matrix and the recommended action; user chooses bundle / serializer / local / proceed-anyway. Never silently refuses (too paternalistic), never silently proceeds (defeats the rule).
+
+**Surfacing format (one-line per shared file + recommendation):**
+
+```
+Pre-flight check (4 candidate issues, 2 already in Todo):
+
+Shared coordination files:
+  lib/cartouche.ex            6 issues touch this (registry append)
+                              [coordination-tier — registry pattern]
+
+Recommendation: BUNDLE
+  Tasks are isomorphic (Descripex annotation, append to @descripex_modules).
+  Estimated per-task effort: ~10 min. Estimated total: ~60 min.
+  Suggested bundle: "Annotate Cartouche.Foo, Bar, Baz, Qux, V1, V2 with Descripex"
+  Alternative: do locally (~60 min in this session) → no Linear, no Cursor, no rebase cascade.
+
+Proceed how? [bundle / serializer / local / parallel-anyway / cancel]
+```
+
+**Cross-references:**
+
+- Inbound: § "Plan-Shaped Linear Task Specs" — `## Files to modify` is the input format.
+- Outbound: § "Merge-Train Mode (`flow-review`)" — when (d) applies and N parallel issues genuinely warrant parallel implementation, merge-train handles the review-side cost.
+- Outbound: `task-prioritization.md` § "Ceremony Floor" — similar shape: cost-benefit gate; the ceremony floor governs review-time tracking, this gate governs delegation-time creation.
+
 ### Linear GH Auto-Transitions (workspace-level config)
 
 **Linear's GitHub integration can auto-transition issues based on PR events, but the auto-transitions are workspace-config, not on by default.** Without configured rules, agents transition status manually — observed in cartouche INE-19 where the 3-second offset between PR #36 merge and issue completion was the agent reacting to user instruction, not the integration firing.
@@ -572,6 +729,8 @@ Auto-detects `--repo` from current git dir. Use after a cloud-agent PR merges to
 ### Cross-References
 
 - `task-writing.md` — body-as-prompt principle (issue bodies follow the same rule as ROADMAP rows); plan-shape vs roadmap-shape distinction
-- `critical-rules.md` § "DON'T AUTO-MERGE PRS" — `In Review` → user-merge boundary; commit-review's user-confirmed merge step preserves this
+- `task-prioritization.md` § "Ceremony Floor" — review-time cost-benefit gate; § "Pre-Flight Conflict Detection" is the delegation-time analogue
+- `critical-rules.md` § "DON'T AUTO-MERGE PRS" — `In Review` → user-merge boundary; commit-review's user-confirmed merge step preserves this; merge-train mode preserves it identically (cascade is reviewer-side, merge stays user-side)
 - `critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST" — local review verdict is informational, not merge authorization
+- `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — push-back is the default; merge-train mode's "Rebase-only carve-out" is the only authorized exception, scoped to mechanical conflict resolution
 - `workflow-philosophy.md` § "Implementer / Reviewer Handoff" — the handoff shape Linear+cloud-agent implements
