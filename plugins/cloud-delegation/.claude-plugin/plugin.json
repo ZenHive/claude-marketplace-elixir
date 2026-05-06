@@ -1,7 +1,7 @@
 {
   "name": "cloud-delegation",
-  "version": "1.4.0",
-  "description": "Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow — issue creation, polling, push-back-vs-fix matrix, agent env constraints, AGENTS.md auto-sync hook. v1.4: code-only PRs from cloud agents (ROADMAP/CHANGELOG/README owned by commit-review post-merge); plan-shaped Linear task spec template; Linear GH auto-transition workspace config; non-draft PR rule for auto-transition compatibility; ROADMAP-fallback flow for projects without Linear; Codex-Reviews-Cursor Tier-2 disabled.",
+  "version": "1.5.0",
+  "description": "Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow — issue creation, polling, push-back-vs-fix matrix, agent env constraints, AGENTS.md auto-sync hook. v1.5: don't-push-to-default-branch rule while cloud-agent PRs are in flight (queue bookkeeping commits locally, push only when queue empty — eliminates rebase churn from post-merge ROADMAP/CHANGELOG pushes invalidating other PRs' base SHAs).",
   "author": {
     "name": "DeltaHedge",
     "url": "https://github.com/ZenHive"

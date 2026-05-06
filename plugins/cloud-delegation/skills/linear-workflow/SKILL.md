@@ -331,6 +331,29 @@ When work spans repos:
 
 If cross-repo coordination becomes a regular pattern (3+ linked issues per month), promote to a Linear **Initiative** as a grouping overlay. Skip until load-bearing — Initiatives are a UI flourish, not a workflow requirement.
 
+### Don't Push to the Default Branch While Cloud-Agent PRs Are In Flight
+
+When you have one or more open cloud-agent PRs (Codex / Cursor) against `main` / `development`, **don't push unrelated local commits to that default branch** — including `commit-review`'s post-merge bookkeeping commits (ROADMAP / CHANGELOG / README / `.sobelow-skips`). Each in-flight PR is anchored to a specific base SHA; advancing the default-branch tip invalidates that anchor and forces every cloud agent to rebase, which on Cursor and Codex Cloud is a non-trivial round-trip (re-pull, re-resolve, re-validate, re-push) that often surfaces phantom "conflicts" in untouched files.
+
+**The pattern that breaks the queue:** PR #N merges → `commit-review` Step 15 commits + pushes ROADMAP/CHANGELOG → other in-flight PRs (#N+1, #N+2, ...) now show "out-of-date with base" and need rebase. With three or four PRs queued, you spend more time on rebase churn than on actual review.
+
+**How to apply:**
+
+- After `gh pr merge` on a queued PR, run `git pull --rebase` locally to fold the merge commit + rebase any local-only commits on top — but **don't push**.
+- Build up bookkeeping commits locally across multiple merged PRs. Stage them; let them queue.
+- **Push only when the cloud-agent PR queue is empty** (no `cursor/...` or `codex/...` branches with open PRs). One coordinated push at the end of the batch beats N pushes that each invalidate the queue.
+- If a cloud-agent PR genuinely depends on the bookkeeping (e.g. a downstream PR's spec references the just-updated ROADMAP entry), the dependency is the issue — surface it on the dependent PR or close + re-dispatch with the new spec, rather than pushing the bookkeeping early.
+
+**Exception:** when only ONE PR is in flight and it's been merged (the queue just emptied), a coordinated single push of the bookkeeping is fine. The rule guards the in-flight case, not the post-flush state.
+
+**Why the bookkeeping commit can stay local indefinitely:**
+
+- Linear's GH integration auto-transitions the issue to `Done` on merge — independent of whether ROADMAP locally reflects ✅.
+- The CHANGELOG `[Unreleased]` entry is for human readers; it lands on remote at the next push, which is "soon enough" given the constraint.
+- README updates similarly aren't latency-sensitive.
+
+This rule trades "remote ROADMAP reflects ✅ within seconds of merge" for "cloud-agent PR queue stays merge-clean." With Linear as the canonical issue tracker, the local-only ROADMAP lag isn't load-bearing.
+
 ### Issue Body = The Prompt
 
 Same rule as `task-writing.md`: the body is for the cloud agent (and local-review session) to read and execute, not a spec doc. Recommended sections:
