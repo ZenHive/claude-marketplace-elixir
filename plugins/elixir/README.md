@@ -9,6 +9,21 @@ claude
 /plugin install elixir@deltahedge
 ```
 
+### Cursor hooks (Agent)
+
+Claude Code plugins register hooks in Claude’s schema (`PostToolUse`, `hookSpecificOutput`, …). **Cursor** loads hooks from `~/.cursor/hooks.json` or `<repo>/.cursor/hooks.json` with a different JSON schema (`additional_context` on stdout for `postToolUse`). Importing the marketplace into Cursor does **not** translate those shapes automatically—use the adapter scripts in `scripts/`:
+
+| Script | Runs |
+|--------|------|
+| [`scripts/cursor-post-edit-adapt.sh`](scripts/cursor-post-edit-adapt.sh) | [`scripts/post-edit-check.sh`](scripts/post-edit-check.sh) (format, compile, tests, credo, …) |
+| [`scripts/cursor-ash-codegen-adapt.sh`](scripts/cursor-ash-codegen-adapt.sh) | [`scripts/ash-codegen-check.sh`](scripts/ash-codegen-check.sh) (Ash projects only; suppresses otherwise) |
+
+1. Copy [`cursor-hooks.example.json`](cursor-hooks.example.json) to `~/.cursor/hooks.json` (global) or `.cursor/hooks.json` (project). Replace `/ABS/PATH/TO/marketplace/plugins/elixir` with the absolute path to **this** plugin directory on disk (the folder that contains `scripts/`).
+2. `chmod +x` both adapter scripts (and ensure `jq` is on `PATH`).
+3. Restart Cursor or save `hooks.json`; trigger an Agent **Write** on an `.ex` file and check the Hooks output channel. See [Cursor Hooks](https://cursor.com/docs/hooks) and [Third-party hooks](https://cursor.com/docs/reference/third-party-hooks.md).
+
+**Project hooks:** use paths like `.cursor/hooks/…` relative to the repo root and **copy or symlink** the adapter scripts into `.cursor/hooks/` if you do not want absolute paths to the marketplace clone.
+
 ## Requirements
 
 - Elixir installed and available in PATH
