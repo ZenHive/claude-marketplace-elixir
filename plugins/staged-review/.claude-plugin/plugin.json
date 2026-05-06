@@ -1,7 +1,7 @@
 {
   "name": "staged-review",
-  "version": "1.15.0",
-  "description": "Universal code review workflow — staged file review with bug detection, extraction analysis, TODO tracking, and abstraction opportunities. v1.15: commit-review owns merge-time bookkeeping (auto-undraft on green CI, sobelow drift check, bot cite-and-skip policy, user-gated merge + ROADMAP/CHANGELOG/README update on main + Linear close-out). Tier-2 Codex-Reviews-Cursor delegation disabled.",
+  "version": "1.15.1",
+  "description": "Universal code review workflow — staged file review with bug detection, extraction analysis, TODO tracking, and abstraction opportunities. v1.15.1: fix commit-review's invalid `gh pr diff --stat` (flag doesn't exist) — use `gh pr view --json files` for per-file LOC, `gh pr view --json additions,deletions,changedFiles` for totals. v1.15: commit-review owns merge-time bookkeeping (auto-undraft on green CI, sobelow drift check, bot cite-and-skip policy, user-gated merge + ROADMAP/CHANGELOG/README update on main + Linear close-out). Tier-2 Codex-Reviews-Cursor delegation disabled.",
   "author": {
     "name": "DeltaHedge",
     "url": "https://github.com/ZenHive"

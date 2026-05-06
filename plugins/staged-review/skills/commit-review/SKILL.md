@@ -182,7 +182,8 @@ Then read the PR's diff and metadata directly from `gh` (no clone/checkout):
 ```bash
 gh pr view <number> --json headRefName,headRefOid,baseRefName,reviews,comments,statusCheckRollup
 gh pr diff <number>                                # full diff vs base
-gh pr diff <number> --stat                         # file-level summary (used in Step 5.5 fast-path classify)
+gh pr view <number> --json files                   # file-level summary: [{path, additions, deletions}, ...]
+gh pr view <number> --json additions,deletions,changedFiles  # totals
 gh api repos/OWNER/REPO/pulls/<number>/comments    # line-level review comments (Copilot/CodeRabbit/humans)
 ```
 
@@ -281,8 +282,14 @@ If a finding overlaps with a bot finding, do NOT present it as fresh — that's 
 Before running full machinery, classify by size and scope:
 
 ```bash
-gh pr diff <number> --stat
+# Total LOC + count of files under lib/ in one call
+gh pr view <number> --json files --jq '{
+  loc: ([.files[] | .additions + .deletions] | add),
+  lib_files: ([.files[] | select(.path | startswith("lib/"))] | length)
+}'
 ```
+
+> **`gh` flag note** — `gh pr diff` has no `--stat` flag (common LLM hallucination). Use `gh pr view --json files` for per-file additions/deletions, `gh pr view --json additions,deletions,changedFiles` for totals, or `gh pr diff <n> --name-only` for filename-only output.
 
 Two signals decide fast-path vs full machinery:
 
