@@ -53,8 +53,8 @@ Each hook is tagged as **convention** (permanent quality gate) or **model-limita
 
 **PreToolUse - Before running tests:**
 - ✅ **Suggest --failed** `[model-limitation]` - On 2nd consecutive `mix test`, suggests `--failed --trace` to speed up test-fix cycles
-- ✅ **Prefer test.json** `[convention]` - Blocks `mix test` and redirects to `mix test.json` for AI-friendly output
-- ✅ **Prefer dialyzer.json** `[convention]` - Blocks `mix dialyzer` and redirects to `mix dialyzer.json` for AI-friendly output
+- ✅ **Prefer test.json** `[convention]` - Silently rewrites `mix test` → `mix test.json` (args preserved) for AI-friendly output
+- ✅ **Prefer dialyzer.json** `[convention]` - Silently rewrites `mix dialyzer` → `mix dialyzer.json` (args preserved) for AI-friendly output
 - ✅ **Suggest --include on test.json** `[model-limitation]` - When `mix test.json` runs without `--include`, reads `test/test_helper.exs` and injects the excluded tags into context so Claude can't falsely claim a full-suite pass. Non-blocking (doesn't force slow integration runs on every iteration).
 
 **UserPromptSubmit - On user input:**
@@ -196,16 +196,17 @@ mix deps.unlock --check-unused
   - 10 minutes elapse between test runs
 - **Why this matters**: Running full test suite repeatedly while fixing failures wastes time
 
-### Prefer test.json (Blocking)
-- Intercepts `mix test` commands and blocks them
-- Allows `mix test.json` variants to pass through
-- Provides installation instructions for `ex_unit_json` if not installed
-- **Why this matters**: JSON output is easier for AI to parse and analyze
+### Prefer test.json (Silent rewrite)
+- Intercepts `mix test` commands and silently rewrites them to `mix test.json`, preserving any trailing args (e.g. `mix test --failed` → `mix test.json --failed`)
+- Uses Claude Code's PreToolUse `updatedInput` mechanism — `permissionDecision: "allow"` with the rewritten command, so the shell only ever sees `mix test.json`
+- Allows `mix test.json` variants to pass through unchanged (exclusion guard)
+- If `ex_unit_json` is not installed, the rewritten `mix test.json` will surface mix's own task-not-found error; install hint included in `permissionDecisionReason`
+- **Why this matters**: JSON output is easier for AI to parse and analyze; silent rewrite removes the deny→retype feedback loop
 
-### Prefer dialyzer.json (Blocking)
-- Intercepts `mix dialyzer` commands and blocks them
-- Allows `mix dialyzer.json` variants to pass through
-- Provides installation instructions for `dialyzer_json` if not installed
+### Prefer dialyzer.json (Silent rewrite)
+- Intercepts `mix dialyzer` commands and silently rewrites them to `mix dialyzer.json`, preserving any trailing args
+- Uses the same `updatedInput` rewrite mechanism as prefer-test-json
+- Allows `mix dialyzer.json` variants to pass through unchanged (exclusion guard)
 - **Why this matters**: JSON output is easier for AI to parse and analyze
 
 ### Documentation Recommendation (Non-blocking)

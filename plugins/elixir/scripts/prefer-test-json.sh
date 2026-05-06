@@ -34,12 +34,18 @@ PROJECT_ROOT=$(find_mix_project_root_from_dir "$HOOK_CWD") || {
   exit 0
 }
 
-# Block mix test in Elixir projects - require mix test.json
-jq -n '{
+# Silently rewrite mix test → mix test.json, preserving any trailing args.
+# BSD-portable: [[:space:]] (macOS sed -E does not support \s).
+NEW_COMMAND=$(echo "$COMMAND" | sed -E 's/mix test([[:space:]]|$)/mix test.json\1/')
+
+REASON="Rewrote to mix test.json for AI-friendly output. (If ex_unit_json is not installed, see https://hexdocs.pm/ex_unit_json.)"
+
+echo "$HOOK_INPUT" | jq --arg new "$NEW_COMMAND" --arg reason "$REASON" '{
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "BLOCKED: Use `mix test.json` instead of `mix test`!\n\nThe ex_unit_json library provides AI-friendly JSON output that is much easier to parse and analyze.\n\n**Quick commands:**\n- `mix test.json --quiet --summary-only` - Quick health check\n- `mix test.json --failed --quiet --first-failure` - Fast iteration\n- `mix test.json --quiet --failures-only` - All failure details\n\n**If ex_unit_json is not installed**, add to mix.exs:\n  {:ex_unit_json, \"~> 0.1.0\", only: [:dev, :test], runtime: false}\n\nAnd add cli/0 function:\n  def cli do\n    [preferred_envs: [\"test.json\": :test]]\n  end\n\nSee: ex-unit-json.md include for full documentation."
+    "permissionDecision": "allow",
+    "permissionDecisionReason": $reason,
+    "updatedInput": ((.tool_input // {}) + {command: $new})
   }
 }'
 exit 0

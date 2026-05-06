@@ -45,7 +45,7 @@ The elixir plugin has three test projects with intentional issues to verify hook
 
 ## Test Coverage
 
-The automated test suite includes 30 tests:
+The automated test suite includes 39 tests:
 
 **Post-edit check hook** (`post-edit-check.sh`):
 - Ignores non-Elixir files
@@ -85,6 +85,21 @@ The automated test suite includes 30 tests:
 - Using --failed resets counter
 - Non-mix-test commands ignored
 - Passing tests reset counter
+
+**Suggest test include hook** (`suggest-test-include.sh`):
+- Standalone test suite covering excluded-tag injection scenarios
+
+**Prefer test.json hook** (`prefer-test-json.sh`):
+- Rewrites `mix test` to `mix test.json` (allow + updatedInput)
+- Preserves trailing args (e.g. `mix test --failed` → `mix test.json --failed`)
+- Suppresses when command is already `mix test.json`
+- Suppresses when cwd is not in an Elixir project
+
+**Prefer dialyzer.json hook** (`prefer-dialyzer-json.sh`):
+- Rewrites `mix dialyzer` to `mix dialyzer.json` (allow + updatedInput)
+- Preserves trailing args (e.g. `mix dialyzer --quiet` → `mix dialyzer.json --quiet`)
+- Suppresses when command is already `mix dialyzer.json`
+- Suppresses when cwd is not in an Elixir project
 
 ## Hook Implementation
 
@@ -145,13 +160,19 @@ The elixir plugin implements **consolidated hooks** for efficiency:
 
 8. **Prefer test.json** (`scripts/prefer-test-json.sh`)
    - Trigger: Before `mix test` commands
-   - Action: Recommends using `mix test.json` for AI-friendly output
-   - Blocking: No (provides helpful suggestion)
+   - Action: Silently rewrites `mix test` → `mix test.json` (preserves trailing args) via PreToolUse `updatedInput`
+   - Blocking: No (allow + updatedInput, not deny)
+   - Timeout: 5s
+
+9. **Prefer dialyzer.json** (`scripts/prefer-dialyzer-json.sh`)
+   - Trigger: Before `mix dialyzer` commands
+   - Action: Silently rewrites `mix dialyzer` → `mix dialyzer.json` (preserves trailing args) via PreToolUse `updatedInput`
+   - Blocking: No (allow + updatedInput, not deny)
    - Timeout: 5s
 
 ### UserPromptSubmit Hooks
 
-9. **Documentation recommendation** (`scripts/recommend-docs-lookup.sh`)
+10. **Documentation recommendation** (`scripts/recommend-docs-lookup.sh`)
    - Trigger: On user prompt submission
    - Action: Detects dependencies mentioned in prompt, recommends using hex-docs-search or usage-rules skills
    - Blocking: No (provides helpful context)

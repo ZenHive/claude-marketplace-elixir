@@ -312,4 +312,86 @@ else
   TESTS_RUN=$((TESTS_RUN + 1))
 fi
 
+# =============================================================================
+# Prefer test.json Tests (prefer-test-json.sh)
+# =============================================================================
+# Silently rewrites `mix test` → `mix test.json` via PreToolUse updatedInput.
+
+echo ""
+echo "## Prefer test.json Hook"
+echo ""
+
+# Test 32: Plain `mix test` is rewritten to `mix test.json`
+test_hook_json \
+  "prefer-test-json: Rewrites 'mix test' to allow with updatedInput.command containing mix test.json" \
+  "plugins/elixir/scripts/prefer-test-json.sh" \
+  "{\"tool_input\":{\"command\":\"mix test\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "allow" and (.hookSpecificOutput.updatedInput.command | contains("mix test.json"))'
+
+# Test 33: Args after `mix test` are preserved
+test_hook_json \
+  "prefer-test-json: Preserves args (mix test --failed → mix test.json --failed)" \
+  "plugins/elixir/scripts/prefer-test-json.sh" \
+  "{\"tool_input\":{\"command\":\"mix test --failed\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\"}" \
+  0 \
+  '.hookSpecificOutput.updatedInput.command == "mix test.json --failed"'
+
+# Test 34: Already `mix test.json` — exclusion guard suppresses
+test_hook_json \
+  "prefer-test-json: Suppresses when command is already mix test.json" \
+  "plugins/elixir/scripts/prefer-test-json.sh" \
+  "{\"tool_input\":{\"command\":\"mix test.json --quiet\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\"}" \
+  0 \
+  ".suppressOutput == true"
+
+# Test 35: Outside an Elixir project — suppresses
+test_hook_json \
+  "prefer-test-json: Suppresses when cwd is not in an Elixir project" \
+  "plugins/elixir/scripts/prefer-test-json.sh" \
+  "{\"tool_input\":{\"command\":\"mix test\"},\"cwd\":\"/tmp\"}" \
+  0 \
+  ".suppressOutput == true"
+
+# =============================================================================
+# Prefer dialyzer.json Tests (prefer-dialyzer-json.sh)
+# =============================================================================
+# Silently rewrites `mix dialyzer` → `mix dialyzer.json` via PreToolUse updatedInput.
+
+echo ""
+echo "## Prefer dialyzer.json Hook"
+echo ""
+
+# Test 36: Plain `mix dialyzer` is rewritten to `mix dialyzer.json`
+test_hook_json \
+  "prefer-dialyzer-json: Rewrites 'mix dialyzer' to allow with updatedInput.command containing mix dialyzer.json" \
+  "plugins/elixir/scripts/prefer-dialyzer-json.sh" \
+  "{\"tool_input\":{\"command\":\"mix dialyzer\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "allow" and (.hookSpecificOutput.updatedInput.command | contains("mix dialyzer.json"))'
+
+# Test 37: Args after `mix dialyzer` are preserved
+test_hook_json \
+  "prefer-dialyzer-json: Preserves args (mix dialyzer --quiet → mix dialyzer.json --quiet)" \
+  "plugins/elixir/scripts/prefer-dialyzer-json.sh" \
+  "{\"tool_input\":{\"command\":\"mix dialyzer --quiet\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\"}" \
+  0 \
+  '.hookSpecificOutput.updatedInput.command == "mix dialyzer.json --quiet"'
+
+# Test 38: Already `mix dialyzer.json` — exclusion guard suppresses
+test_hook_json \
+  "prefer-dialyzer-json: Suppresses when command is already mix dialyzer.json" \
+  "plugins/elixir/scripts/prefer-dialyzer-json.sh" \
+  "{\"tool_input\":{\"command\":\"mix dialyzer.json\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/compile-test\"}" \
+  0 \
+  ".suppressOutput == true"
+
+# Test 39: Outside an Elixir project — suppresses
+test_hook_json \
+  "prefer-dialyzer-json: Suppresses when cwd is not in an Elixir project" \
+  "plugins/elixir/scripts/prefer-dialyzer-json.sh" \
+  "{\"tool_input\":{\"command\":\"mix dialyzer\"},\"cwd\":\"/tmp\"}" \
+  0 \
+  ".suppressOutput == true"
+
 print_summary

@@ -34,12 +34,18 @@ PROJECT_ROOT=$(find_mix_project_root_from_dir "$HOOK_CWD") || {
   exit 0
 }
 
-# Block mix dialyzer in Elixir projects - require mix dialyzer.json
-jq -n '{
+# Silently rewrite mix dialyzer → mix dialyzer.json, preserving any trailing args.
+# BSD-portable: [[:space:]] (macOS sed -E does not support \s).
+NEW_COMMAND=$(echo "$COMMAND" | sed -E 's/mix dialyzer([[:space:]]|$)/mix dialyzer.json\1/')
+
+REASON="Rewrote to mix dialyzer.json for AI-friendly output. (If dialyzer_json is not installed, see https://hexdocs.pm/dialyzer_json.)"
+
+echo "$HOOK_INPUT" | jq --arg new "$NEW_COMMAND" --arg reason "$REASON" '{
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
-    "permissionDecision": "deny",
-    "permissionDecisionReason": "BLOCKED: Use `mix dialyzer.json` instead of `mix dialyzer`!\n\nThe dialyzer_json library provides AI-friendly JSON output that is much easier to parse and analyze.\n\n**Quick commands:**\n- `mix dialyzer.json --quiet` - JSON output only (no progress)\n- `mix dialyzer.json --quiet --fix-hint code` - Only real bugs (not spec issues)\n- `mix dialyzer.json --quiet --group-by file` - Group warnings by file\n\n**If dialyzer_json is not installed**, add to mix.exs:\n  {:dialyzer_json, \"~> 0.1.0\", only: [:dev, :test], runtime: false}\n\nAnd add cli/0 function:\n  def cli do\n    [preferred_envs: [\"dialyzer.json\": :dev]]\n  end\n\nSee: dialyzer-json.md include for full documentation."
+    "permissionDecision": "allow",
+    "permissionDecisionReason": $reason,
+    "updatedInput": ((.tool_input // {}) + {command: $new})
   }
 }'
 exit 0
