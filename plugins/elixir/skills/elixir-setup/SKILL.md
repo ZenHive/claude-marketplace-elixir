@@ -96,6 +96,45 @@ Run with `iex -S mix tidewave`. Restart Claude Code after creating/changing `.mc
 
 Tidewave runs in the same BEAM as the IEx session. After editing source, the old bytecode stays loaded — call `recompile()` via `project_eval` (or `r(SomeModule)` for one module). For the full MCP tool list, see the `tidewave-guide` skill.
 
+### Dialyzer PLT — `:apps_direct` to avoid OOM
+
+Default `plt_add_deps: :app_tree` walks the full transitive dep tree. For libraries / non-Phoenix projects, tidewave + bandit (dev) drag in plug, finch, mint, gun, hpax, cowlib, thousand_island, websock, mime — none of which are in `lib/`'s call graph. PLT bloats to ~800 modules and on macOS routinely OOM-kills the build at the deps-dev step (verified: peak RSS ~8 GB before kill).
+
+Per dialyxir docs, the canonical OOM mitigation is `plt_add_deps: :apps_direct` — load only **direct** runtime deps, no transitive recursion:
+
+```elixir
+defp dialyzer do
+  [
+    # OOM mitigation: skip transitive deps (default is :app_tree).
+    # Tidewave/bandit's HTTP stack (plug, finch, mint, gun, cowlib, etc.)
+    # is not in lib/ call graph and bloats PLT to ~800 modules.
+    plt_add_deps: :apps_direct,
+    plt_add_apps: [:mix],
+    plt_local_path: "priv/plts",
+    plt_core_path: "priv/plts",
+    ignore_warnings: ".dialyzer_ignore.exs"
+  ]
+end
+```
+
+**Verified result** on a typical onchain-stack lib (onchain_evm): 794 → 236 modules in deps-dev PLT (~70% reduction), full PLT build in 18.6s vs OOM-killed at ~10min.
+
+**PLT location: `priv/plts/` not `_build/dialyzer/`.** PLTs in `_build/` get nuked on `mix clean` / `rm -rf _build`. Every cleanup costs a 5-10min from-scratch rebuild. `priv/plts/` survives `_build` wipes. Add `/priv/plts/` to `.gitignore`. To migrate: `find _build/dialyzer priv/plts -name '*.plt' -delete 2>/dev/null` then `mix dialyzer --plt`.
+
+**Trade-off ladder** (per dialyxir docs):
+
+| Option | Aggressiveness | When |
+|---|---|---|
+| `plt_ignore_apps: [:foo]` | Least | A few specific deps cause warnings or PLT bloat |
+| `plt_add_deps: :apps_direct` | **Moderate — recommended default** | Transitive HTTP/SDK trees cause memory issues |
+| `plt_apps: [explicit list]` | Most | Surgical replace; you know exactly what to include |
+
+`:apps_direct` plus `plt_add_apps:` for any specific extras (`:mix`, `:descripex`, etc.) covers the typical library case. For project-specific optional stacks the lib doesn't call (e.g. cartouche's `:google_api_cloud_kms, :goth, :tesla, :jose`), layer `plt_ignore_apps:` on top.
+
+**Phoenix exception:** Phoenix apps use bandit/plug at runtime and depend on transitive deps (Ecto adapters, etc.). Default `:app_tree` is usually correct; only switch to `:apps_direct` if memory is a problem, and verify no real warnings get suppressed.
+
+**Runtime-Req exception:** if your lib has `{:req, "~> X.Y"}` as a runtime dep (not just dev-via-tidewave), `:apps_direct` excludes Req's transitive HTTP stack (finch, mint). Usually fine — Req-call warnings get suppressed via `~r/Function Req\./` in `.dialyzer_ignore.exs`. If "function unknown" warnings about Finch/Mint surface, either add them via `plt_add_apps: [:finch, :mint, ...]` or extend the regex.
+
 ### ex_doc llms.txt
 
 `mix docs` generates `doc/llms.txt` alongside HTML — Markdown optimized for LLMs. Published packages have it at `https://hexdocs.pm/<package>/llms.txt`. Use for loading library context.
