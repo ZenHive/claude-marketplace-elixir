@@ -531,6 +531,19 @@ Mark tasks suitable for delegation to Codex with `[CX]`. **Default: tasks meetin
 | Task 81 `[CX]` | 🔄 in-review   | Codex PR open, awaiting review |
 ```
 
+### Delegation Eligibility Filter Order
+
+When picking ROADMAP tasks to delegate, apply these filters **in order**. The first filter that excludes a task ends evaluation for that task — don't argue past a hard constraint to backfill a queue (see § "Honest-Gap Discipline (Queue Dry)" for the failure mode this prevents).
+
+1. **Codex code-mutation suspended (workspace-wide)** → all `[CX]` candidates redirect to `[CSR]` until cleared. The `[CX]` marker stays in ROADMAP for traceability; the actual delegation goes to Cursor. Single-pass short-circuit — apply once per session, not per-task.
+2. **Per-agent cloud-env constraints** — consult `cloud-agent-environments.md` § "Push-Back-vs-Fix-Locally Matrix by Agent" for the canonical matrix (hex.pm, mix tasks, Tidewave, HTTP). Project-specific overrides may further exclude tools (e.g. cartouche's high-memory dialyzer is excluded on Cursor cloud VMs). A task that needs an unreachable tool stays LOCAL.
+3. **Sibling-repo 🔶 blockers** — tasks blocked on un-released changes in a sibling repo stay 🔶. Re-check on each delegation pass; this filter is queue-state, not env-state, and may flip between sessions.
+4. **Survivors → batch candidates** — feed into § "Batch Sizing and Pacing".
+
+**Why ordering matters.** Filter 1 is workspace-state and changes rarely → check once per session. Filter 2 is env-state and stable per project → memorize the project's exclusions in CLAUDE.md or a project-specific include rather than re-deriving each pass. Filter 3 is queue-state and flips between sessions → re-check every pass. Applying them out of order (e.g. checking sibling blockers before env constraints) wastes work because env-excluded tasks would have been LOCAL regardless of sibling state.
+
+**Cross-references:** `cloud-agent-environments.md` § "Push-Back-vs-Fix-Locally Matrix by Agent"; `delegation-rules.md` § "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS"; § "Codex Delegation Markers (`[CX]` / `[CSR]`)"; § "Honest-Gap Discipline (Queue Dry)".
+
 ### Code-Only PRs from Cloud Agents
 
 **Cloud-agent PRs touch code + tests only. They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`.** These files are owned by `staged-review:commit-review` and updated in a single post-merge follow-up commit on `main`.
@@ -627,6 +640,30 @@ The four sections (`Files to modify`, `Files to NOT modify`, `Env constraints`, 
 **Cross-reference:** `task-writing.md` § "Plan mode files include / exclude" — the rules that apply to local `/plan` files apply identically to Linear task bodies for cloud agents. Same shape of artifact, same single-instance consumption pattern, same need for concrete paths + contracts + reuse pointers.
 
 Before submitting a batch of N≥2 plan-shaped issues, run the check in § "Pre-Flight Conflict Detection (Batch Delegation)" below — the `## Files to modify` block IS the input to that check. Plan-shape is the prerequisite; pre-flight is the gate.
+
+### Batch Sizing and Pacing
+
+How to shape a delegation batch upstream of § "Pre-Flight Conflict Detection (Batch Delegation)". Pre-flight checks for *file-scope collision* on a given batch; this section answers *what should be in the batch in the first place*.
+
+**2+1+1 splits over single mega-batches.** When in doubt about whether 4-5 issues are too much for one batch, prefer two smaller batches (e.g. 2 then 1 then 1). Smaller batches reduce review-surface, reduce file-scope collision risk, and let the user `/compact` between firings. Memorialized after the cartouche session ran 2+1+1 splits cleanly across INE-48/49/50.
+
+**Bundle multiple ROADMAP tasks into one Linear issue ONLY when all three hold:**
+- **Shared module** — the tasks edit the same module(s); a single PR diff is the natural unit.
+- **Same critical-tier gate** — both tasks at ≥80% standard or both at ≥95% critical (per `task-prioritization.md` § "Pre-Implementation Gate"). Don't mix tiers in one PR; the test-coverage discipline diverges.
+- **Same fix shape** — e.g. "add nil-guard + flunk on unexpected" applied to two functions with the same signature. If the fixes structurally differ, file standalone.
+
+Anchor example: cartouche INE-48 bundled Tasks 91+92 because both were "tighten validator at API boundary, same module, same critical-tier." Tasks 89/90 went standalone (different modules, different shapes).
+
+**Pause for `/compact` between batches.** Each batch (2-5 issues) is the natural compact checkpoint. Surfacing the deployed batch list to the user IS the compact prompt — don't fire a second batch in the same context window. Memorialized as `feedback_pause_for_compact.md`.
+
+**Parallelism.** One Cursor agent per repo at a time is fine; 4+ in flight simultaneously also fine, **IFF** each issue carries its own branch and the file-scope matrix from § "Pre-Flight Conflict Detection (Batch Delegation)" returns no overlaps. The constraint is file-scope, not agent count.
+
+**How to apply:**
+1. Pick candidate ROADMAP tasks (after applying § "Delegation Eligibility Filter Order").
+2. Group by shared-module + same-tier + same-fix-shape — only those groups become bundle candidates.
+3. Run pre-flight conflict detection on the proposed batch shape.
+4. If batch ≥ 4 issues, default to splitting. Surface the split shape (e.g. "2+1+1") to the user before firing.
+5. After firing, pause for `/compact` before the next batch.
 
 ### Pre-Flight Conflict Detection (Batch Delegation)
 
@@ -771,6 +808,26 @@ Use this fallback when the project hasn't onboarded Linear, when Linear is inten
 ```
 
 Auto-detects `--repo` from current git dir. Use after a cloud-agent PR merges to verify the workflow is actually reducing round-trips (target: 1-2 force-pushes, draft time → 0, merge lag low). Linear-side augmentation (issue create→done timestamps, comment turnaround) is intentionally not in the script — MCP isn't bash-callable; invoke from a Claude session and ask Claude to layer `mcp__linear-server__list_comments` + `get_issue` data when needed.
+
+### Honest-Gap Discipline (Queue Dry)
+
+**When § "Delegation Eligibility Filter Order" drains the queue to zero, surface the gap explicitly with these four paths and let the user pick. Never silently fabricate a batch from non-eligible tasks just to keep the queue full.**
+
+The four paths:
+
+1. **Wait** — keep the queue empty until ROADMAP gets new candidates or in-flight cloud-agent PRs land (which often unblocks dependent tasks).
+2. **Pivot LOCAL** — pull the next-highest-Eff ROADMAP task into the local session instead of delegating. Often correct when filter 2 (env constraint) is what drained the queue.
+3. **Cross-repo** — check sibling-repo ROADMAPs for delegatable tasks (per § "Cross-Repo Coordination"). The user's queue is broader than one repo.
+4. **Review-mode** — switch to `staged-review:commit-review` on any in-flight cloud-agent PRs instead of opening more. Often correct when there's already enough cloud work in flight.
+
+**Why explicit-surface, not silent-pivot.** The failure mode is reaching past the eligibility filter to backfill the queue with tasks that violate filter 2 or 3 — e.g. delegating a dialyzer-required task to a cloud agent whose VM OOMs on dialyzer "because nothing else is available." The filters exist precisely to prevent that. Honest-gap discipline turns "queue dry" into a user-visible decision instead of a quiet rule violation.
+
+Same shape as `critical-rules.md` § "NO EVASION — SIT WITH THE HARD THING": when the easy path (silent backfill) violates a constraint, sit with it, name it, ask. Specific to delegation: when the filters say no, don't argue with the filters — surface the gap.
+
+**How to apply:**
+- After running the eligibility filter, if zero tasks survive, STOP. Don't loop back to relax filter 2 ("maybe Cursor can run dialyzer this time").
+- Surface the gap with the four paths in one short message. Not as a menu of 4 detailed essays — as a one-line-per-path list (per `response-conventions.md` § "Terse Mode").
+- Wait for the user's pick. Don't pre-execute one of them as a "safe default."
 
 ### Cross-References
 
