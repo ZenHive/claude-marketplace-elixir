@@ -72,7 +72,11 @@ Conditional fields: `coverage` only with `--cover`; `coverage.threshold_met` onl
 
 ### Using jq
 
-Piping requires `MIX_QUIET=1` to suppress compilation output that would corrupt the JSON stream. For full output, prefer `--output FILE` over piping.
+**One run captures everything — never summarize-then-detail.** `mix test.json --quiet --output /tmp/r.json` writes the full schema in one payload: `summary`, failing `tests`, `error_groups`, `coverage`, `module_failures`. Slice it after: `jq '.summary' /tmp/r.json` for the summary view, `jq '.tests[] | select(.state == "failed")'` for detail, `jq '.error_groups'` for clusters. The default output is *already* compacted (v0.3.0+ shows only failed tests in `.tests[]`), so a "summary-only first, full run for details next" pass doubles compile-cache rehydration + suite-execution cost for zero informational gain. **Do not** start with `--summary-only` to "scope the failure space" — the captured full JSON contains the summary AND the detail AND the error-groups already.
+
+**Default to `--output FILE`. Always.** Pick a path (e.g. `/tmp/r.json`) before running. A re-run is seconds-to-minutes; a `jq` against the captured file is microseconds. Even a "one-shot" pipe is wrong-by-default: the moment you want to slice a second facet you've paid for the suite twice. Piping is the exception, not the rule — reserve it for genuinely throwaway shell composition.
+
+Piping (when you actually need it) requires `MIX_QUIET=1` to suppress compilation output that would corrupt the JSON stream.
 
 ```bash
 MIX_QUIET=1 mix test.json --quiet --summary-only | jq '.summary'

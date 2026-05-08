@@ -8,6 +8,8 @@ Unofficial Claude Code plugin marketplace for Elixir and BEAM ecosystem developm
 
 This is a [**Claude Code plugin marketplace**](https://docs.claude.com/en/docs/claude-code/plugin-marketplaces) that provides Elixir and BEAM ecosystem development tools for Claude Code.
 
+> **Naming:** the GitHub repo is `claude-marketplace-elixir` (describes scope — Elixir/BEAM-focused), the marketplace namespace inside Claude Code is `deltahedge` (org identity, also used by language-agnostic plugins like `cloud-delegation`, `staged-review`, `task-driver`, `portfolio-strategy`). Plugins are referenced as `<plugin>@deltahedge`.
+
 ## Quick Start
 
 ### Install the Marketplace

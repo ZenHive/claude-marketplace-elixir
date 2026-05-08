@@ -159,7 +159,7 @@ For batches of 2+ open cloud-agent PRs, § "Merge-Train Mode (`flow-review`)" ap
 
 ### Cloud Agent Environments
 
-For agent envs (hex.pm, mix tasks, Tidewave, external HTTP availability per agent), see `cloud-agent-environments.md`. Eligibility recap: `[CX]` is code-mutation suspended; `[CSR]` covers hex.pm verification, mix-task validation, third-party API correctness — Tidewave / live-runtime tasks stay local.
+For agent envs (hex.pm, mix tasks, Tidewave, external HTTP availability per agent), see `cloud-agent-environments.md`. Eligibility recap: `[CX]` is code-mutation suspended; `[CSR]` covers hex.pm verification, mix-task validation, third-party API correctness, AND Tidewave / live-runtime tasks (Tidewave reachable on Cursor via `curl localhost:<port>/tidewave/mcp` — verified 2026-05-07; native `CallMcpTool` requires pre-session start).
 
 #### Push-Back-vs-Fix-Locally Matrix by Agent
 
@@ -171,12 +171,12 @@ For agent envs (hex.pm, mix tasks, Tidewave, external HTTP availability per agen
 | Hex-package API correctness (third-party signatures) | **Fix locally** — Codex has no hex.pm | **Push back** — Cursor has hex.pm |
 | Test failure / coverage gap on new code | Push back (best Codex can do without `mix test`) | **Push back** — Cursor runs `mix test` |
 | Coverage gap on legacy code surfaced by the PR | **Fix locally** — pre-existing debt | **Fix locally** — same |
-| Live-data / runtime-state — verification only | **Push back with Tidewave evidence** | **Push back with Tidewave evidence** |
-| Live-data / runtime-state — fix needs verifier's runtime | **Fix locally** (paste-as-comment if viable) | **Fix locally** (paste-as-comment if viable) |
+| Live-data / runtime-state — verification only | **Push back with Tidewave evidence** (Codex has no Tidewave) | **Push back** — Cursor can run Tidewave via `curl` (or `CallMcpTool` if pre-started) |
+| Live-data / runtime-state — fix needs verifier's runtime | **Fix locally** (paste-as-comment if viable) | **Push back** if Cursor can verify in its own VM; **fix locally** only if local-only state (your IEx, your DB) is required |
 | External spec / RFC / EIP correctness | **Fix locally** — Codex has no external HTTP | Push back (Cursor likely has HTTP) |
 | Acceptance criteria not met | Push back | Push back |
 
-**Tidewave is verification, not necessarily fix.** Local Claude has `mcp__tidewave__project_eval` and live runtime/database access; cloud agents don't. Open IEx in the host project (NOT a PR worktree — Tidewave runs against host's currently-loaded code), run `project_eval` against the suspected case, paste the result into the push-back comment as evidence. The asymmetry is a **push-back strengthener**, not a fix-locally trigger — fix-locally only when the code fix is too large to paste verbatim or needs generated artifacts.
+**Tidewave is verification, not necessarily fix.** Local Claude has `mcp__tidewave__project_eval` and live runtime/database access. Cursor can also reach Tidewave from its VM (curl-to-MCP always; `CallMcpTool` if pre-started — see `cloud-agent-environments.md` § "Tidewave on Cursor — Reach details"); Codex cannot. Open IEx in the host project (NOT a PR worktree — Tidewave runs against host's currently-loaded code), run `project_eval` against the suspected case, paste the result into the push-back comment as evidence. The asymmetry is a **push-back strengthener**, not a fix-locally trigger — fix-locally only when the code fix is too large to paste verbatim or needs generated artifacts.
 
 > ```
 > @cursor verified failure case via Tidewave:
@@ -428,7 +428,7 @@ The canonical Step 14–16 sequence expects the post-merge follow-up commit on `
 
 - PR is mostly-good but ships some dead/unwanted code that should NOT block merge.
 - Reviewer's diff to remove the dead code is small (≤ a few small edits, no logic change, no behavior shift).
-- Pushing back would cost more than it saves — typically because the verification the agent needs is one **its own harness can't run** (e.g. `mix dialyzer` OOMs in Cursor's cloud VM, no hex.pm in Codex Cloud, no Tidewave anywhere).
+- Pushing back would cost more than it saves — typically because the verification the agent needs is one **its own harness can't run** (e.g. `mix dialyzer` OOMs in Cursor's cloud VM, no hex.pm in Codex Cloud, no Tidewave on Codex; Cursor reaches Tidewave so this exception is narrower than it used to be).
 - The PR contains something **worth keeping** that rejecting would drop. If net-negative, close-without-merging instead.
 
 **Shape.**
@@ -460,7 +460,7 @@ Cloud agents do NOT carry context across sessions. Each pickup is a fresh sessio
 
 ## Env constraints
 - Codex Cloud: no hex.pm, no Tidewave, no internet. Use stdlib + already-installed deps.
-- Cursor Cloud: hex.pm + internet OK; mix tasks OK. Tidewave NOT reachable.
+- Cursor Cloud: hex.pm + internet OK; mix tasks OK. Tidewave reachable via `curl localhost:<port>/tidewave/mcp` (always); native `CallMcpTool` only if Tidewave was running before session start (see `cloud-agent-environments.md` § "Tidewave on Cursor").
 
 ## Success criteria
 - `mix test.json --quiet --failed` returns 0 failures on touched files

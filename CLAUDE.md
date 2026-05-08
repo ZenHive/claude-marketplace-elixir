@@ -32,6 +32,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem development. It provides automated development workflows through hooks that trigger on file edits and git operations.
 
+**Naming:** GitHub repo is `claude-marketplace-elixir` (describes scope), Claude Code marketplace namespace is `deltahedge` (org identity — also covers language-agnostic plugins: `cloud-delegation`, `staged-review`, `task-driver`, `portfolio-strategy`). Plugins are referenced as `<plugin>@deltahedge`.
+
 ### Includes → Skills Sync
 
 **`~/.claude/includes/*.md` files are canonical.** Skill SKILL.md files are auto-synced from includes — never edit skill bodies directly. After editing an include, run:

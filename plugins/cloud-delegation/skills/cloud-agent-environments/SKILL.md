@@ -73,6 +73,25 @@ Cursor cloud has internet + can run mix tasks (verified in round-trip testing):
 - **hex.pm reachable** — third-party hex-package API signatures can be verified directly. The `assert_received` vs `assert_receive` class of bug should not recur on Cursor PRs.
 - **Mix tasks runnable** — `mix deps.get`, `mix compile`, `mix test` (and `mix test.json` if `ex_unit_json` is in deps), `mix credo --strict`, `mix format --check-formatted`, `mix dialyzer` (provided the PLT cache builds — first-run cost on a fresh env).
 - **General HTTP likely available** — not yet stress-tested against arbitrary external APIs / RFCs / EIPs. Treat as broadly available pending counter-evidence.
+- **Tidewave reachable (with setup)** — verified 2026-05-07. The Cursor Background Agent VM can run Tidewave on `localhost:<port>/tidewave/mcp`; agents reach it two ways:
+  - **Always works:** raw `curl` to the MCP endpoint with a `tools/call` JSON body. No session-start dependency — usable mid-session even if Tidewave wasn't running at startup.
+  - **Native via `CallMcpTool`:** requires Tidewave to be **running before the agent session begins**. Cursor's MCP client caches the initial connection result, so a server started mid-session won't be picked up natively — the agent has to fall back to `curl` for that session. `.cursor/mcp.json` configures the client to point at the MCP URL.
+
+  **Pre-start options** (so `CallMcpTool` works natively): leave `mix tidewave` running in a tmux session from a prior agent run (persists across sessions in the same VM), or bake startup into a VM snapshot. The Cursor environment-setup script can't itself launch Tidewave reliably enough to satisfy "running at session start," because the MCP client probes too early.
+
+#### Tidewave on Cursor — Reach details
+
+```bash
+# Direct MCP call (always works once Tidewave is running):
+curl -s -X POST http://localhost:4002/tidewave/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+       "params":{"name":"project_eval","arguments":{"code":"1 + 1"}}}'
+```
+
+Tools available on Cursor identical to local: `project_eval`, `get_docs`, `get_source_location`, `get_logs`, `search_package_docs`. Port comes from the project's Tidewave registry entry (`~/.claude/tidewave-ports.md`); the `.cursor/mcp.json` URL must match.
+
+**Implication for delegation:** live-data / runtime-state tasks are NOT a Cursor-eligibility blocker the way they used to be. Push-back-vs-fix matrix updates accordingly — see `linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent".
 
 #### Self-validation expectation
 
@@ -112,7 +131,7 @@ The shift this enables:
 
 - **Reviewer reads `gh pr checks <n>`** instead of running the full local harness (was 15+ min per PR via local mix; CI runs in parallel with the agent's work and is done by the time the reviewer looks)
 - **Push-back becomes the default for harness drift.** When CI flags a format / credo / dialyzer / coverage issue, the reviewer's job is to point the agent at the failing check — not to fix it locally. The cloud agent (Cursor especially, since it has hex.pm + can run mix) iterates against the same CI signal the reviewer sees
-- **Local fix shrinks to the env-constraint exception cases.** Per `linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent", local-fix is reserved for items the agent fundamentally can't verify — hex.pm for Codex, Tidewave for both, external specs for Codex. CI handles everything else
+- **Local fix shrinks to the env-constraint exception cases.** Per `linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent", local-fix is reserved for items the agent fundamentally can't verify — hex.pm for Codex, Tidewave for Codex (Cursor reaches it via curl), external specs for Codex. CI handles everything else
 
 `staged-review:commit-review` defers to CI status when present (Step 6 reads `gh pr checks` and treats green as the harness-gate signal). When CI is absent, it falls back to running the local harness inline and surfaces a `TODO(setup-ci)` finding pointing at this skill so the next iteration of the PR has CI.
 

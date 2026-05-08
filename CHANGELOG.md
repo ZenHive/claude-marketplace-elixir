@@ -554,6 +554,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 - Fix unbound variable bug in marketplace instructions
 - Exclude TODO/FIXME checks from Credo pre-commit hook
 
+### Removed
+
+- **`docs/archive/ccxt/` directory deleted** — three proprietary CCXT methodology files (`layered-abstraction.md`, `sync-fixtures.md`, `code-generation.md`) plus `README.md`, originally preserved here in commit `354eef0` after the `api-consumer` and `meta-development` skills were retired. The files describe methodology for the sibling `ccxt_client` and `ccxt_extract` repos and belong in those repos' own `docs/`, not in this marketplace. Recoverable from git history (`git show 354eef0~1:docs/archive/ccxt/<file>` once the deletion lands; or `git show 56c950e:references/...` for the pre-retirement source). Empty `docs/` parent removed.
+
+### Added
+
+- **Naming note in `README.md` and `CLAUDE.md`** — clarifies that the GitHub repo (`claude-marketplace-elixir`, scope-descriptive) and the in-Claude-Code marketplace namespace (`deltahedge`, org identity covering language-agnostic plugins like `cloud-delegation`, `staged-review`, `task-driver`, `portfolio-strategy`) are intentionally different. Question came up in-session; choice was to document the asymmetry rather than rename either side (rename would break every `enabledPlugins` entry in installed users' `settings.json` and every `@deltahedge` reference in docs/scripts/AGENTS.md).
+
 ---
 
 ## [1.0.1] - 2025-01-05
