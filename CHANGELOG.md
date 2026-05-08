@@ -6,6 +6,20 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**`ex-unit-json` `--output FILE` is the unconditional default — elixir v1.26.1**
+- **Reframed Using-jq guidance** in `ex-unit-json` skill from "default to `--output FILE` whenever you'll query more than once" to "default to `--output FILE`. Always." Pick a path before running; reserve piping for genuinely throwaway shell composition. The conditional framing left room to skip the file-write on perceived-one-shot calls, which is wrong-by-default — the moment a second facet of the same run is interesting, the suite has been paid for twice.
+- No behavior change in `ex_unit_json` itself; doc-only sharpening of the recommended call shape.
+- Plugin version 1.26.0 → 1.26.1.
+
+**Tidewave-on-Cursor reach verified — cloud-delegation v1.9.1**
+- **`cloud-agent-environments` skill, new "Tidewave reachable (with setup)" bullet** under Cursor Cloud reach (verified 2026-05-07). Two access modes: (a) raw `curl http://localhost:<port>/tidewave/mcp` with a `tools/call` JSON body — always works once Tidewave is running, no session-start dependency; (b) native `CallMcpTool` via `.cursor/mcp.json` — works only if Tidewave was running before the agent session began (Cursor's MCP client caches the initial probe). Pre-start options: persistent tmux session in the VM, or VM snapshot with Tidewave baked in. Cursor's environment-setup script can't reliably satisfy "running at session start" because the MCP client probes too early.
+- **New "Tidewave on Cursor — Reach details" subsection** with the verified `curl` invocation and the tool list (`project_eval`, `get_docs`, `get_source_location`, `get_logs`, `search_package_docs`) — identical to local Tidewave.
+- **`linear-workflow` Push-Back-vs-Fix-Locally Matrix updated:** live-data / runtime-state verification on Cursor moves from "push back with Tidewave evidence" (verifier-runtime-only) to "push back — Cursor can run Tidewave via `curl` (or `CallMcpTool` if pre-started)." Live-data fix rows: Cursor now defaults to push-back when its VM can verify, fix-locally only when local-only state (your IEx, your DB) is required.
+- **Bundled-code-revisions narrowing exception:** "no Tidewave anywhere" footnote tightened to "no Tidewave on Codex; Cursor reaches Tidewave so this exception is narrower than it used to be."
+- **Env-constraints recap:** Cursor Cloud Tidewave bullet flipped from "NOT reachable" to the curl-always / native-if-pre-started shape.
+- **Implication for delegation:** Tidewave-dependent tasks are now Cursor-eligible (`[CSR]` covers them) — they were previously local-only. Codex remains Tidewave-blocked.
+- Plugin version 1.9.0 → 1.9.1.
+
 **`linear-workflow` Review Tiering section — cloud-delegation v1.2.0**
 - **New "Review Tiering: When Full Tier 2 Earns Its Cost" H3 section** in `linear-workflow` skill, slotted between Codex-Reviews-Cursor Pattern and Cloud Agent Environments. Resolves uniform-Tier-2 over-application observed across cartouche INE-5..INE-26 (3-day window): every cloud-agent PR consumed multi-step `staged-review:commit-review` attention regardless of touched-file scope, including ceremony-tier (~15 LOC AGENTS.md tweaks, ROADMAP-only updates) where defect-discovery value was zero.
 - **Tier definitions by touched-files (not LOC):** Critical = signing / tx encoding / ABI codec / RPC client / KMS / anything in the ≥95% coverage tier per `critical-rules.md` § "RAISE COVERAGE BEFORE MUTATING" → full Tier 2. Standard = type/spec / docs / coverage / generator / tests / refactors outside critical → CI-green + bot-review check, merge if both clean. Ceremony = close-outs / AGENTS.md / README-only / ROADMAP/CHANGELOG-only → CI-green check, merge.
