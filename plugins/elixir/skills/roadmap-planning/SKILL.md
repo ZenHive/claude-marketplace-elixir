@@ -58,7 +58,7 @@ If below, raising coverage is **part of this task** — not a follow-up to defer
 
 ### Parallel Work (`[P]`)
 
-Mark independent tasks with `[P]`. Before starting: update status to 🔄 with branch name, commit to main, create worktree.
+Mark independent tasks with `[P]`. Before starting: update status to 🔄 with branch name, commit any pending work on the main checkout, then create a worktree at `~/_DATA/worktrees/<repo>/task-<N>/` (use the ROADMAP task number as the worktree ID). See `worktree-workflow.md` for the full convention.
 
 ```
 | Task 79 `[P]` | ⬜ | Independent |
