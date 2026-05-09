@@ -1,6 +1,6 @@
 {
   "name": "staged-review",
-  "version": "1.18.0",
+  "version": "1.18.1",
   "description": "Universal three-tier code review workflow — pre-commit single-reviewer triage (code-review), pre-merge cloud-agent PR gate (commit-review), post-commit / post-merge dual-reviewer audit (audit-review). v1.18: code-review RELAXED — removed mandatory parallel Codex dispatch and Claude+Codex dialogue from pre-commit; the dual-reviewer pass now lives only in audit-review (auto-fires after gh pr create + post-merge). Pre-commit stays fast: single-reviewer triage with auto-apply, discuss-design escalates to user (with defer-to-audit option). Eliminates duplicate Codex work since audit-review reaches every commit anyway. v1.17: audit-status command + unaudited-commits SessionStart hook. v1.16: audit-review skill + commit-review simplification with auto-merge.",
   "author": {
     "name": "DeltaHedge",
