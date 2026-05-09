@@ -1,7 +1,7 @@
 {
   "name": "staged-review",
-  "version": "1.17.0",
-  "description": "Universal three-tier code review workflow — pre-commit (code-review), pre-merge cloud-agent PR gate (commit-review), post-commit / post-merge audit (audit-review). v1.17: audit-status command + unaudited-commits SessionStart hook — read-only `/staged-review:audit-status` shows per-branch drift from last audit(...) ancestor; SessionStart hook auto-flags ≥3 unaudited commits so context-switched sessions don't accumulate silent drift; both share `unaudited-commits.sh` helper. v1.16: audit-review skill — full 5+1 audit on committed code, mandatory parallel Codex dispatch, auto-applies hygiene fixes, auto-resolves discuss-design via Claude+Codex dialogue, writes .audit/<sha>.md + commits as audit(...). FULLY AUTONOMOUS. Auto-invoked by worktree-workflow, linear-workflow, and commit-review's auto-merge tail. commit-review SIMPLIFIED — narrowed to pre-merge correctness gate, AUTO-MERGES cloud-agent PRs on ✅ + green CI + 5 preconditions, then chains audit-review.",
+  "version": "1.18.0",
+  "description": "Universal three-tier code review workflow — pre-commit single-reviewer triage (code-review), pre-merge cloud-agent PR gate (commit-review), post-commit / post-merge dual-reviewer audit (audit-review). v1.18: code-review RELAXED — removed mandatory parallel Codex dispatch and Claude+Codex dialogue from pre-commit; the dual-reviewer pass now lives only in audit-review (auto-fires after gh pr create + post-merge). Pre-commit stays fast: single-reviewer triage with auto-apply, discuss-design escalates to user (with defer-to-audit option). Eliminates duplicate Codex work since audit-review reaches every commit anyway. v1.17: audit-status command + unaudited-commits SessionStart hook. v1.16: audit-review skill + commit-review simplification with auto-merge.",
   "author": {
     "name": "DeltaHedge",
     "url": "https://github.com/ZenHive"

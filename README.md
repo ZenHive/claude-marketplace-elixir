@@ -54,11 +54,27 @@ Each phase runs in a **fresh session** with file-based handoffs (`.thoughts/` di
 
 1. **Interview/Brainstorm** → context docs
 2. **Plan** → implementation plan with acceptance criteria
-3. **Implement** → code + ROADMAP updates
-4. **Code Review** → `staged-review:code-review` (pre-commit, any language)
-5. **QA** → `/elixir-qa` (post-implementation, Elixir-specific)
+3. **Implement** → code + ROADMAP updates (`task-driver`)
+4. **Code Review** → `staged-review:code-review` (pre-commit, any language) → commit
+5. **Pre-merge gate** → `staged-review:commit-review` (cloud-agent PRs only — Cursor / Codex)
+6. **Post-merge audit** → `staged-review:audit-review` (auto-fires after `gh pr create` and after every cloud-agent merge)
+7. **QA** → `/elixir-qa` (post-implementation, Elixir-specific)
 
-For small-medium features, `/elixir-oneshot` runs all phases in one session. See [WORKFLOWS.md](.claude/WORKFLOWS.md) for details.
+For small-medium features, `/elixir-oneshot` runs the implementation phases in one session. See [WORKFLOWS.md](.claude/WORKFLOWS.md) for details.
+
+### Three-Tier Code Review Chain
+
+The `staged-review` plugin covers the full pre-commit → pre-merge → post-merge axis with three sibling skills. Same 5+1 categories across all three; layers differ in **scope**, **reviewer count**, and **autonomy**:
+
+| Layer | Skill | When | Scope | Reviewer |
+|---|---|---|---|---|
+| Pre-commit | `code-review` | `git diff --staged` | All 5+1 categories | Single (Claude) — fast triage with auto-apply |
+| Pre-merge | `commit-review` | Cloud-agent PR before merge | Cat 1 + thin slice of Cat 6 | Single (Claude) — narrow correctness gate, auto-merges on ✅ + green CI + 5 preconditions |
+| Post-merge | `audit-review` | After `gh pr create` / every cloud-agent merge | All 5+1 categories | **Dual (Claude + mandatory parallel Codex)**, with Claude+Codex dialogue on `discuss-design` — fully autonomous |
+
+The expensive dual-reviewer work (parallel Codex dispatch + Claude+Codex dialogue) lives only in `audit-review`. Pre-commit and pre-merge stay fast and single-reviewer. Since `audit-review` auto-fires after `gh pr create` and after every cloud-agent merge, every commit reaches the dual-reviewer pass either way — duplicating it pre-commit would be redundant work on the same code.
+
+Implementer / reviewer separation is preserved across the chain: each layer is a different session, no agent grades its own work.
 
 ## Available Plugins (9)
 
@@ -81,7 +97,7 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
 | [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
 
-## Available Skills (32)
+## Available Skills (33)
 
 **Elixir plugin** (24 skills):
 
@@ -125,12 +141,13 @@ For small-medium features, `/elixir-oneshot` runs all phases in one session. See
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands for your project |
 
-**Staged-review plugin** (2 skills):
+**Staged-review plugin** (3 skills):
 
 | Skill | Description |
 |-------|-------------|
-| code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
-| commit-review | Tier 2 cloud-agent PR review (Codex/Cursor) — CI-as-gate, tiny-PR fast path, asymmetric push-back channels (PR=line-level / Linear=scope), optional Codex CLI second-opinion (default off), verdict-only (user merges) |
+| code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply, escalates `discuss-design` to user (defer-to-audit option available) |
+| commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex) — narrow Cat 1 + Cat 6 slice, CI-as-gate, asymmetric push-back (PR=line-level / Linear=scope), auto-merges on ✅ + green CI + 5 preconditions, chains audit-review |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1, mandatory parallel Codex, Claude+Codex dialogue on `discuss-design`, auto-applies hygiene fixes, writes `.audit/<sha>.md` + `audit(...)` commit. **Fully autonomous.** Auto-invoked by worktree-workflow, commit-review, linear-workflow |
 
 **Task-driver plugin** (1 skill):
 
