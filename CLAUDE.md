@@ -160,7 +160,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (32 total)
+### Skills (33 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
@@ -210,7 +210,7 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 
 | Skill | Description |
 |-------|-------------|
-| code-review | Pre-commit review of `git diff --staged` — 5+1 categories with mandatory Codex second-opinion, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply) |
+| code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` post-PR-create / post-merge to avoid duplicate dual-reviewer cost (every commit reaches audit-review either way via worktree-workflow auto-invoke). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
 | commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label** then chains audit-review against the merge SHA |
 | audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-workflow` (post-merge for non-auto-merge cases) |
 
@@ -520,6 +520,29 @@ The marketplace includes a comprehensive workflow system for development:
 See `.claude/WORKFLOWS.md` for complete workflow documentation.
 
 **Elixir-workflows Plugin**: The `elixir-workflows` plugin can generate customized workflow commands for other Elixir projects via `/elixir-workflows:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
+
+### Three-Tier Code Review Chain
+
+The `staged-review` plugin provides three sibling skills covering the full pre-commit → pre-merge → post-merge axis. Same 5+1 category catalog across all three; the layers differ in **when**, **scope**, and **reviewer count**:
+
+| Layer | Skill | When | Scope | Reviewer |
+|---|---|---|---|---|
+| Pre-commit | `code-review` | `git diff --staged` before any commit | All 5+1 categories (full doc hygiene) | Single (Claude) — fast triage |
+| Pre-merge | `commit-review` | Cloud-agent PR before merge (Cursor / Codex) | Cat 1 (Bugs) + thin slice of Cat 6 (`@doc`/`@spec` correctness drift only) | Single (Claude) — narrow correctness gate |
+| Post-merge | `audit-review` | After `gh pr create` / after every merge | All 5+1 categories | **Dual (Claude + mandatory parallel Codex)**, with Claude+Codex dialogue on `discuss-design` |
+
+**Why dual-reviewer at the audit layer only.** The expensive parts of the review (parallel Codex dispatch with full tool-inventory payload, Claude+Codex dialogue resolution on judgment-call items) live exclusively in `audit-review`. Pre-commit and pre-merge stay fast and single-reviewer. `audit-review` auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge — every commit reaches the dual-reviewer pass either way, so running Codex pre-commit AND post-PR-create is duplicate work on the same code. Spending the dual-reviewer cost once, post-merge, is the right shape.
+
+**End-to-end flow for a typical feature task:**
+
+1. `task-driver` picks the next ROADMAP task, implements it in a worktree, stages the change set with `git add`, and stops (does not commit).
+2. `code-review` (fresh session) reviews `git diff --staged` against all 5+1 categories. Single-reviewer; auto-applies rated 3-10 + actionable + `discuss-trivial`. `discuss-design` items escalate to user, who can also say "let audit handle it" to defer to step 5. Commits on user approval (plan-mode exit).
+3. Inside the worktree, the commit / push / `gh pr create` loop is auto-allowed (per `critical-rules.md` worktree-scope rule).
+4. After `gh pr create`, `worktree-workflow` auto-invokes `audit-review` against the worktree's commits — full 5+1, mandatory Codex, auto-resolves discuss-design via Claude+Codex dialogue. Writes `.audit/<sha>.md`, commits as `audit(...)`.
+5. For cloud-agent PRs (`cursor/*` / `codex/*`), `commit-review` runs the pre-merge correctness gate. On ✅ + green CI + 5 preconditions, auto-merges and chains `audit-review` against the merge SHA on the default branch (`main` / `master` / `development`).
+6. For self-authored worktree PRs, the user merges manually; the post-PR-create audit-review pass already covered the dual-reviewer audit at step 4.
+
+**Implementer / reviewer separation** is preserved across the chain: task-driver stages but doesn't commit (handoff to code-review), code-review commits but doesn't merge (handoff to commit-review for cloud-agent PRs / user for self-authored), and audit-review bookkeeps post-merge. Each layer is a different session — no agent grades its own work.
 
 ## Plugin Development Tools
 

@@ -1,24 +1,26 @@
 ---
 name: code-review
-description: Use when reviewing staged files, performing code review, or before committing. Reviews `git diff --staged` for bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ similar patterns), and actionable TODOs. Every review includes a mandatory Codex second-opinion pass. Presents a findings table, auto-applies rated fixes, and asks only about `discuss`-tier judgment calls. Language-agnostic.
+description: Use when reviewing staged files, performing code review, or before committing. Single-reviewer pre-commit triage — reviews `git diff --staged` for bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ similar patterns), actionable TODOs, and doc gaps. The dual-reviewer pass with mandatory Codex dispatch and Claude+Codex dialogue runs post-PR-create / post-merge in `audit-review`. Presents a findings table, auto-applies rated fixes, escalates `discuss-design` to the user. Language-agnostic.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent, ExitPlanMode
 ---
 
 # Code Review — Staged Files Workflow
 
-Read the staged diff. Find real problems. Present them in a table. Auto-apply rated fixes. Ask only about judgment calls.
+Read the staged diff. Find real problems. Present them in a table. Auto-apply rated fixes. Escalate design questions to the user.
 
 ## Position in the Three-Tier Review Chain
 
-`code-review` is the **pre-commit** layer. It complements two committed-state siblings:
+`code-review` is the **pre-commit triage** layer — single-reviewer pass with auto-apply. The dual-reviewer pass (mandatory Codex + Claude+Codex dialogue) runs in `audit-review` post-PR-create / post-merge.
 
-| Skill | When | Auto-mode? |
-|---|---|---|
-| `code-review` (this skill) | Pre-commit — `git diff --staged` | Plan-mode-with-auto-apply (one user gate: exit-plan-to-apply) |
-| `commit-review` | Pre-merge cloud-agent PR — narrowed correctness gate | Auto-merge on ✅ + green CI + cloud-agent branch (zero gates for the cloud-agent path) |
-| `audit-review` | Post-commit / post-merge — committed code | Fully autonomous (zero gates) |
+| Skill | When | Reviewer | Auto-mode? |
+|---|---|---|---|
+| `code-review` (this skill) | Pre-commit — `git diff --staged` | Single (Claude) | Plan-mode-with-auto-apply (one user gate: exit-plan-to-apply) |
+| `commit-review` | Pre-merge cloud-agent PR — narrowed correctness gate | Single (Claude) | Auto-merge on ✅ + green CI + cloud-agent branch (zero gates for the cloud-agent path) |
+| `audit-review` | Post-commit / post-merge — committed code | Dual (Claude + mandatory Codex), with dialogue | Fully autonomous (zero gates) |
 
-Same 5+1 categories across all three. `audit-review` skips plan-mode (the `audit(...)` commit IS the inspectable artifact). `commit-review` runs only Category 1 (Bugs) + a narrowed slice of Category 6 — hygiene categories moved to `audit-review` post-merge.
+Same 5+1 categories across all three layers. `commit-review` runs only Cat 1 (Bugs) + a thin slice of Cat 6 (`@doc`/`@spec` correctness drift) — hygiene categories deferred to audit-review post-merge. `audit-review` skips plan-mode (the `audit(...)` commit IS the inspectable artifact).
+
+**Why no Codex at this layer?** `audit-review` auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge — every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-PR-create is redundant work on the same code; the post-PR-create pass has the committed view, ROADMAP scope, and all hygiene categories, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
 
 **When NOT to use `code-review`:** if the code is already committed (use `audit-review`), or if reviewing a cloud-agent PR pre-merge (use `commit-review`).
 
@@ -30,15 +32,17 @@ WHAT THIS SKILL DOES:
   - Rate each finding 1-10 priority (or `discuss`)
   - Present findings as a table (informational)
   - Auto-apply fixes for anything rated 3-10 and actionable TODOs — **including doc updates** (ROADMAP.md, CHANGELOG.md, CLAUDE.md, README.md)
-  - Ask the user only on `discuss-design` divergence in Step 9 (`discuss-trivial` applies with the rest)
+  - Escalate `discuss-design` to the user (no Codex dialogue at this layer — `audit-review` runs it post-PR-create / post-merge)
 
 WHAT THIS SKILL DOES NOT DO:
+  - Dispatch Codex (deferred to `audit-review` for the full dual-reviewer + dialogue pass)
+  - Run Claude+Codex dialogue on `discuss-design` items (deferred to `audit-review`)
   - Comprehensive language-specific checklist (use `/elixir-code-review` or similar)
   - Review unstaged or committed code (scope is staged files only)
   - Style/formatting checks (use linters)
-  - Stage the reviewer's own doc edits (Step 8 — leaves them unstaged so the committer inspects before `git add`)
+  - Stage the reviewer's own doc edits (Step 7 — leaves them unstaged so the committer inspects before `git add`)
 
-**Doc updates are findings, not silent edits.** When the staged diff completes a tracked task, omits a CHANGELOG entry, or invalidates a CLAUDE.md claim, the gap appears as a Category 6 row in the findings table, gets rated, and flows through plan mode (Step 7) like every other fix. The user sees the proposed `ROADMAP.md` / `CHANGELOG.md` / `CLAUDE.md` / `README.md` edits **before** approving the plan — nothing happens silently. After plan mode exits, the edits apply but stay unstaged (Step 8), so the committer can `git diff` and decide what to add to the commit.
+**Doc updates are findings, not silent edits.** When the staged diff completes a tracked task, omits a CHANGELOG entry, or invalidates a CLAUDE.md claim, the gap appears as a Category 6 row in the findings table, gets rated, and flows through plan mode (Step 6) like every other fix. The user sees the proposed `ROADMAP.md` / `CHANGELOG.md` / `CLAUDE.md` / `README.md` edits **before** approving the plan — nothing happens silently. After plan mode exits, the edits apply but stay unstaged (Step 7), so the committer can `git diff` and decide what to add to the commit.
 
 ## Workflow
 
@@ -49,23 +53,19 @@ digraph code_review {
 
   staged   [label="1. git diff --staged\n(stop if nothing staged)"];
   roadmap  [label="2. Read ROADMAP.md\nCross-reference task numbers"];
-  review   [label="3a. Apply 5 review categories\n(delegate survey to Explore if diff is large)"];
-  codex    [label="3b. Dispatch codex:codex-rescue\nin parallel for second-opinion findings"];
-  merge    [label="4. Merge findings\n(Codex-only items default to discuss until verified)"];
-  rate     [label="5. Rate each finding 1-10 or discuss"];
-  present  [label="6. Present findings table (informational, no plan mode)"];
-  planfix  [label="7. Enter plan mode\nLay out concrete edits for rated fixes\n(priority 3-10 + actionable)"];
-  apply    [label="8. Exit plan mode → all edits apply at once"];
-  dialogue [label="9. Claude+Codex dialogue on discuss-tier\nconverge → apply; diverge → escalate"];
-  summary  [label="10. Summarize what was applied"];
+  review   [label="3. Apply 5+1 review categories\n(delegate survey to Explore if diff is large)"];
+  rate     [label="4. Rate each finding 1-10 or discuss"];
+  present  [label="5. Present findings table (informational, no plan mode)"];
+  planfix  [label="6. Enter plan mode\nLay out concrete edits for rated fixes\n(priority 3-10 + actionable + discuss-trivial)"];
+  apply    [label="7. Exit plan mode → all edits apply at once"];
+  escalate [label="8. Escalate discuss-design to the user\n(or defer to audit-review)"];
+  summary  [label="9. Summarize what was applied"];
 
-  staged -> roadmap -> review -> merge;
-  roadmap -> codex -> merge;
-  merge -> rate -> present -> planfix -> apply -> dialogue -> summary;
+  staged -> roadmap -> review -> rate -> present -> planfix -> apply -> escalate -> summary;
 }
 ```
 
-**Plan mode is for the fix step, not the review step.** Presenting findings is a report — a plain table, no plan mode. But *applying* the fixes is the real design moment, and it deserves plan mode: concrete edits visible before anything is written, single exit-to-proceed approval for the whole batch, no cherry-picking ceremony. The user's approval is Claude Code's built-in "exit plan mode" UX — one click, all rated fixes applied. Discuss-tier items (Step 9) are handled separately via a Claude+Codex dialogue with ROADMAP.md in scope; the user is escalated to only on divergence.
+**Plan mode is for the fix step, not the review step.** Presenting findings is a report — a plain table, no plan mode. But *applying* the fixes is the real design moment, and it deserves plan mode: concrete edits visible before anything is written, single exit-to-proceed approval for the whole batch, no cherry-picking ceremony. The user's approval is Claude Code's built-in "exit plan mode" UX — one click, all rated fixes applied. `discuss-design` items (Step 8) are surfaced separately for user decision; the user can also defer them to `audit-review`'s dialogue pass.
 
 ### Step 1: Read Staged Changes
 
@@ -82,21 +82,11 @@ Read `ROADMAP.md` (or the project's equivalent task doc) before reviewing. You n
 - Which task numbers exist (so you can reference them in `TODO(Task N)` markers)
 - Whether the staged diff appears to complete a tracked task (flag as a finding if it does but ROADMAP still shows ⬜ — don't flip the status yourself)
 
-### Step 3a: Apply Review Categories (Claude)
+### Step 3: Apply Review Categories
 
-Review all staged changes against the 5 categories below. Language shows up in *examples*, not in workflow — the categories themselves are language-agnostic.
+Review all staged changes against the 5+1 categories below. Language shows up in *examples*, not in workflow — the categories themselves are language-agnostic.
 
 **Delegate the diff survey to an Explore subagent** when the staged set touches ~20+ files, or when a finding would need cross-file tracing (e.g., "is this helper called anywhere else?", "does any other module inline the same constant?"). Push the raw Grep/Glob work to Explore; keep judgment and synthesis in the main session. Explore returns a compact report — file:line pairs and brief findings — instead of pouring hundreds of raw matches into main context. For small diffs (a handful of files, no cross-file questions), review inline.
-
-### Step 3b: Dispatch Codex Second-Opinion (Required, Parallel with 3a)
-
-Dispatch the `codex:codex-rescue` agent **in parallel** with your own Category 1-5 pass. Give it the same staged diff and the same five categories. This step is not optional — see the "Second-Opinion Review (Required)" section below for the rationale.
-
-Parallel dispatch matters: don't feed Codex your own findings first. Independent eyes catch what the other's confidence filter suppresses.
-
-**The dispatch prompt MUST include the project's tool inventory.** See the "Dispatch Payload" subsection under "Second-Opinion Review (Required)" for the full list of what to send. Without the tool inventory, Codex reasons from training data alone — which is the root cause of its over-flagging.
-
-If Codex is unreachable or the agent errors out, continue with a single-reviewer pass and mark the closing summary "Codex unreachable — single-reviewer pass." Don't silently drop it.
 
 #### Category 1: Bugs & Logic Errors
 
@@ -109,7 +99,7 @@ Code that will fail at runtime or produce incorrect results:
 - **Concurrency bugs**: Race conditions, deadlocks, unhandled messages
 - **Untested error paths added in this diff**: an error tuple, `raise` site, or new `else`/catch branch added in the staged code that no staged test exercises. The trigger is concrete (the input that produces the error), so this clears the confidence filter. Scope is **the diff itself** — not "module coverage is below X%" (which rots every commit). Pattern: scan the diff for new `{:error, _}` / `raise` / new branches, then confirm a staged test names each one. If not, the branch ships unverified — frequently with a wrong tuple shape, wrong atom, or wrong message.
 
-**Confidence filter**: only report if you can name the specific input that triggers the bug. "Looks suspicious" is not a finding — it's noise that trains the user to ignore you. If you think something is off but can't demonstrate the trigger, mark it *discuss* (see rating scale below) rather than *bug*.
+**Confidence filter**: only report if you can name the specific input that triggers the bug. "Looks suspicious" is not a finding — it's noise that trains the user to ignore you. If you think something is off but can't demonstrate the trigger, mark it *discuss-design* (see rating scale below) rather than *bug*.
 
 #### Category 2: Missing Extractions
 
@@ -158,7 +148,7 @@ TODOs in the staged diff that are resolvable RIGHT NOW:
 - TODO says "extract to function" and the function boundary is obvious → do it
 - TODO references a task that's being completed in this diff → resolve it
 
-**List them in the findings table, then fix them in Step 7 (plan mode) with the rest of the rated findings.** Don't defer what's already implementable.
+**List them in the findings table, then fix them in Step 6 (plan mode) with the rest of the rated findings.** Don't defer what's already implementable.
 
 #### Category 6: Documentation Gaps
 
@@ -192,19 +182,11 @@ In-code:
 - `@spec` missing on public function in a project that uses specs elsewhere → **4-6**
 - Docstring example invalidated by the diff (will mislead readers) → **5-7**
 
-**When in doubt, mark `discuss`** — e.g., "is this change worth a CHANGELOG entry, or is it noise?" Step 9 (Claude+Codex dialogue) resolves it.
+**When in doubt, mark `discuss-design`** — e.g., "is this change worth a CHANGELOG entry, or is it noise?" The user decides at Step 8 (or defers to `audit-review`'s dialogue pass).
 
-**Don't invent activity.** If the diff doesn't actually complete the task, don't flip ROADMAP. If you can't summarize the change in one CHANGELOG line without speculation, the entry isn't yours to write — flag as `discuss`. Same rule for in-code docs: if you don't know which error atoms the function actually returns, don't fabricate the enumeration — read the code or mark `discuss`.
+**Don't invent activity.** If the diff doesn't actually complete the task, don't flip ROADMAP. If you can't summarize the change in one CHANGELOG line without speculation, the entry isn't yours to write — flag as `discuss-design`. Same rule for in-code docs: if you don't know which error atoms the function actually returns, don't fabricate the enumeration — read the code or mark `discuss-design`.
 
-### Step 4: Merge Claude + Codex Findings
-
-Wait for Codex to return, then merge both sets into a single findings list:
-
-- **Corroborated** (both raised it) — collapse to one row. These are the highest-confidence findings.
-- **Claude-only** — keep as-is. Apply your normal rating.
-- **Codex-only** — tag the Description cell with `(codex)`. Default the priority to `discuss` until you independently verify it against the actual code. Verification means: open the file, confirm the claimed symbol / invariant / behavior exists and matches Codex's description. Only after verification can you assign a numeric priority. Per `critical-rules.md`: Codex findings look authoritative but frequently cite nonexistent functions, wrong imports, or mis-stated invariants — treat them as suggestions to investigate, never facts to accept.
-
-### Step 5: Rate Each Finding
+### Step 4: Rate Each Finding
 
 Use this scale. It collapses cleanly onto the priority bands the user actually cares about:
 
@@ -215,17 +197,17 @@ Use this scale. It collapses cleanly onto the priority bands the user actually c
 | 5-6 | medium | Missing extraction, worth-doing abstraction | **Auto-apply** (or add `TODO(Task N)` if the fix needs scoping beyond this commit) |
 | 3-4 | low | Missing TODO marker, minor cleanup | **Auto-apply** |
 | 1-2 | cosmetic | Style, naming nits | List only; skip unless trivial |
-| — | discuss-trivial | Lean apply; cognitively reversible (single coherent change, no new public surface, auditable in one read) | **Apply now**, note the alternative + reasoning in the Step 10 summary |
-| — | discuss-design | Genuine trade-off — structural, multi-file ripple, hard-to-revert, or roadmap-shaping | **Step 9 Claude+Codex dialogue**; escalate to user on divergence |
+| — | discuss-trivial | Lean apply; cognitively reversible (single coherent change, no new public surface, auditable in one read) | **Apply now**, note the alternative + reasoning in the Step 9 summary |
+| — | discuss-design | Genuine trade-off — structural, multi-file ripple, hard-to-revert, or roadmap-shaping | **Step 8 user escalation** (or deferred to `audit-review`'s dialogue pass) |
 
-**The `discuss` split exists because dialogue cost is roughly fixed but fix cost varies wildly.** For a 2-line `@doc` extension or a rename, dispatching Codex with a full tool-inventory payload costs more than the diff itself contains — and that overhead is itself a deterrent that nudges sessions to silently skip Step 9 (the worst outcome). The triage question: *would the dialogue cost exceed the fix-and-revert cost?*
+**The `discuss` split exists because escalation cost is roughly fixed but fix cost varies wildly.** For a 2-line `@doc` extension or a rename, surfacing the trade-off to the user costs more attention than the diff itself contains. The triage question: *would the user-attention cost exceed the fix-and-revert cost?*
 
-- **`discuss-trivial`** — yes, dialogue would dominate. The change is **cognitively reversible**: single coherent diff (revert it as a unit, not piecewise), no new public API surface that callers will start depending on, no structural cascade, and the user can audit it in one read. Examples: extending a `@doc` to enumerate a missing error atom, a single-file rename, a localized extraction with no callsite churn. Apply, note the alternative in the summary; the user reads the diff and reverts in one line if they disagree. The user's attention is the audit, not the dialogue.
-- **`discuss-design`** — no, the decision actually shapes the codebase. Two-reasoner dialogue earns its keep here: premature abstractions, architectural-flavor decisions, multi-file structural changes, new public API surface, anything tied to roadmap direction. Line count isn't the gate — *ripple* is. A 5-line `@spec` tightening that breaks N callers is `discuss-design`; a 40-line clean extraction inside one module is `discuss-trivial`.
+- **`discuss-trivial`** — yes, escalation would dominate. The change is **cognitively reversible**: single coherent diff (revert it as a unit, not piecewise), no new public API surface that callers will start depending on, no structural cascade, and the user can audit it in one read. Examples: extending a `@doc` to enumerate a missing error atom, a single-file rename, a localized extraction with no callsite churn. Apply, note the alternative in the summary; the user reads the diff and reverts in one line if they disagree. The user's attention is the audit, not the up-front decision.
+- **`discuss-design`** — no, the decision actually shapes the codebase. User decision (or audit-review's dual-reviewer dialogue) earns its keep here: premature abstractions, architectural-flavor decisions, multi-file structural changes, new public API surface, anything tied to roadmap direction. Line count isn't the gate — *ripple* is. A 5-line `@spec` tightening that breaks N callers is `discuss-design`; a 40-line clean extraction inside one module is `discuss-trivial`.
 
-If you rated it numerically (1-10), you're committing to the fix without dialogue. Use `discuss-trivial` when you'd lean apply but want the alternative on the record. Use `discuss-design` when you genuinely can't decide alone and the cost of being wrong is high.
+If you rated it numerically (1-10), you're committing to the fix without escalation. Use `discuss-trivial` when you'd lean apply but want the alternative on the record. Use `discuss-design` when you genuinely can't decide alone and the cost of being wrong is high.
 
-### Step 6: Present Findings Table (Informational, No Plan Mode)
+### Step 5: Present Findings Table (Informational, No Plan Mode)
 
 Output a single table. No plan mode at this step — it's a report, not a design proposal. No preamble, no "Insight" blocks, no "Not flagged (verified clean)" appendix. Just the findings.
 
@@ -240,51 +222,50 @@ Output a single table. No plan mode at this step — it's a report, not a design
 | 6 | 7   | doc-gap     | CHANGELOG.md        | No [Unreleased] entry for parser fix | Add entry |
 | 7 | 6   | doc-gap     | ROADMAP.md          | Task 7 done in diff but still ⬜      | Flip to ✅, update phase summary |
 | 8 | —   | discuss-trivial | lib/parser.ex:90    | @doc lists 3 errors, fn returns 4   | Apply, note alt in summary |
-| 9 | —   | discuss-design  | lib/cache.ex:5      | TTL of 60s — aggressive? Affects N callers | Step 9 dialogue |
+| 9 | —   | discuss-design  | lib/cache.ex:5      | TTL of 60s — aggressive? Affects N callers | Step 8 user decision (or defer to audit) |
 ```
 
 **Keep descriptions terse** — 10 words max per cell, so the table renders. Long reasoning goes in a follow-up note if needed, not in the table.
 
-### Step 7: Enter Plan Mode with Concrete Edits
+### Step 6: Enter Plan Mode with Concrete Edits
 
 After the findings table, **enter plan mode** (`ExitPlanMode` is what you'll call once the plan is written). Inside the plan, lay out every rated fix (priority 3-10 and every `actionable` entry) as a concrete edit — not prose descriptions, actual file:line + before/after snippets or specific `Edit` operations.
 
 Skip priority 1-2 unless the fix is a single-line trivial edit.
 
-Include `discuss-trivial` findings in the plan — they auto-apply with the rest, and the alternative + reasoning gets recorded in the Step 10 summary so the user can revert in one line if they disagree. Do NOT include `discuss-design` findings — those go to Step 9. Plan mode is for decided fixes only.
+Include `discuss-trivial` findings in the plan — they auto-apply with the rest, and the alternative + reasoning gets recorded in the Step 9 summary so the user can revert in one line if they disagree. Do NOT include `discuss-design` findings — those go to Step 8. Plan mode is for decided fixes only.
 
 The user's **single exit-to-proceed** approves the whole batch. No cherry-picking. If they want to drop individual items, they can say so before exiting plan mode and you revise the plan; the default is "all of it."
 
-### Step 8: Apply the Plan
+### Step 7: Apply the Plan
 
 Once the user exits plan mode, apply every edit in the plan using `Edit`/`MultiEdit`. No further prompts.
 
 Do not run `git add` for the reviewer's own edits unless the user explicitly asks — let them stage the review changes themselves so the distinction between "author's work" and "reviewer's work" stays inspectable.
 
-### Step 9: Claude+Codex Dialogue on `discuss-design`
+### Step 8: Escalate `discuss-design` to the User
 
-If no `discuss-design` rows exist, skip this step. (`discuss-trivial` items already applied via plan mode in Step 8 — their alternatives go in the Step 10 summary, not the dialogue.)
+If no `discuss-design` rows exist, skip this step. (`discuss-trivial` items already applied via plan mode in Step 7 — their alternatives go in the Step 9 summary, not this escalation.)
 
-Otherwise, resolve each `discuss-design` finding via a **Claude+Codex dialogue** with ROADMAP.md in scope (already read in Step 2). For each item:
+Otherwise, surface each `discuss-design` finding to the user in a brief paragraph:
 
-1. You (Claude) write a short position: proposed resolution + reasoning, factoring in roadmap direction, codebase conventions, and the specific trade-off at hand. Keep it to ~3 sentences.
-2. Dispatch `codex:codex-rescue` following the "Dispatch Payload" format (task = resolve this `discuss-design` finding; context = the finding + your position + ROADMAP excerpts; tool inventory = the project's MCP servers and mix tasks; verification instruction = verify claims before asserting). Ask for its independent resolution and reasoning.
-3. Compare:
-   - **Convergence** (same resolution, or resolutions that differ only in minor wording) → apply the fix directly. Record both reasoners' short justification in the Step 10 summary so the user can audit.
-   - **Divergence** (different resolutions, or one says "apply X" and the other says "don't do this") → escalate to the user with both positions laid out side by side. Wait for their decision. Apply what they choose.
+1. The trade-off (structural cost, ripple, what changes downstream)
+2. Your leaning, with one-sentence reasoning
+3. The alternative — what happens if we don't apply
 
-**Do not default to "ask the user"** — for `discuss-design`, the dialogue is the default path. The user is the escalation target, not the first responder. This protects the user's attention for genuine design disagreements and uses the two-model pass for everything else.
+Wait for their decision. Apply what they choose.
 
-After dialogue-resolved fixes are applied (or user-resolved ones, on divergence), move to the summary.
+**Defer-to-audit option.** The user can also say "let audit handle it" — the `discuss-design` item drops to the `audit-review` queue, which runs a Claude+Codex dialogue post-PR-create / post-merge (per `worktree-workflow.md`). That's the lower-friction path when the user doesn't want to context-switch into the design question right now. Note the deferral in the Step 9 summary so the user knows the dual-reviewer pass will revisit it.
 
-### Step 10: Summarize
+After user-resolved or deferred items are handled, move to the summary.
 
-After all auto-fixes and any dialogue-resolved or user-resolved discuss-tier fixes are applied, summarize:
+### Step 9: Summarize
+
+After all auto-fixes and any user-resolved discuss-design fixes are applied, summarize:
 - "N fixes auto-applied across M files"
 - List of files touched (so the user can `git diff` them)
 - Any priority 1-2 items that were skipped
-- Each `discuss`-tier item and how it was resolved: `applied-as-trivial` (with the alternative + reasoning in ~1 sentence so the user can decide whether to revert), `dialogue-resolved` (with the convergent reasoning in ~1 sentence), `user-resolved` (with the user's decision), or `declined`/`deferred`
-- Closing line: either `dual-reviewer pass` or `Codex unreachable — single-reviewer pass` (honest either way)
+- Each `discuss`-tier item and how it was resolved: `applied-as-trivial` (with the alternative + reasoning in ~1 sentence so the user can decide whether to revert), `user-resolved` (with the user's decision), `deferred-to-audit` (audit-review will run the Claude+Codex dialogue), or `declined`/`deferred`
 
 ## Boundary Rule: Report Upstream Issues, Don't Patch Over Them
 
@@ -323,64 +304,36 @@ Investigate and fix. The downstream code at [file:line] depends on this.
 
 **Why:** compensating for upstream issues masks real bugs. The compensation ships, the root cause persists, and future code inherits the same problem. A FIXME keeps it visible until the source is fixed.
 
-## Second-Opinion Review (Required)
+## Why Single-Reviewer at This Layer
 
-Every staged review runs a Codex second-opinion pass. This is not optional, not opt-in, not "for high-stakes diffs." Every review.
+The dual-reviewer pass (mandatory parallel Codex + Claude+Codex dialogue on `discuss-design` items) lives in `audit-review`, which auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge. Every commit reaches the dual-reviewer pass either way — running it pre-commit AND post-PR-create is redundant work on the same code.
 
-**Why mandatory.** Left optional, it never gets invoked — neither the user nor Claude thinks to ask. The opt-in framing looks reasonable but produces a single-reviewer pass in practice, every time.
+**The calibration to keep in mind:**
 
-**The calibration both reviewers need to respect:**
+- **Single-reviewer pre-commit under-flags.** The confidence filter in Category 1 ("only report if you can name the specific input that triggers the bug") suppresses real issues alongside noise. That's intentional here — the pre-commit pass is meant to be fast triage, not exhaustive audit.
+- **`audit-review` catches what pre-commit misses.** Codex's independent pass + the Claude+Codex dialogue on `discuss-design` items + the full 5+1 categories on committed code provides the deeper second pass. By design, that's the layer that earns the dual-reviewer cost.
+- **Pre-commit is for the fast wins.** Auto-apply rated 3-10 + actionable + `discuss-trivial`, escalate `discuss-design` only when the user wants pre-commit closure on the design question. Most of the time, defer-to-audit is the right call.
 
-- **Claude (self-review) under-flags.** The confidence filter in Category 1 ("only report if you can name the specific input that triggers the bug") suppresses real issues alongside noise. Codex's independent pass catches what the filter hides.
-- **Codex over-flags.** Codex frequently asserts things that look wrong in isolation but are correct in context (wrong imports, nonexistent functions, mis-stated invariants). Its reviews read authoritative but contain errors. Per `critical-rules.md`, treat Codex findings as *suggestions to investigate*, never facts to accept.
-
-**How it plugs into the flow:**
-
-- **Step 3b** — dispatch `codex:codex-rescue` in parallel with Claude's own review pass. Same diff, same five categories, no priming with Claude's findings.
-- **Step 4** — merge the two result sets. Corroborated findings are the highest-confidence. Codex-only findings default to `discuss` until you verify them against the actual code.
-- **Step 9** — resolve `discuss`-tier via Claude+Codex dialogue with ROADMAP.md in scope. Convergence applies the fix; divergence escalates to the user.
-
-**Failure mode.** If Codex is unreachable or errors out, continue single-reviewer and close with `Codex unreachable — single-reviewer pass` in the summary. Don't silently drop the second pass — mark it.
-
-**Bias toward dispatch.** Observed in practice: Claude sessions under-consult Codex. The user ends up having to say "ask Codex" multiple times in a single work session. That's the discipline breaking. When you're mid-review and unsure, **dispatch**. The cost is low (a parallel agent invocation); the failure mode of not dispatching is silent — findings you'd have caught with a second opinion, missed. Default answer to "should I ask Codex?" is yes, unless the question is pure style or the diff is a one-line typo.
-
-### Dispatch Payload (What to Send Codex on Every Dispatch)
-
-Every `codex:codex-rescue` dispatch must include these four sections in the prompt, in order:
-
-1. **Task** — what you want Codex to do (review this diff / resolve this discuss-tier item / verify this specific claim). Be concrete.
-2. **Context** — the relevant diff hunks, ROADMAP.md excerpts for the current phase / task, and any file paths Codex will need to read.
-3. **Project tool inventory** — the tools Codex can invoke to verify claims against the real codebase, not training data. At minimum:
-   - **MCP servers available in this project** (e.g., `mcp__tidewave__project_eval` for runtime Elixir evaluation, `mcp__tidewave__get_docs`, `mcp__tidewave__execute_sql_query`, `mcp__tidewave__search_package_docs` — check `.mcp.json` for the actual list)
-   - **Mix tasks for verification** (e.g., `mix test.json --quiet --failed`, `mix dialyzer.json --quiet --filter-type no_return`, `mix compile`, `mix credo --strict --format json`)
-   - **Hex docs for any packages referenced in the diff** (URLs to `/llms.txt` endpoints if you know them — e.g., `https://hexdocs.pm/<pkg>/llms.txt`)
-   - **Other project scripts** surfaced by `mix help` or visible in `mix.exs` aliases
-4. **Verification instruction** — explicit: "Before asserting any claim about the codebase, verify it with one of the tools above. Training-data recall is insufficient. If a tool isn't available, say so; don't guess."
-
-This is load-bearing. Codex is confident and articulate — without the tool inventory, it will make authoritative-sounding claims that don't survive `mcp__tidewave__project_eval`. With the inventory, its confidence maps onto actual verification, and its over-flagging drops sharply.
-
-**Discipline note.** The mandatory-second-opinion rule does the same work that TDD's "no code without a failing test first" rule does: it removes a decision point where the motivated agent (you) can rationalize its way out of the discipline. Opt-in disciplines don't stick.
+**Failure mode to avoid.** Don't try to recreate the dual-reviewer pass here — no parallel Codex dispatch, no dialogue, no "let me check this with another agent" digression. If a finding genuinely needs a second opinion, mark it `discuss-design` and let the user defer to audit-review. Pre-commit stays fast.
 
 ## Common Mistakes
 
 | Mistake | Fix |
 |---------|-----|
 | Reviewing all files, not just staged | Always start with `git diff --staged` |
-| Skipping ROADMAP.md read | Read it BEFORE reviewing — task numbers matter, and Step 9's dialogue depends on it |
-| Skipping the Codex second-opinion pass | Step 3b is required. If Codex is unreachable, mark the summary `Codex unreachable — single-reviewer pass`; don't drop silently |
-| Priming Codex with Claude's findings | Dispatch Codex in parallel with 3a, not after. Independent eyes catch what the other's filter suppresses |
-| Accepting Codex-only findings at face value | Default them to `discuss` until verified against the actual code (Codex over-flags) |
-| Under-consulting Codex in-session (waiting for the user to say "ask Codex") | Default answer is dispatch. Silent misses are the failure mode of not asking; the cost of asking is near zero |
-| Dispatching Codex without the project tool inventory | Every dispatch includes MCP servers (Tidewave), mix tasks, hex-docs URLs, plus a "verify before asserting" instruction. Without it Codex reasons from training alone and over-flags |
-| Defaulting `discuss`-tier to "ask the user" | `discuss-trivial` applies directly with an alternative noted in the Step 10 summary. `discuss-design` runs the Step 9 Claude+Codex dialogue. User is escalation target only on `discuss-design` divergence, never the first responder |
+| Skipping ROADMAP.md read | Read it BEFORE reviewing — task numbers matter, and `discuss-design` reasoning depends on it |
+| Dispatching Codex pre-commit "just to be safe" | The dual-reviewer pass lives in `audit-review` (auto-fires after `gh pr create` / post-merge). Pre-commit is single-reviewer by design — don't recreate the audit-review work here |
+| Trying to run a Claude+Codex dialogue on `discuss-design` here | Step 8 is user escalation (or defer-to-audit). The dialogue is in `audit-review` |
+| Defaulting `discuss-design` to "ask the user" without offering defer-to-audit | Always offer the defer-to-audit option in Step 8 — it's usually the lower-friction path |
+| `discuss-trivial` not auto-applying | Apply it with the rest in Step 7. Note the alternative + reasoning in the Step 9 summary so the user can revert in one line if they disagree |
 | Misclassifying a rippling change as `discuss-trivial` | Ripple is the gate, not line count. A 5-line `@spec` tightening that breaks N callers is `discuss-design`. A 40-line clean extraction inside one module with no callsite churn is `discuss-trivial`. If you'd need to chase callers to verify the fix, it's not trivial |
-| Flagging without priority | Every finding gets a 1-10 rating (or "discuss") |
-| Asking the user to hand-pick "1, 2, 3" from the table | Rated findings + `discuss-trivial` auto-apply via plan mode; `discuss-design` routes through Step 9 dialogue |
-| Entering plan mode to present the findings table | Step 6 is a report, not a plan — no plan mode there. Plan mode is Step 7 (concrete edits) |
-| Silently updating CHANGELOG/ROADMAP without showing the user first | Doc edits are Category 6 findings — they go in the table, then plan mode (Step 7), then apply on exit. Never edit docs before the findings table is presented |
-| Inventing CHANGELOG entries or flipping ROADMAP status when the diff doesn't actually complete the task | Don't fabricate doc activity. If you can't summarize the change in one line without speculation, mark `discuss` instead of writing |
-| Staging the reviewer's doc edits with `git add` | Step 8 — leave reviewer edits unstaged so the committer can `git diff` and decide |
-| Reporting "looks suspicious" | Name the triggering input or mark it "discuss" |
-| Running `grep`/`glob` all over a 40-file diff | Delegate the survey to an Explore subagent (Step 3a) |
+| Flagging without priority | Every finding gets a 1-10 rating (or `discuss-trivial`/`discuss-design`) |
+| Asking the user to hand-pick "1, 2, 3" from the table | Rated findings + `discuss-trivial` auto-apply via plan mode; `discuss-design` routes through Step 8 |
+| Entering plan mode to present the findings table | Step 5 is a report, not a plan — no plan mode there. Plan mode is Step 6 (concrete edits) |
+| Silently updating CHANGELOG/ROADMAP without showing the user first | Doc edits are Category 6 findings — they go in the table, then plan mode (Step 6), then apply on exit. Never edit docs before the findings table is presented |
+| Inventing CHANGELOG entries or flipping ROADMAP status when the diff doesn't actually complete the task | Don't fabricate doc activity. If you can't summarize the change in one line without speculation, mark `discuss-design` instead of writing |
+| Staging the reviewer's doc edits with `git add` | Step 7 — leave reviewer edits unstaged so the committer can `git diff` and decide |
+| Reporting "looks suspicious" | Name the triggering input or mark it `discuss-design` |
+| Running `grep`/`glob` all over a 40-file diff | Delegate the survey to an Explore subagent (Step 3) |
 | Emitting `★ Insight` blocks or "Not flagged (verified clean)" appendices | The findings table is the entire deliverable — no headers, no afterword |
 | Using vertical `#: 1 / Pri: 4 / …` field lists instead of the table | Output MUST be a markdown table. Keep description cells ≤10 words so it renders |

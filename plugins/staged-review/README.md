@@ -4,21 +4,23 @@ Universal code review workflow. Language-agnostic — works with Elixir, Rust, G
 
 Three sibling skills covering the pre-commit / pre-merge / post-merge axis:
 
-- **`code-review`** — pre-commit review of `git diff --staged`
+- **`code-review`** — pre-commit single-reviewer triage on `git diff --staged`
 - **`commit-review`** — pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled), narrowed correctness gate, auto-merges on ✅ + green CI for cloud-agent PRs
-- **`audit-review`** — post-commit / post-merge audit on committed code, fully autonomous, writes `.audit/<sha>.md` reports + `audit(...)` commit
+- **`audit-review`** — post-commit / post-merge audit on committed code, fully autonomous, mandatory parallel Codex + Claude+Codex dialogue, writes `.audit/<sha>.md` reports + `audit(...)` commit
 
 ## Three-Tier Review Chain
 
-| Skill | When | Categories | Auto-mode? |
-|---|---|---|---|
-| `code-review` | Pre-commit (`git diff --staged`) | 5 + Cat 6 (full doc hygiene) | Plan-mode-with-auto-apply (one user gate: exit-plan-to-apply) |
-| `commit-review` | Pre-merge cloud-agent PR | Cat 1 (Bugs) + narrowed Cat 6 (`@doc`/`@spec` correctness drift only) | Auto-merge on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label |
-| `audit-review` | Post-commit / post-merge | 5 + Cat 6 (full doc hygiene) | Fully autonomous — zero user gates |
+| Skill | When | Categories | Reviewer | Auto-mode? |
+|---|---|---|---|---|
+| `code-review` | Pre-commit (`git diff --staged`) | 5 + Cat 6 (full doc hygiene) | Single (Claude) | Plan-mode-with-auto-apply (one user gate: exit-plan-to-apply) |
+| `commit-review` | Pre-merge cloud-agent PR | Cat 1 (Bugs) + narrowed Cat 6 (`@doc`/`@spec` correctness drift only) | Single (Claude) | Auto-merge on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label |
+| `audit-review` | Post-commit / post-merge | 5 + Cat 6 (full doc hygiene) | Dual (Claude + mandatory Codex), with Claude+Codex dialogue on `discuss-design` | Fully autonomous — zero user gates |
 
-Same 5+1 category catalog across all three. Categories shift between layers: pre-commit is judgment-tier with auto-apply; pre-merge is correctness-only (hygiene moves post-merge); post-merge is full audit with mandatory Codex second-opinion.
+Same 5+1 category catalog across all three. Categories shift between layers: pre-commit is single-reviewer triage with auto-apply; pre-merge is correctness-only (hygiene moves post-merge); post-merge is the dual-reviewer audit pass with mandatory Codex second-opinion + dialogue.
 
-## `code-review` — Staged Files
+**Why the dual-reviewer pass lives in `audit-review`, not `code-review`:** `audit-review` auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge — every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-PR-create is redundant work on the same code; the post-PR-create pass has the committed view, ROADMAP scope, and all hygiene categories, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
+
+## `code-review` — Staged Files (Single-Reviewer Pre-Commit Triage)
 
 Reviews `git diff --staged` against 5 categories:
 
@@ -28,9 +30,9 @@ Reviews `git diff --staged` against 5 categories:
 4. **Abstraction Opportunities** — 3+ similar patterns that could be unified
 5. **Actionable TODOs** — TODOs resolvable now, fixed directly
 
-Plus **Category 6: Documentation Gaps** (ROADMAP, CHANGELOG, CLAUDE.md, README, in-code `@doc`/`@spec` drift). Mandatory Codex second-opinion via `codex:codex-rescue`.
+Plus **Category 6: Documentation Gaps** (ROADMAP, CHANGELOG, CLAUDE.md, README, in-code `@doc`/`@spec` drift). Single-reviewer pass — no Codex dispatch at this layer (the dual-reviewer pass runs in `audit-review` post-PR-create / post-merge).
 
-Each finding is rated 1-10 priority. Actionable items are fixed directly, not just flagged.
+Each finding is rated 1-10 priority. Actionable items are fixed directly, not just flagged. `discuss-design` items escalate to the user, who can also defer them to `audit-review`'s Claude+Codex dialogue.
 
 ## `commit-review` — Pre-Merge Cloud-Agent PR Gate
 
