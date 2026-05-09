@@ -1,19 +1,38 @@
 ---
 name: task-driver
 description: Use when starting a work session, picking tasks from a roadmap, or implementing roadmap items. Reads ROADMAP.md, selects tasks by D/B efficiency, implements with TodoWrite tracking, adds TODO(Task N) markers for discovered work, and updates all project docs (ROADMAP, CHANGELOG, CLAUDE.md, README). Language-agnostic.
-allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, TaskUpdate, EnterPlanMode, ExitPlanMode
+allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, TaskUpdate, EnterPlanMode, ExitPlanMode, mcp__linear-server__save_issue, mcp__linear-server__list_teams, mcp__linear-server__list_projects, Skill
 ---
 
 # Task Driver — Roadmap-Driven Implementation
 
 Read the roadmap. Pick the best tasks. Implement. Update all docs. Leave no gaps.
 
+## Phase Awareness
+
+**This skill runs in Phase 1 of 6** in the development lifecycle:
+
+`task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)`
+
+- **Predecessor:** (user)
+- **Successor:** implementer session (Phase 2 — `worktree-workflow.md`)
+- **Linear status on entry:** (none)
+- **Linear status on exit:** `Todo` (Plan-and-File mode) or `In Progress` (Pickup mode, when same-session implementation continues)
+
+Two entry modes (decided at Step 1):
+
+| Mode | Trigger | What this skill produces |
+|---|---|---|
+| **Pickup** | User invokes with a specific ROADMAP task # / Linear issue ID | Implementation in this session (existing 9-step flow) |
+| **Plan-and-File** | User invokes with no task ID, or asks to "plan a new task" | A Linear issue (or ROADMAP row, if no Linear) with status `Todo`. **Does NOT implement in this session** — handoff is a fresh implementer session that picks up the issue per `worktree-workflow.md` |
+
 ## Scope
 
 WHAT THIS SKILL DOES:
   - Select tasks from ROADMAP.md by efficiency score (lightweight shortlist, no plan mode)
   - Enter plan mode AFTER a task is selected, to design the implementation
-  - Implement approved tasks with TodoWrite progress tracking
+  - Implement approved tasks with TodoWrite progress tracking (Pickup mode)
+  - File approved plans as Linear issues / ROADMAP rows for fresh-session pickup (Plan-and-File mode)
   - Add `TODO(Task N):` markers in code for discovered work
   - Update ALL affected *.md files after implementation
   - Add newly discovered tasks to ROADMAP.md with D/B scores
@@ -22,8 +41,129 @@ WHAT THIS SKILL DOES NOT DO:
   - Create roadmaps from scratch (use roadmap-planning skill for format guidance)
   - Code review (use staged-review:code-review)
   - Language-specific checks (use project linters and hooks)
+  - Implement in Plan-and-File mode (the filed issue is the handoff; a fresh session implements)
 
-## Workflow
+## Mode Selection
+
+Decide which mode applies before doing anything else:
+
+- User named a specific task (`task-driver task 274`, `task-driver INE-12`, "implement task 5") → **Pickup mode** — go to "Workflow: Pickup Mode" below.
+- User asked to plan a new task, or invoked with no task ID (`task-driver`, "let's plan something new", "I want to add X") → **Plan-and-File mode** — go to "Workflow: Plan-and-File Mode" below.
+- Ambiguous → ask the user once: "Pickup an existing roadmap/Linear task, or plan a new one to file for a future session?"
+
+## Workflow: Plan-and-File Mode
+
+Produces a Linear issue (or ROADMAP row, if no Linear) with status `Todo`. Implementation happens in a **fresh** session — see § "Why fresh-session implementation" below.
+
+```dot
+digraph task_driver_plan_and_file {
+  rankdir=TB;
+  node [shape=box];
+
+  research [label="P1. Research the request\n(codebase + docs)"];
+  draft    [label="P2. Draft plan with\nacceptance criteria"];
+  plan     [label="P3. EnterPlanMode"];
+  exit     [label="P4. ExitPlanMode\n(user approves)"];
+  file     [label="P5. File issue:\nLinear save_issue OR\nROADMAP row write"];
+  handoff  [label="P6. Return URL/row #\nSTOP — do not implement"];
+
+  research -> draft -> plan -> exit -> file -> handoff;
+}
+```
+
+### P1. Research the Request
+
+Read `ROADMAP.md`, project CLAUDE.md, and any user-pointed-at docs. Survey the codebase for related modules / existing patterns / reuse opportunities. Same depth as Pickup-mode Step 4, but the goal here is filing a credible plan a future session can pick up cold — not implementing now.
+
+### P2. Draft Plan with Acceptance Criteria
+
+The drafted plan IS the issue body. Use the plan-shaped template from `linear-workflow.md` § "Plan-Shaped Linear Task Specs":
+
+```markdown
+## Context
+Why this exists, dependencies, what's already in place.
+
+## Task
+WHAT to do, in prose. Not HOW.
+
+## Acceptance criteria
+- Bullet list a fresh QA session can verify.
+
+## Out of scope
+What this issue explicitly does NOT do.
+
+## Files to modify
+- `path/to/file.ext` — what changes
+- (anchor file:line references where useful)
+
+## Files to NOT modify
+- `ROADMAP.md`, `CHANGELOG.md`, `README.md` (audit-review handles post-merge)
+
+## Scoring
+[D:X/B:Y/U:Z → Eff:W]
+```
+
+Score with the D/B/U framework (`task-prioritization.md`).
+
+### P3. EnterPlanMode
+
+Call `EnterPlanMode` with the drafted plan as the plan content. The user reviews in the plan-mode UI.
+
+### P4. ExitPlanMode (User Approves)
+
+When the user approves via the plan-mode UI, `ExitPlanMode` returns. **Only on approval does P5 fire.** Rejected or amended plans never write to Linear / ROADMAP.
+
+### P5. File the Issue
+
+Detect Linear MCP availability:
+
+**Linear available** (preferred):
+
+```
+mcp__linear-server__save_issue(
+  team: <team key from workspace include>,
+  project: <repo project ID>,
+  state: "Todo",  # Linear MCP parameter is `state` (accepts state name, ID, or type)
+  title: <one-line task title>,
+  body: <the approved plan from P2>,
+  labels: []  # NO [CX]/[CSR] marker — unmarked = local pickup per delegation-rules.md
+)
+```
+
+Capture the returned issue URL (e.g. `https://linear.app/<workspace>/issue/INE-247`).
+
+**Linear absent (ROADMAP-fallback):**
+
+1. Add a row to `ROADMAP.md` under the appropriate phase, with status `⬜` and the D/B/U score.
+2. Write the full plan body to `.thoughts/plans/<task-id>.md` so a future session has the spec.
+3. Capture the ROADMAP row number as the durable handoff identifier.
+4. Commit the writes so the working tree stays clean (Task 45's `audit-review` clean-tree precondition):
+
+   ```bash
+   git add ROADMAP.md .thoughts/plans/<task-id>.md
+   git commit -m "Add Task <N>: <one-line title>"
+   ```
+
+   The commit lands on the host branch (main checkout — no worktree exists yet for an unimplemented task). This is an explicit exception to the "no commits to shared branches without authorization" rule: Plan-and-File's contract IS the filed plan, so committing the row + plan on the host branch is part of the contract.
+
+(See `linear-workflow.md` § "ROADMAP-Fallback Flow" for the broader pattern.)
+
+### P6. Return the Handoff Identifier — STOP
+
+Output one short message:
+
+```
+Filed: <Linear URL OR "ROADMAP Task N + .thoughts/plans/<task-id>.md">
+Status: Todo (awaiting fresh-session pickup per worktree-workflow.md)
+```
+
+**Do not implement in this session.** Plan-and-File mode's contract is the filed issue; the implementer is a fresh session. This preserves the implementer/reviewer separation principle in `workflow-philosophy.md` § "Implementer / Reviewer Handoff" — the same session that designed the plan should not also implement against it without a clean session boundary.
+
+### Why fresh-session implementation
+
+Plan mode draws conclusions; a fresh implementer session picks up cold and re-derives them from the filed plan, catching gaps in the plan itself. Same-session implementation lets unstated assumptions slide ("I know what I meant") — exactly the failure mode plan-shaped specs exist to prevent. The Linear issue / ROADMAP row + `.thoughts/plans/<id>.md` is the cold-readable contract.
+
+## Workflow: Pickup Mode
 
 ```dot
 digraph task_driver {
@@ -229,3 +369,7 @@ When choosing which tasks to recommend:
 | Forgetting to mark task as 🔄 before starting | Update ROADMAP status before first code change |
 | Silently executing a `[CX]` / `[CSR]` (or any cloud-agent-marked) task locally | Step 3.5 routes every cloud-agent delegation marker. Per `critical-rules.md` § "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS", halt and ask before redirecting to local. The marker is a fence; user override is the gate. Don't reason "but Cursor could've done what Codex was given" — that's second-guessing the marker, not respecting it |
 | Skipping `commit-review` on `[CX]` + `🔄 in-review` | Step 3.5 invokes `staged-review:commit-review` for those rows. Don't try to plan-mode an already-implemented Codex PR |
+| Implementing in the same session in Plan-and-File mode | Plan-and-File's contract is the filed issue. After P5 lands the issue, STOP. Fresh-session implementation is what makes the plan cold-readable; same-session implementation lets unstated assumptions slide |
+| Saving the plan to Linear / ROADMAP before user approval | The `save_issue` / ROADMAP write fires in P5 ONLY after `ExitPlanMode` returns approval. Rejected or amended plans never write durable state |
+| Picking the wrong mode | If the user named a specific task, Pickup. If they asked to plan something new with no task ID, Plan-and-File. Ask once if ambiguous — don't guess |
+| Forgetting to commit ROADMAP/plan writes in P5.2 (Linear-absent path) | The commit is part of P5.2's contract — Task 45's `audit-review` precondition refuses dirty trees. Plan-and-File on the main checkout commits the row + plan; the implementer-session worktree picks up cleanly |

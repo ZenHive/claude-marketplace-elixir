@@ -8,13 +8,22 @@ allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 
 Walk a commit range. Audit each commit. Auto-apply hygiene fixes. Write a `.audit/<sha>.md` report per commit. Commit the whole batch as one `audit(...)`. **No user gates.** The audit commit is the inspectable artifact — `git revert <audit-sha>` is the user's escape hatch.
 
-## Position in the Three-Tier Review
+## Phase Awareness
+
+**This skill runs in Phase 6 of 6 (terminal)** in the development lifecycle:
+
+`task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)`
+
+- **Predecessor:** merge (Phase 5) — auto-merge tail of `commit-review` OR user manual `gh pr merge`
+- **Successor:** (terminal — Linear status flips to `Done`, audit commit lands on default branch)
+- **Linear status on entry:** `In Review`
+- **Linear status on exit:** `Done` (Linear's native GH workflow rule fires on merge; audit-review confirms via `get_issue` and explicitly transitions only if the rule didn't fire)
 
 | Layer | Skill | Input | Trigger | Human gates |
 |---|---|---|---|---|
-| Pre-commit | `code-review` | `git diff --staged` | Implementer about to commit | One: exit-plan-to-apply |
-| Pre-merge (cloud PR) | `commit-review` | `gh pr diff <n>` | Linear queue + open PR | Zero (cloud-agent PRs auto-merge on ✅ + green CI) |
-| Post-commit / post-merge | **`audit-review` (this skill)** | `git log <range>` | Skill chain off worktree-PR-create / cloud-PR-merge; or manual `/audit-review` | **Zero** |
+| Pre-commit (Phase 2 sub-phase) | `code-review` | `git diff --staged` | Implementer about to commit | One: exit-plan-to-apply |
+| Pre-merge (Phase 4) | `commit-review` | `gh pr diff <n>` | Linear queue / `gh pr list` + open PR | Zero (feature-branch PRs auto-merge on ✅ + green CI + 5 preconditions) |
+| Post-merge (Phase 6, this skill) | **`audit-review`** | `git log <range>` | Auto-chain off `commit-review` auto-merge; user-merge sessions invoke directly; or manual `/audit-review` | **Zero** |
 
 `audit-review` shares Categories 1-6 and the Codex dispatch payload with `code-review`. The differences are:
 

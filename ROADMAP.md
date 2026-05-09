@@ -16,9 +16,9 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 7. Skill Quality | 5/5 ✅ | - |
 | 8. Hook Scripts | 0/4 | 4 |
 | 9. Codex Delegation | 5/5 ✅ | - |
-| 10. Audit-Review Follow-Ups | 2/6 | 4 |
+| 10. Audit-Review Follow-Ups | 2/10 | 8 |
 
-**Total: 35/43 complete (81%)**
+**Total: 35/47 complete (74%)**
 
 ---
 
@@ -249,6 +249,64 @@ The auto-merge precondition added in v1.16 mentions `codex/*` branches but Codex
 - Verify auto-merge precondition #3 (`cursor/*` or `codex/*`) becomes live for Codex
 - Update `linear-workflow.md` and `cloud-agent-environments.md` to lift the suspension
 - Run end-to-end Codex delegation test (Linear issue → `[CX]` → PR → `commit-review` → auto-merge → `audit-review`) before declaring re-enabled
+
+---
+
+#### Task 44: Replace zsh-incompatible classification script in SKILL.md [D:2/B:5/U:6 → Eff:2.75] 🚀
+
+**Surfaced by:** First run of `audit-review` on `onchain` repo (2026-05-09) — 20-commit initial-backfill pass.
+
+The classification step in `audit-review/SKILL.md` shells out a one-liner using `paste -sd+ | bc` for LOC summing. On zsh (default macOS shell), this cascades into "command not found" errors and produces empty output. Worked around in the audit run by writing a `#!/bin/bash` script to `/tmp/`, but the SKILL prescription itself should be portable.
+
+**Success criteria:**
+- Replace inline shell pipeline with a portable bash function (or a small `scripts/classify.sh` shipped with the skill)
+- Test on both bash and zsh (default macOS)
+- Update SKILL.md to call the script with the worktree path arg
+
+---
+
+#### Task 45: Worktree + clean-tree preconditions in audit-review [D:3/B:6/U:7 → Eff:2.17] 🚀
+
+**Surfaced by:** First run on `onchain` (2026-05-09). Started in main checkout with 12 dirty `M` files; user had to interrupt with "wait, why nbot in a worktree?" and redirect.
+
+The skill should:
+1. **Refuse to run in the main checkout** when `worktree-workflow.md` is loaded (i.e., user has the worktree workflow active). Direct the agent to create a worktree first.
+2. **Refuse to run with a dirty working tree** (uncommitted changes). The audit corpus is a single atomic commit; dirty tree pollutes scope.
+3. Optionally accept `--allow-dirty` / `--allow-main-checkout` overrides for repos that opt out of worktree workflow.
+
+**Success criteria:**
+- Skill checks `git rev-parse --show-toplevel` against `~/_DATA/worktrees/<repo>/` pattern; warns/refuses if running in main checkout
+- Skill checks `git status --porcelain` empty; refuses if dirty
+- Both checks documented at top of SKILL.md as preconditions
+- Tests cover both refusal paths and `--allow-*` overrides
+
+---
+
+#### Task 46: Audit-corpus-only mode (report without apply) [D:3/B:5/U:5 → Eff:1.67] 📋
+
+**Surfaced by:** First run on `onchain` (2026-05-09). User pivoted scope mid-run: "no need to do the whole reviews, because we did codex-reviews for every commit already in a different workflow." Wanted reports written but no auto-apply of fixes. Auto-mode classifier denied the doc-edit attempts ("outside read-only audit scope") — correct behavior, but the skill itself should have a flag for this.
+
+The current skill auto-applies rated-3-10 + actionable + discuss-trivial findings. For backfill / pre-existing audit corpora, users may want **report-only**: write reports, surface findings, but do not modify project files. Distinct from `--no-codex`: this gates the *application* step, not the dispatch step.
+
+**Success criteria:**
+- New flag `--report-only` in `/audit-review` invocation
+- When set: dispatch Codex, write `.audit/<sha>.md` reports, but skip all auto-apply steps
+- Findings flagged in reports as "Suggested fixes (NOT auto-applied)" rather than applied
+- Final commit is just `.audit/` directory; no production-code mutations
+- SKILL.md documents this as the recommended mode for first-run / backfill audits where prior review coverage exists
+
+---
+
+#### Task 47: Per-commit Codex output capture in `.audit/` [D:2/B:4/U:4 → Eff:2.00] 📋
+
+**Surfaced by:** First run on `onchain` (2026-05-09). Codex agent outputs landed in `/private/tmp/claude-501/.../tasks/*.output` — durable for the session but lost after compaction. Findings tracker `/tmp/audit_findings.md` was an ad-hoc human aggregation. The audit reports cite Codex but don't include the raw Codex transcript.
+
+For traceability and re-audit, the raw Codex output should land alongside the `.md` report — either inline or as a sibling file (`.audit/<sha>-codex.md`).
+
+**Success criteria:**
+- Skill writes per-commit Codex output to `.audit/<sha>-codex.md` (or appends as a fenced block in the main report)
+- `.audit/<sha>.md` cross-references the raw codex output file
+- Format consistent enough for cross-repo aggregation (Task 40)
 
 ---
 

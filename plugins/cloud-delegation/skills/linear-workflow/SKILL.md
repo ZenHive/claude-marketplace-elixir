@@ -114,7 +114,26 @@ Same shape as the Codex flow with **broader eligibility** — Cursor's cloud env
 
 4. **Push back via Linear comment with `@cursor` mention.** Cursor picks up `@cursor` mentions within ~5 min, amends the PR with a fresh commit, posts confirmation, reruns the harness. See § "Wake-Mention Discipline" for placement rules.
 
-5. **Auto-merge on ✅ + green CI** (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"). When all 5 preconditions hold (✅ verdict, green CI, `cursor/*` or `codex/*` branch, no requested-changes, no `[BLOCK-MERGE]` label), `commit-review` runs `gh pr merge --squash --delete-branch` then chains `Skill(audit-review)` against the merge SHA. Verdict + audit run unattended. If any precondition fails, surface the verdict and stop — user merges manually.
+5. **Auto-merge on ✅ + green CI** (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"). When all 5 preconditions hold (✅ verdict, green CI, feature branch — not the repo's default, no requested-changes, no `[BLOCK-MERGE]` label), `commit-review` runs `gh pr merge --squash --delete-branch` then chains `Skill(audit-review)` against the merge SHA. Verdict + audit run unattended. If any precondition fails, surface the verdict and stop — user merges manually.
+
+### Self-Authored Worktree Flow
+
+Local Claude implementing a Linear-tracked task in a worktree (no cloud-agent dispatch — see `worktree-workflow.md`). Same Linear cadence as the Cursor flow, driven by the implementer/reviewer instead of the cloud agent.
+
+| Phase | Trigger | Linear action | Comment shape |
+|---|---|---|---|
+| 1. Plan-mode → Linear issue | `task-driver` `ExitPlanMode` approval | `save_issue(team, project, status: Todo, title, body: <plan>)` — no `[CX]`/`[CSR]` marker | (initial issue body) |
+| 2. Pickup (worktree created) | Fresh implementer session creates worktree | `save_comment(issueId, "Picked up — worktree at ~/_DATA/worktrees/<repo>/<id>/")` + status → `In Progress` | One short line, includes the worktree path |
+| 3. PR open | `gh pr create` returns | `save_comment(issueId, "PR #<n> opened: <url>")` + status → `In Review` (or rely on Linear AI Guidance) | One line, includes the PR URL |
+| 4. Pre-merge verdict | `commit-review` reaches verdict | `save_comment(issueId, <verdict summary + decision>)` | Reuses commit-review's verdict-comment shape |
+| 5. Merge | Auto-merge or manual `gh pr merge` | `save_comment(issueId, "Merged at <sha>")` + status → `Done` (or rely on native GH workflow rule) | One line |
+| 6. Audit complete | `audit-review` writes `.audit/<sha>.md` | `save_comment(issueId, "Audit complete: <one-line summary>")` (optional — only post if findings, otherwise the audit commit + `.audit/<sha>.md` is the trail) | One line |
+
+**Posting permission:** all six rides on § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — DEFAULT-DO during an active linear-workflow flow. No per-comment user gates.
+
+**Status transitions:** Phase 2 (`In Progress`) and Phase 3 (`In Review`) can be driven by either explicit `save_issue(stateId)` calls or Linear's native AI Guidance + GH integration if configured (§ "Status Transitions"). Phase 5 (`Done`) is owned by Linear's native GH workflow rule when configured; explicit `save_issue` only when the rule didn't fire.
+
+**ROADMAP-fallback equivalent.** When Linear is absent, the same six transitions land in the worktree session's commits/PR/audit artifacts: ROADMAP row marker `⬜` → `🔄 task-N` (worktree path in row) → ✅ in the post-merge `audit(<sha>): ...` commit. No `save_comment` calls; the audit commit + `.audit/<sha>.md` is the durable trail.
 
 ### Wake-Mention Discipline
 

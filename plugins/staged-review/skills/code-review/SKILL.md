@@ -8,21 +8,28 @@ allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 
 Read the staged diff. Find real problems. Present them in a table. Auto-apply rated fixes. Escalate design questions to the user.
 
-## Position in the Three-Tier Review Chain
+## Phase Awareness
 
-`code-review` is the **pre-commit triage** layer — single-reviewer pass with auto-apply. The dual-reviewer pass (mandatory Codex + Claude+Codex dialogue) runs in `audit-review` post-PR-create / post-merge.
+**This skill runs in Phase 2 (sub-phase, pre-commit) of 6** in the development lifecycle:
+
+`task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)`
+
+- **Predecessor:** implementer (work staged via `git add` — the workflow-philosophy.md handoff shape)
+- **Successor:** `git commit` (then PR open kicks off Phase 3 bots)
+- **Linear status on entry:** `In Progress` (no transition triggered by this skill)
+- **Linear status on exit:** `In Progress` (commit doesn't transition; PR open does, in Phase 3)
 
 | Skill | When | Reviewer | Auto-mode? |
 |---|---|---|---|
 | `code-review` (this skill) | Pre-commit — `git diff --staged` | Single (Claude) | Plan-mode-with-auto-apply (one user gate: exit-plan-to-apply) |
-| `commit-review` | Pre-merge cloud-agent PR — narrowed correctness gate | Single (Claude) | Auto-merge on ✅ + green CI + cloud-agent branch (zero gates for the cloud-agent path) |
-| `audit-review` | Post-commit / post-merge — committed code | Dual (Claude + mandatory Codex), with dialogue | Fully autonomous (zero gates) |
+| `commit-review` (Phase 4) | Pre-merge feature-branch PR — narrowed correctness gate | Single (Claude) | Auto-merge on ✅ + green CI + feature branch (zero gates for the auto-merge path) |
+| `audit-review` (Phase 6) | Post-merge — committed code on default branch | Dual (Claude + mandatory Codex), with dialogue | Fully autonomous (zero gates) |
 
-Same 5+1 categories across all three layers. `commit-review` runs only Cat 1 (Bugs) + a thin slice of Cat 6 (`@doc`/`@spec` correctness drift) — hygiene categories deferred to audit-review post-merge. `audit-review` skips plan-mode (the `audit(...)` commit IS the inspectable artifact).
+Same 5+1 categories across all three layers. `commit-review` runs only Cat 1 (Bugs) + a thin slice of Cat 6 (`@doc`/`@spec` correctness drift) — hygiene categories deferred to `audit-review` post-merge. `audit-review` skips plan-mode (the `audit(...)` commit IS the inspectable artifact).
 
-**Why no Codex at this layer?** `audit-review` auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge — every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-PR-create is redundant work on the same code; the post-PR-create pass has the committed view, ROADMAP scope, and all hygiene categories, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
+**Why no Codex at this layer?** `audit-review` auto-fires after every merge (chained off `commit-review`'s auto-merge tail; manual-merge sessions invoke it directly). Every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-merge is redundant work on the same code; the post-merge pass has the committed view, ROADMAP scope, all hygiene categories, AND bot findings already integrated, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
 
-**When NOT to use `code-review`:** if the code is already committed (use `audit-review`), or if reviewing a cloud-agent PR pre-merge (use `commit-review`).
+**When NOT to use `code-review`:** if the code is already committed (use `audit-review`), or if reviewing a PR pre-merge (use `commit-review`).
 
 ## Scope
 

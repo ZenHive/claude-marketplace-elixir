@@ -521,28 +521,37 @@ See `.claude/WORKFLOWS.md` for complete workflow documentation.
 
 **Elixir-workflows Plugin**: The `elixir-workflows` plugin can generate customized workflow commands for other Elixir projects via `/elixir-workflows:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
 
-### Three-Tier Code Review Chain
+### Six-Phase Development Lifecycle
 
-The `staged-review` plugin provides three sibling skills covering the full pre-commit → pre-merge → post-merge axis. Same 5+1 category catalog across all three; the layers differ in **when**, **scope**, and **reviewer count**:
+The `staged-review` + `task-driver` + `cloud-delegation` plugins compose into a six-phase lifecycle from task plan to merged-and-audited code. Same 5+1 category catalog across the three review layers; each phase has a single owning skill / actor:
 
-| Layer | Skill | When | Scope | Reviewer |
-|---|---|---|---|---|
-| Pre-commit | `code-review` | `git diff --staged` before any commit | All 5+1 categories (full doc hygiene) | Single (Claude) — fast triage |
-| Pre-merge | `commit-review` | Cloud-agent PR before merge (Cursor / Codex) | Cat 1 (Bugs) + thin slice of Cat 6 (`@doc`/`@spec` correctness drift only) | Single (Claude) — narrow correctness gate |
-| Post-merge | `audit-review` | After `gh pr create` / after every merge | All 5+1 categories | **Dual (Claude + mandatory parallel Codex)**, with Claude+Codex dialogue on `discuss-design` |
+```
+task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)
+```
 
-**Why dual-reviewer at the audit layer only.** The expensive parts of the review (parallel Codex dispatch with full tool-inventory payload, Claude+Codex dialogue resolution on judgment-call items) live exclusively in `audit-review`. Pre-commit and pre-merge stay fast and single-reviewer. `audit-review` auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge — every commit reaches the dual-reviewer pass either way, so running Codex pre-commit AND post-PR-create is duplicate work on the same code. Spending the dual-reviewer cost once, post-merge, is the right shape.
+| Phase | Skill / Actor | When | Linear status on exit |
+|---|---|---|---|
+| 1. Plan-and-File | `task-driver` (Plan-and-File mode — plan → `ExitPlanMode` → `save_issue`) | User asks to plan new work | `Todo` |
+| 2. Implement | implementer session in a worktree (per `worktree-workflow.md`) — pre-commit triage by `code-review` (sub-phase, `git diff --staged`) | Fresh session picks up the issue / task | `In Progress` (pickup) → `In Review` (PR open) |
+| 3. Bots | external (CodeRabbit, Copilot, Codex's GitHub bot) | Async on PR open | (no transition) |
+| 4. Pre-merge gate | `commit-review` — narrow Cat 1 + thin slice of Cat 6 (`@doc`/`@spec` drift) | After bots have run | `In Review` (verdict surfaced) |
+| 5. Merge | `commit-review` auto-merge tail (when 5 preconditions hold) OR user manual `gh pr merge` | On ✅ verdict + green CI + feature branch + no requested-changes + no `[BLOCK-MERGE]` label | `Done` if Linear's native GH workflow rule is configured and fires; otherwise audit-review (Phase 6) confirms via `get_issue` and transitions explicitly |
+| 6. Post-merge audit | `audit-review` — full 5+1 categories, mandatory parallel Codex, Claude+Codex dialogue on `discuss-design`, auto-applies hygiene fixes, writes `.audit/<sha>.md`, commits as `audit(...)` | Auto-chains off auto-merge OR same session that ran user merge | `Done` (confirmed) |
+
+**Reviewer cost-shape: dual-reviewer at the audit layer only.** The expensive parts of the review (parallel Codex dispatch with full tool-inventory payload, Claude+Codex dialogue resolution on judgment-call items) live exclusively in Phase 6 (`audit-review`). Phase 2 sub-phase (`code-review`) and Phase 4 (`commit-review`) stay fast and single-reviewer. Every merged commit reaches the dual-reviewer pass via Phase 6 either way — spending the dual-reviewer cost once, post-merge, is the right shape.
+
+**Linear is optional.** Projects without Linear use the ROADMAP-fallback flow: Phase 1 writes a ROADMAP row + `.thoughts/plans/<id>.md`; Phase 2-6 carry on identically; Linear-status columns above are skipped. See `linear-workflow.md` § "ROADMAP-Fallback Flow".
 
 **End-to-end flow for a typical feature task:**
 
-1. `task-driver` picks the next ROADMAP task, implements it in a worktree, stages the change set with `git add`, and stops (does not commit).
-2. `code-review` (fresh session) reviews `git diff --staged` against all 5+1 categories. Single-reviewer; auto-applies rated 3-10 + actionable + `discuss-trivial`. `discuss-design` items escalate to user, who can also say "let audit handle it" to defer to step 5. Commits on user approval (plan-mode exit).
-3. Inside the worktree, the commit / push / `gh pr create` loop is auto-allowed (per `critical-rules.md` worktree-scope rule).
-4. After `gh pr create`, `worktree-workflow` auto-invokes `audit-review` against the worktree's commits — full 5+1, mandatory Codex, auto-resolves discuss-design via Claude+Codex dialogue. Writes `.audit/<sha>.md`, commits as `audit(...)`.
-5. For cloud-agent PRs (`cursor/*` / `codex/*`), `commit-review` runs the pre-merge correctness gate. On ✅ + green CI + 5 preconditions, auto-merges and chains `audit-review` against the merge SHA on the default branch (`main` / `master` / `development`).
-6. For self-authored worktree PRs, the user merges manually; the post-PR-create audit-review pass already covered the dual-reviewer audit at step 4.
+1. **Phase 1** — User asks to plan something. `task-driver` enters Plan-and-File mode: research → draft plan → `EnterPlanMode` → on `ExitPlanMode` approval, `save_issue(status: Todo)` (or ROADMAP row write if no Linear). Returns issue URL / row #. **Stops.**
+2. **Phase 2** — Fresh implementer session picks up the issue. Creates worktree under `~/_DATA/worktrees/<repo>/<id>/`. Implements. Stages with `git add`. **Pre-commit triage** (sub-phase): `code-review` reviews `git diff --staged` against all 5+1 categories — single-reviewer triage. On approval, commits. Pushes. Opens PR with `gh pr create`. (All git ops auto-allowed inside the tracked worktree per `worktree-workflow.md`.)
+3. **Phase 3** — Bots (CodeRabbit, Copilot, Codex's GitHub bot) run async on PR open. No skill action; their findings are read by Phase 4.
+4. **Phase 4** — `commit-review` runs the pre-merge correctness gate. Narrow scope (Cat 1 bugs + `@doc`/`@spec` drift). Two pickup modes: Linear-aware when MCP available, gh-only otherwise. Cite-and-skips bot findings. Auto-posts asymmetric push-back if blockers (line-level → PR; scope/intent → Linear).
+5. **Phase 5** — On ✅ verdict + 5 preconditions (green CI, feature branch — not the repo's default, no requested-changes, no `[BLOCK-MERGE]` label), auto-merges via `gh pr merge --squash --delete-branch`. On any precondition fail, surfaces the verdict and stops; user merges manually. **Auto-merge applies to all feature-branch PRs** — worktree branches, `cursor/*`, `codex/*` all qualify (widened from cloud-agent-only in v1.18).
+6. **Phase 6** — `audit-review` chains automatically against the merge SHA on the default branch (`main` / `master` / `development`). Full 5+1, mandatory Codex, auto-resolves `discuss-design` via Claude+Codex dialogue. Writes `.audit/<merge-sha>.md`. Commits as `audit(...)`. Linear status confirms `Done`.
 
-**Implementer / reviewer separation** is preserved across the chain: task-driver stages but doesn't commit (handoff to code-review), code-review commits but doesn't merge (handoff to commit-review for cloud-agent PRs / user for self-authored), and audit-review bookkeeps post-merge. Each layer is a different session — no agent grades its own work.
+**Implementer / reviewer separation** is preserved across the chain: `task-driver` files plans but doesn't implement (handoff to fresh-session implementer), the implementer stages but `code-review` commits (handoff to fresh-session reviewer), `code-review` commits but `commit-review` merges (handoff to pre-merge gate), `commit-review` merges but `audit-review` bookkeeps (post-merge). Each phase is a different session — no agent grades its own work.
 
 ## Plugin Development Tools
 

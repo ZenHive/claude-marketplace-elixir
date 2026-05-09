@@ -1,12 +1,23 @@
 ---
 name: commit-review
-description: Use as Tier 2 deep audit for Codex/Cursor PRs that touch critical-tier code paths (signing, RPC, ABI, money, crypto, migrations) OR when CodeRabbit/Copilot (Tier 1) flagged ambiguity — for routine PRs, defer to CodeRabbit + CI. Polls Linear for cloud-agent-delegated issues with an open PR attachment (status ∈ In Review or In Progress, since transitions are unreliable), fetches PR diff and upstream comments via `gh pr view` / `gh pr diff` / `gh api` without checkout by default — spins up a review worktree only when fix-locally is required or CI is absent. Fetches existing comments from both the GitHub PR (Copilot, CodeRabbit, humans) and the Linear issue (user clarifications, prior reviewer notes, prior `@codex`/`@cursor` push-back rounds), classifies tiny PRs (<100 LOC, no `lib/` changes) onto a 3-line fast path, otherwise reads `gh pr checks <n>` as the harness gate (CI replaces local mix runs — falls back to local harness if CI absent, surfacing a `TODO(setup-ci)` finding pointing at the `elixir-ci-harness` skill), reviews the diff against Linear acceptance criteria, **auto-posts asymmetric push-back comments** (PR review = line-level code; Linear = ONE paragraph on scope/intent — never duplicate), defaults push-back over local fix per the per-agent reachability matrix. **Pre-merge correctness gate only** — hygiene findings (extractions, abstractions, TODO markers, external doc drift) move to `staged-review:audit-review` post-merge. **Auto-merges cloud-agent PRs (`cursor/*`, `codex/*`) on ✅ verdict + green CI + no requested-changes + no `[BLOCK-MERGE]` label**, then chains to `Skill(audit-review)` against the merge SHA.
+description: Use as Tier 2 deep audit for cloud-agent or self-authored PRs that touch critical-tier code paths (signing, RPC, ABI, money, crypto, migrations) OR when CodeRabbit/Copilot (Tier 1) flagged ambiguity — for routine PRs, defer to CodeRabbit + CI. Two pickup modes: Linear-aware (poll for delegated issues with an open PR attachment) when Linear MCP available, gh-only (`gh pr list` or PR number argument) otherwise — never aborts. Fetches PR diff and upstream comments via `gh pr view` / `gh pr diff` / `gh api` without checkout by default — spins up a review worktree only when fix-locally is required or CI is absent. Fetches existing comments from the GitHub PR (Copilot, CodeRabbit, humans) and from the Linear issue when present (user clarifications, prior reviewer notes, prior `@codex`/`@cursor` push-back rounds), classifies tiny PRs (<100 LOC, no `lib/` changes) onto a 3-line fast path, otherwise reads `gh pr checks <n>` as the harness gate (CI replaces local mix runs — falls back to local harness if CI absent, surfacing a `TODO(setup-ci)` finding pointing at the `elixir-ci-harness` skill), reviews the diff against acceptance criteria, **auto-posts asymmetric push-back comments** (PR review = line-level code; Linear = ONE paragraph on scope/intent — never duplicate), defaults push-back over local fix per the per-agent reachability matrix. **Pre-merge correctness gate only** — hygiene findings (extractions, abstractions, TODO markers, external doc drift) move to `staged-review:audit-review` post-merge. **Auto-merges feature-branch PRs (any branch other than the default — worktree branches, `cursor/*`, `codex/*` all qualify) on ✅ verdict + green CI + no requested-changes + no `[BLOCK-MERGE]` label**, then chains to `Skill(audit-review)` against the merge SHA.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 ---
 
-# Commit Review — Cloud-Agent PR Workflow (Tier 2, CI-as-Gate)
+# Commit Review — PR Workflow (Phase 4, CI-as-Gate)
 
-Read the PR diff. Read upstream reviewer comments (PR + Linear). Read CI status. Audit against acceptance criteria — **correctness gate only** (Cat 1 bugs + in-code `@doc`/`@spec` drift; hygiene moves to `audit-review` post-merge). **Default to push-back over local fix.** **Auto-post draft push-back comments** to PR + Linear per the asymmetric-channels rule (no "want me to post?" prompt). On ✅ verdict, **auto-merge cloud-agent PRs** that satisfy the preconditions (✅ verdict + green CI + `cursor/*`|`codex/*` branch + no requested-changes review + no `[BLOCK-MERGE]` label), then immediately chain `Skill(audit-review)` against the merge SHA so post-merge hygiene + bookkeeping happen automatically.
+## Phase Awareness
+
+**This skill runs in Phase 4 of 6** in the development lifecycle:
+
+`task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)`
+
+- **Predecessor:** bot ensemble (Phase 3 — CodeRabbit / Copilot / Codex's GitHub bot, async on PR open)
+- **Successor:** merge (Phase 5) — auto-merge tail when preconditions hold, else surface verdict for manual merge
+- **Linear status on entry:** `In Review` (canonical) or `In Progress` with open PR attachment (non-canonical — agent transition didn't fire)
+- **Linear status on exit:** `In Review` (verdict surfaced; merge happens in Phase 5) or skipped if project doesn't use Linear
+
+Read the PR diff. Read upstream reviewer comments (PR + Linear). Read CI status. Audit against acceptance criteria — **correctness gate only** (Cat 1 bugs + in-code `@doc`/`@spec` drift; hygiene moves to `audit-review` post-merge). **Default to push-back over local fix.** **Auto-post draft push-back comments** to PR + Linear per the asymmetric-channels rule (no "want me to post?" prompt). On ✅ verdict, **auto-merge feature-branch PRs** (any branch other than the repo's default — worktree branches, `cursor/*`, `codex/*` all qualify) that satisfy the preconditions (✅ verdict + green CI + feature branch + no requested-changes review + no `[BLOCK-MERGE]` label), then immediately chain `Skill(audit-review)` against the merge SHA so post-merge hygiene + bookkeeping happen automatically.
 
 The autonomy-first design rests on three layers: pre-merge correctness gate (this skill), post-merge hygiene (audit-review), and CI as the deterministic harness. Together they replace the old single-step user merge gate. See `delegation-rules.md` § "DON'T AUTO-MERGE PRS" for the precondition list and the `[BLOCK-MERGE]` escape hatch the user can label any PR with to manually pause an auto-merge.
 
@@ -16,7 +27,9 @@ The autonomy-first design rests on three layers: pre-merge correctness gate (thi
 
 WHAT THIS SKILL DOES:
   - **Tier 2 framing** — reserved for PRs that warrant deep audit (critical-tier code paths, CodeRabbit-flagged ambiguity, or explicit user invocation). Routine PRs defer to CodeRabbit + CI
-  - Poll Linear for cloud-agent-delegated issues (Codex / Cursor) with an open PR attachment (status ∈ {In Review, In Progress} — agent transitions are unreliable, so the PR attachment is the authoritative signal)
+  - **Two pickup modes**:
+    - **Linear-aware mode** (when Linear MCP is available): poll Linear for cloud-agent-delegated issues (Codex / Cursor) with an open PR attachment (status ∈ {In Review, In Progress} — agent transitions are unreliable, so the PR attachment is the authoritative signal)
+    - **gh-only mode** (Linear MCP absent OR self-authored worktree PRs without a Linear issue): take a PR number as argument, OR `gh pr list --state open` filtered by `--head` / `--label needs-review` / `--draft=false`. No abort — Linear is optional
   - **Default review-only flow** — read PR diff + comments via `gh pr diff`, `gh pr view`, and `gh api repos/.../pulls/<n>/comments` without checkout. Worktree-checkout is on demand: spin up an isolated review worktree (`../<repo>-review-pr-<n>`) ONLY when Step 7 routes to fix-locally OR Step 6 falls back to local harness (CI absent). When a worktree IS created, the host session's branch is never touched, parallel sessions can review different PRs concurrently, and Step 12 auto-removes when clean / surfaces manual cleanup when Step 7 staged local fixes
   - **Fetch existing comments from both the GitHub PR and the Linear issue** before auditing — so the audit doesn't duplicate Copilot/CodeRabbit/human findings and inherits Linear-side context (user clarifications, scope amendments, prior push-back rounds)
   - **Classify tiny PRs onto the fast path** (Step 5.5) — <100 LOC + no `lib/` changes → 3-line verdict, no full audit
@@ -26,10 +39,10 @@ WHAT THIS SKILL DOES:
   - **Default to push-back over local fix** — local fix is the exception, governed by the per-agent push-back-vs-fix-locally matrix (Step 7)
   - **Auto-post asymmetric push-back comments** — PR review = line-level code feedback; Linear comment = ONE paragraph on scope/intent match. Never duplicate content across surfaces. Per `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — comment posting is DEFAULT-DO during active delegation flow, no "should I post?" prompt
   - Surface a verdict (✅ ready / ⚠️ blockers / 💬 discussion items)
-  - **On ✅ verdict + cloud-agent PR satisfying auto-merge preconditions** — auto-run `gh pr merge --squash --delete-branch`, then immediately `Skill(audit-review)` against the merge SHA so post-merge hygiene + ROADMAP/CHANGELOG bookkeeping happen autonomously
+  - **On ✅ verdict + feature-branch PR satisfying auto-merge preconditions** — auto-run `gh pr merge --squash --delete-branch`, then immediately `Skill(audit-review)` against the merge SHA so post-merge hygiene + ROADMAP/CHANGELOG bookkeeping happen autonomously
 
 WHAT THIS SKILL DOES NOT DO:
-  - **Auto-merge non-cloud-agent PRs** — auto-merge is scoped to `cursor/*` and `codex/*` branches only. Self-authored PRs from worktrees still surface the verdict; user merges manually until that's separately addressed (see ROADMAP follow-up #4 from the audit-review v1 plan)
+  - **Auto-merge PRs whose head IS the repo's default branch** — out of scope by definition (and gh wouldn't accept anyway). Auto-merge applies to any feature branch (worktree branches, `cursor/*`, `codex/*` all qualify)
   - **Auto-merge over red CI, requested-changes review, or `[BLOCK-MERGE]` label** — every precondition must hold. If any fails, surface the verdict and let the user merge manually
   - **Apply external doc hygiene** — CHANGELOG entries, ROADMAP status flips, CLAUDE.md drift, README updates are `audit-review`'s job post-merge. The pre-merge skill stays narrow on correctness
   - **Optional Codex CLI second-opinion** — removed in this version. Per-PR Codex dispatch is `audit-review`'s mandatory work post-merge; doubling it pre-merge is diminishing returns
@@ -49,7 +62,7 @@ WHAT THIS SKILL DOES NOT DO:
 | Audit scope | All 5 categories + Cat 6 doc gaps | **Cat 1 (bugs) + in-code `@doc`/`@spec` correctness drift only** — hygiene moves to `audit-review` | All 6 categories — hygiene + correctness post-merge |
 | Codex second-opinion | Mandatory | **None** — `audit-review`'s mandatory dispatch covers this post-merge | Mandatory |
 | Default action on blocker | Auto-fix when mechanical, surface for user otherwise | **Push back via PR/Linear comment** — auto-posted; local fix is the exception per per-agent matrix | Auto-apply directly + auto-resolve discuss-design via dialogue |
-| Output | Findings + plan-mode-gated edits + final commit-by-user | Verdict + auto-posted push-back + **auto-merge cloud-agent PRs on preconditions** + audit-review chain | `audit(...)` commit with fixes + `.audit/<sha>.md` reports |
+| Output | Findings + plan-mode-gated edits + final commit-by-user | Verdict + auto-posted push-back + **auto-merge feature-branch PRs on preconditions** + audit-review chain | `audit(...)` commit with fixes + `.audit/<sha>.md` reports |
 
 The three skills compose into a single autonomous review-and-merge chain for cloud-agent PRs: pre-merge correctness gate → auto-merge → post-merge hygiene + bookkeeping. User attention is reserved for the rare `[BLOCK-MERGE]` label decision, the divergence-dropped findings that surface in audit-review's ROADMAP filings, and any `⚠️ blockers` / `💬 discussion` verdicts that fail the auto-merge preconditions.
 
@@ -72,8 +85,8 @@ digraph commit_review {
   rankdir=TB;
   node [shape=box];
 
-  detect    [label="1. Detect Linear MCP\n(abort with install instructions if missing)"];
-  list      [label="2. List cloud-agent PRs awaiting review\n(delegate ∈ {Codex, Cursor},\nstatus ∈ {In Review, In Progress},\nfiltered to issues with open PR attachment)"];
+  detect    [label="1. Detect pickup mode\nLinear-aware OR gh-only\n(no abort — Linear is optional)"];
+  list      [label="2. List PRs awaiting review\nLinear-aware: poll delegate ∈ {Codex, Cursor}\nstatus ∈ {In Review, In Progress}, open PR attachment\ngh-only: PR# argument OR `gh pr list --state open`"];
   spec      [label="3. Read Linear issue body\nspec + acceptance criteria"];
   resolve   [label="4. Auto-undraft on green CI\n+ resolve PR + read diff\n(no checkout — gh pr view/diff/api)"];
   comments  [label="5. Fetch existing comments\nGitHub PR (Copilot/CodeRabbit/humans)\n+ Linear issue (user clarifications,\nprior reviewer notes, prior push-back)\n+ Bot cite-and-skip policy"];
@@ -86,9 +99,9 @@ digraph commit_review {
   delegate  [label="10. DISABLED (2026-05-06)\nTier-2 Codex-Reviews-Cursor paused\n(Step 10a optional Codex removed in v1.16)"];
   verdict   [label="11. Present verdict\n✅ ready / ⚠️ blockers / 💬 discussion\nAuto-post push-back drafts to PR + Linear"];
   cleanup   [label="12. Cleanup worktree (no-op if none was created)\nauto-remove if clean,\nleave + instruct if dirty"];
-  gate      [label="13. Auto-merge precondition check\n✅ verdict + green CI + cursor/* or codex/*\n+ no requested-changes + no [BLOCK-MERGE] label\n→ auto-merge; else → surface verdict only"];
-  merge     [label="14. Merge cloud-agent PR\n`gh pr merge --squash --delete-branch`"];
-  audit_chain [label="15. Chain Skill(audit-review)\nagainst the merge SHA on main\n(audit-review handles ROADMAP/CHANGELOG/README,\nsobelow regen, .audit/<sha>.md, audit() commit)"];
+  gate      [label="13. Auto-merge precondition check\n✅ verdict + green CI + feature branch (not default)\n+ no requested-changes + no [BLOCK-MERGE] label\n→ auto-merge; else → surface verdict only"];
+  merge     [label="14. Merge feature-branch PR\n`gh pr merge --squash --delete-branch`"];
+  audit_chain [label="15. Chain Skill(audit-review)\nagainst the merge SHA on the default branch\n(audit-review handles ROADMAP/CHANGELOG/README,\nsobelow regen, .audit/<sha>.md, audit() commit)"];
   close     [label="16. Linear close-out\nverify auto-transition to Done\n+ post closing comment"];
 
   detect -> list -> spec -> resolve -> comments -> classify;
@@ -108,26 +121,30 @@ digraph commit_review {
 }
 ```
 
-### Step 1: Detect Linear MCP Availability
+### Step 1: Detect Pickup Mode (Linear-Aware vs gh-Only)
 
-Verify the Linear MCP is installed and reachable. The skill needs `mcp__linear-server__list_issues`, `mcp__linear-server__get_issue`, `mcp__linear-server__list_comments`, and (optionally for the comment-post step) `mcp__linear-server__save_comment`.
+Linear is **optional** as of v1.18. Two pickup modes; pick whichever fits the project state.
 
-If the Linear MCP isn't available:
+**Linear-aware mode** (when Linear MCP is available — verified by checking that `mcp__linear-server__list_issues` exists in the tool inventory). Used for cloud-agent flows and self-authored worktrees that file against Linear (per `linear-workflow.md` § "Self-Authored Worktree Flow"). Skill uses `mcp__linear-server__list_issues`, `mcp__linear-server__get_issue`, `mcp__linear-server__list_comments`, and (for comment posting) `mcp__linear-server__save_comment`.
 
-```
-Linear MCP not detected. This skill needs the Linear MCP to find PRs awaiting review.
+**gh-only mode** (Linear MCP absent OR self-authored worktree without a Linear issue OR explicit user invocation with a PR number). Skill takes the PR as a starting point and uses `gh pr view`, `gh pr diff`, `gh api` for everything. The Linear-side context (acceptance criteria, prior push-back rounds) is replaced by the PR body, the source-issue ROADMAP row (if any), and existing PR review comments. Steps that call `mcp__linear-server__*` short-circuit cleanly:
 
-Install:
-  https://linear.app/changelog/2025-05-01-mcp
+- Step 2 (poll Linear queue) → become "use the PR number from invocation, OR `gh pr list --state open` to choose"
+- Step 3 (read Linear issue body) → become "read the PR body and any linked ROADMAP row"
+- Step 5 (fetch Linear comments) → become "skip — only fetch GitHub PR comments"
+- Step 9 (cross-reference Linear acceptance criteria) → become "cross-reference PR body's acceptance criteria if present, otherwise apply the narrowed correctness audit without an external spec gate"
+- Step 11 Linear comment post → become "skip Linear surface; PR review covers everything"
+- Step 16 Linear close-out → become "skip — no Linear issue to transition"
 
-After install, restart Claude Code so the MCP tools register, then re-invoke this skill.
-```
+**Mode detection is one-shot at Step 1.** Don't bounce between modes mid-flow. If Linear MCP is available BUT the PR has no linked Linear issue (rare for cloud-agent PRs, common for self-authored worktree PRs that the user opened locally without filing in Linear first), fall back to gh-only mode for THAT PR specifically.
 
-Then **abort**. Don't try to find PRs through `gh` alone — the Linear → PR linkage is what makes the workflow tractable.
+**No abort.** Earlier versions of this skill (≤ v1.17) aborted at Step 1 when Linear MCP was missing. That gate stranded self-authored worktree PRs and projects that intentionally don't use Linear (per `linear-workflow.md` § "ROADMAP-Fallback Flow"). The mode-split in v1.18+ removes the gate.
 
-### Step 2: List Cloud-Agent PRs Awaiting Review
+### Step 2: List PRs Awaiting Review
 
-**The PR-attachment link in Linear is the authoritative "ready for review" signal.** Linear status is just a cached version of that, and cloud-agent transition behavior has been unreliable across observed round-trips:
+**Mode-dependent.** In gh-only mode (Step 1 detected no Linear MCP, or the user passed an explicit PR number), this step is trivial: use the user's argument, OR run `gh pr list --state open --search "is:open draft:false"` and let the user pick. Skip the rest of this section; jump to Step 3.
+
+In Linear-aware mode, the PR-attachment link in Linear is the authoritative "ready for review" signal — Linear status is just a cached version of that, and cloud-agent transition behavior has been unreliable across observed round-trips:
 
 - Sometimes the agent stays at `Backlog` (no auto-transition, no PR auto-open)
 - Sometimes the agent auto-opens the PR but stays at `In Progress` (no transition to `In Review`)
@@ -702,7 +719,7 @@ Surface any `disputed` upstream comments here too.]
 
 **Auto-post the Linear comment (full machinery only).** Per the auto-post rule, drafted Linear-channel one-paragraph scope/intent summaries land via `mcp__linear-server__save_comment` without re-asking. Surface in one short line ("Posting scope summary to MW-247: acceptance criteria 3 not addressed") and post.
 
-**Don't run `gh pr merge` without satisfying Step 13's auto-merge preconditions.** Per `delegation-rules.md` § "DON'T AUTO-MERGE PRS" (loosened in v1.16): auto-merge for `cursor/*` and `codex/*` branches is allowed when **all five preconditions hold** — ✅ verdict + green CI + cloud-agent branch + no requested-changes review + no `[BLOCK-MERGE]` label. If any precondition fails, surface the verdict and let the user merge manually. After Step 12 cleanup, the flow continues into Step 13 (auto-merge precondition check) → Step 14 (merge if eligible) → Step 15 (chain `audit-review` against the merge SHA) → Step 16 (Linear close-out).
+**Don't run `gh pr merge` without satisfying Step 13's auto-merge preconditions.** Per `delegation-rules.md` § "DON'T AUTO-MERGE PRS" (widened in v1.18 to feature-branch PRs): auto-merge is allowed when **all five preconditions hold** — ✅ verdict + green CI + feature branch (not the repo's default) + no requested-changes review + no `[BLOCK-MERGE]` label. If any precondition fails, surface the verdict and let the user merge manually. After Step 12 cleanup, the flow continues into Step 13 (auto-merge precondition check) → Step 14 (merge if eligible) → Step 15 (chain `audit-review` against the merge SHA) → Step 16 (Linear close-out).
 
 On a `⚠️ Blockers` or `💬 Discussion` verdict, Step 13 surfaces "auto-merge skipped — verdict not ✅" and Steps 14-15 are skipped — there's no merge to chain. The deliverable is the verdict + auto-posted push-back; user decides on next-action manually. Step 16 still fires if the user later merges manually and wants Linear close-out.
 
@@ -737,7 +754,7 @@ The Step 10b fire path runs its own narrower cleanup before STOP — it intentio
 
 **Only fires on a `✅ Ready to merge` verdict.** On `⚠️ Blockers` or `💬 Discussion`, surface "auto-merge skipped — verdict not ✅" and skip Steps 14-15. Step 16 still fires if the user later merges manually and wants Linear close-out.
 
-The auto-merge gate that replaced the old user gate is **scoped to cloud-agent branches**. Self-authored PRs from worktrees still surface the verdict; user merges manually until that's separately addressed (see ROADMAP follow-up #4 from the audit-review v1 plan).
+The auto-merge gate is **scoped to feature-branch PRs** — any branch that isn't the repo's default. Worktree branches, `cursor/*`, `codex/*` all qualify; only PRs whose head IS the default branch are out of scope (and gh wouldn't accept those anyway). v1.18 widened this from cloud-agent-only — see `delegation-rules.md` § "Why this loosens" for the autonomy-first rationale.
 
 **All five preconditions must hold** to proceed:
 
@@ -749,9 +766,10 @@ VERDICT="ready"
 CI_STATE=$(gh pr checks <N> --json bucket -q '[.[] | .bucket] | unique')
 [[ "$CI_STATE" == '["pass"]' ]] || PRECONDITION_FAIL="ci_not_green"
 
-# 3. Branch is cloud-agent-owned (cursor/* or codex/*)
+# 3. Branch is a feature branch (NOT the repo's default)
 BRANCH=$(gh pr view <N> --json headRefName -q .headRefName)
-[[ "$BRANCH" =~ ^(cursor|codex)/ ]] || PRECONDITION_FAIL="not_cloud_agent_branch"
+DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+[[ "$BRANCH" != "$DEFAULT_BRANCH" ]] || PRECONDITION_FAIL="head_is_default_branch"
 
 # 4. No outstanding `requested-changes` review state from a human reviewer
 REQUESTED_CHANGES=$(gh pr view <N> --json reviewDecision -q .reviewDecision)
@@ -764,7 +782,7 @@ echo "$LABELS" | grep -qi 'BLOCK-MERGE' && PRECONDITION_FAIL="block_merge_label"
 
 If any precondition fails, surface a one-line explanation referencing the failed precondition and skip to Step 16 (verdict-only deliverable; user merges manually if appropriate). Don't retry, don't pause for user input — the user already has the verdict and can act on it.
 
-**The `[BLOCK-MERGE]` label is the user's manual override.** Adding it to a cloud-agent PR pauses the auto-merge mechanism without rejecting the verdict. The user removes the label when ready to allow auto-merge on a re-run, OR merges manually at any time.
+**The `[BLOCK-MERGE]` label is the user's manual override.** Adding it to any PR (cloud-agent or self-authored worktree) pauses the auto-merge mechanism without rejecting the verdict. The user removes the label when ready to allow auto-merge on a re-run, OR merges manually at any time.
 
 When all preconditions hold, announce the auto-merge in one line and proceed:
 
@@ -772,7 +790,7 @@ When all preconditions hold, announce the auto-merge in one line and proceed:
 [INE-<M> · PR #<N>] Auto-merge preconditions met — running `gh pr merge --squash --delete-branch`, then chaining audit-review.
 ```
 
-### Step 14: Auto-Merge the Cloud-Agent PR
+### Step 14: Auto-Merge the Feature-Branch PR
 
 When Step 13's preconditions all hold, run the merge:
 
@@ -780,7 +798,7 @@ When Step 13's preconditions all hold, run the merge:
 gh pr merge <N> --squash --delete-branch
 ```
 
-Default to `--squash --delete-branch` for cloud-agent PRs — squash keeps the `main` history linear (one commit per Linear issue / PR), and `--delete-branch` removes the cloud-agent's branch automatically. If the repo's PR policy specifies `merge` or `rebase` over squash (configurable per-repo via `.commit-review.toml` `merge_strategy` if present), use that strategy instead.
+Default to `--squash --delete-branch` — squash keeps the default branch history linear (one commit per Linear issue / PR), and `--delete-branch` removes the feature branch automatically. Applies uniformly to worktree branches, `cursor/*`, and `codex/*`. If the repo's PR policy specifies `merge` or `rebase` over squash (configurable per-repo via `.commit-review.toml` `merge_strategy` if present), use that strategy instead.
 
 Confirm the merge succeeded and capture the merge SHA:
 
@@ -796,10 +814,11 @@ On merge failure (`mergeable: CONFLICTING`, required check still pending despite
 
 ### Step 15: Chain `Skill(audit-review)` Against the Merge SHA
 
-Immediately after a successful merge, switch to the host repo's `main` and pull the merged state:
+Immediately after a successful merge, switch to the host repo's default branch and pull the merged state:
 
 ```bash
-git checkout main
+DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)  # main / master / development
+git checkout "$DEFAULT_BRANCH"
 git pull
 ```
 
@@ -846,8 +865,8 @@ Otherwise:
 
    Merged PR #<N>: <PR title>.
 
-   Merge commit on main: <merge SHA>.
-   Audit commit on main: <audit-review's audit() commit SHA — captured from Step 15's invocation>.
+   Merge commit on <default-branch>: <merge SHA>.
+   Audit commit on <default-branch>: <audit-review's audit() commit SHA — captured from Step 15's invocation>.
 
    audit-review summary:
    - <copy the audit-review's per-commit verdict bullets>
@@ -867,8 +886,8 @@ Skill ends here. The user can verify the state via Linear UI / `gh pr view` / `g
 
 | Mistake | Fix |
 |---------|-----|
-| Running `gh pr merge` on a non-cloud-agent PR (self-authored worktree, fork, etc.) | Auto-merge is scoped to `cursor/*` and `codex/*` branches. Self-authored PRs surface the verdict; user merges manually. See ROADMAP follow-up #4 from the audit-review v1 plan for the path to extending auto-merge to self-authored PRs |
-| Running `gh pr merge` while ANY auto-merge precondition fails | All five preconditions must hold: ✅ verdict + green CI + cloud-agent branch + no requested-changes + no `[BLOCK-MERGE]` label. Partial isn't enough — surface the verdict and let the user merge manually |
+| Running `gh pr merge` while ANY auto-merge precondition fails | All five preconditions must hold: ✅ verdict + green CI + feature branch (not the repo's default) + no requested-changes + no `[BLOCK-MERGE]` label. Partial isn't enough — surface the verdict and let the user merge manually |
+| Running `gh pr merge` on a fork PR or a PR whose head IS the default branch | Auto-merge applies to feature-branch PRs in the same repo (worktree branches, `cursor/*`, `codex/*` all qualify). PRs from forks need the upstream maintainer's merge action; PRs whose head IS the default branch shouldn't exist (gh wouldn't accept) — surface and stop |
 | Skipping the audit-review chain after merge | Step 15 is mandatory after auto-merge. Post-merge bookkeeping (ROADMAP/CHANGELOG/README, `.audit/<sha>.md` reports, Codex second-opinion) lives there now |
 | Doing ROADMAP/CHANGELOG/README updates inline in `commit-review` | That's `audit-review`'s job post-merge. The pre-merge gate stays narrow on correctness. Inline bookkeeping was removed in v1.16 |
 | Running the full machinery on a tiny PR (<100 LOC, no `lib/`) | Step 5.5 routes to fast path. 3-line verdict, no audit, no Codex offer. Override with explicit user request only |
@@ -887,7 +906,7 @@ Skill ends here. The user can verify the state via Linear UI / `gh pr view` / `g
 | Treating original Linear issue body as authoritative when comments amended scope | Linear scope-amendment comments override the original body. If the user added context after the issue was created, the comment wins |
 | Polling only `status = In Review` | Cloud-agent transitions are unreliable — also poll `In Progress` and filter by open-PR-attachment. Status is a cached version of the PR-link signal; the PR attachment is the authoritative one |
 | Treating cloud-agent MCP user lookups as fact | Verify Codex / Cursor user ids by name/email if ids seem stale. Linear can rotate ids on workspace migration |
-| Running this skill when Linear MCP isn't installed | Step 1 aborts cleanly with install instructions. Don't fall back to `gh`-only — Linear → PR linkage is the workflow |
+| Aborting at Step 1 when Linear MCP is missing | Linear is **optional** as of v1.18. Mode-split at Step 1: Linear-aware when MCP is available, gh-only otherwise. Self-authored worktree PRs and Linear-free projects both go through gh-only. Never abort |
 | Surfacing CI mechanical drift as "blockers" requiring local fix | CI red on format/credo/dialyzer/doctor is push-back-default per the matrix. Both Codex and Cursor can iterate against the same CI signal once told what failed |
 | Inventing Linear acceptance criteria not in the issue body | If the body lacks explicit criteria, mark "criteria implicit" in the verdict and lean on the narrowed correctness audit. Don't fabricate a checklist |
 | **Auto-delegating to Codex Cloud when CI is red** | **Step 10b requires CI green. Red CI → push back to Cursor first (the failing check is a stronger signal than a code review would be); only delegate the review once CI passes. Saves Codex compute on already-rejected PRs** |
@@ -909,7 +928,7 @@ Closely related includes and skills the workflow composes with:
 - `~/.claude/includes/linear-workflow.md` § "Preferred channel for fix-locally-required findings: paste-as-`@cursor`-comment" — the preferred channel for the rare fix-locally rows of the matrix
 - `~/.claude/includes/linear-workflow.md` § "Tidewave is verification, not necessarily fix" — Tidewave-as-evidence-generator pattern that strengthens push-back without triggering local fix
 - `~/.claude/includes/critical-rules.md` § "🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — hard rule against amending `cursor/...` or `codex/...` branches; user-scoped override
-- `~/.claude/includes/delegation-rules.md` § "DON'T AUTO-MERGE PRS" — auto-merge precondition list for cloud-agent PRs (loosened in v1.16); `[BLOCK-MERGE]` label as the user's manual override
+- `~/.claude/includes/delegation-rules.md` § "DON'T AUTO-MERGE PRS" — auto-merge precondition list for feature-branch PRs (widened from cloud-agent-only in v1.18); `[BLOCK-MERGE]` label as the user's manual override
 - `~/.claude/includes/delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — auto-post posture for push-back drafts (default DO during active flow)
 - `~/.claude/includes/cloud-agent-environments.md` — per-agent reachability matrix (hex.pm, Tidewave, internet) feeding Step 7's classification
 - `staged-review:code-review` — pre-commit local-work counterpart; shares the audit categories but mandates Codex CLI second-opinion (single-judge failure mode)

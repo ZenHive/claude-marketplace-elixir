@@ -66,22 +66,26 @@ git worktree prune
 
 To start working in a new worktree, open a fresh Claude Code session in that directory: `claude` from `~/_DATA/worktrees/<repo>/<id>/`.
 
-## After `gh pr create` — Run `audit-review`
+## After PR Merge — Run `audit-review`
 
-Before the worktree session ends, the implementer invokes `staged-review:audit-review` against the worktree's own commits. Catches hygiene drift (extractions, doc gaps, missing TODO markers, ROADMAP/CHANGELOG drift) that pre-commit `code-review` may have skipped under time pressure. The skill writes `.audit/<sha>.md` reports + lands one `audit(...)` commit on the feature branch (pushed with the next `git push` or amended into the open PR).
+After the PR merges to the default branch, `staged-review:audit-review` runs against the merge SHA. Catches hygiene drift (extractions, doc gaps, missing TODO markers, ROADMAP/CHANGELOG drift) that pre-commit `code-review` may have skipped under time pressure. The skill writes `.audit/<merge-sha>.md` reports + lands one `audit(...)` commit on the default branch.
 
-**Auto-invoked at the end of the worktree session lifecycle**, after `gh pr create` returns successfully. The skill itself defaults to the unaudited tail since the last `audit(...)` commit, so no arguments needed.
+**Auto-invoked post-merge.** Two invocation paths:
+
+1. **Auto-merge path** — `commit-review` Step 15 already chains `Skill(audit-review) <merge-sha>^..<merge-sha>` immediately after `gh pr merge`. Nothing extra to do.
+2. **User-merge path** — when the user merges manually (any PR, cloud-agent or self-authored), the same session runs `audit-review` against the merge SHA in the next step.
 
 ```
-# In the implementer session, after PR is open:
-Skill(audit-review)
+# After `gh pr merge` lands (auto or manual):
+git checkout <default-branch> && git pull
+Skill(audit-review)  # arguments: <merge-sha>^..<merge-sha>
 ```
 
 **Manual override:** `/audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks.
 
 **Tiny-commit fast path.** For commits ≤100 LOC AND no `lib/` (or language equivalent) touched, the skill skips Codex dispatch and writes a `verdict: clean — fast-path` report. No separate skip flag needed; if every commit in the range is fast-path-eligible, the audit is cosmetic and ends in seconds.
 
-**Why at PR-creation time, not at cleanup time.** The audit commit can be pushed to the feature branch and reviewed alongside the PR. Running audit-review at `git worktree remove` time means the audit lands on a soon-to-be-deleted branch with no review surface.
+**Why post-merge, not post-pr-create.** Three reasons. (a) Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge — auditing pre-bot means re-auditing if bots flag substantive findings. (b) The audit commit lands on the default branch where it's durable; running pre-merge would land it on a soon-to-be-deleted feature branch. (c) `.audit/<merge-sha>.md` becomes the canonical inspection artifact for the merged change set, indexed off the SHA that's actually in `main` history.
 
 ## Lifecycle — Cleanup Is Part of Completion
 
@@ -132,4 +136,4 @@ A project can opt out of the worktree workflow by pinning a memory file under `~
 - `~/.claude/includes/critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST" — the relaxed rule for tracked worktrees
 - `~/.claude/includes/delegation-rules.md` — strict rules that stay strict (cloud-agent branches); auto-merge loosened for cloud-agent PRs
 - `~/.claude/includes/task-prioritization.md` § "Parallel Work (`[P]`)" — when ROADMAP-tracked work uses worktrees
-- `staged-review:audit-review` skill — the post-`gh pr create` hygiene pass
+- `staged-review:audit-review` skill — the post-merge hygiene pass
