@@ -203,12 +203,13 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands (research, plan, implement, qa) |
 
-**Staged-review plugin** (2 skills):
+**Staged-review plugin** (3 skills):
 
 | Skill | Description |
 |-------|-------------|
-| code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
-| commit-review | Tier 2 cloud-agent PR review (Codex/Cursor) — CI-as-gate via `gh pr checks`, tiny-PR fast path (<100 LOC + no `lib/`), asymmetric push-back channels (PR=line-level / Linear=scope), per-agent reachability matrix, optional Codex CLI second-opinion (default off), verdict-only (user merges) |
+| code-review | Pre-commit review of `git diff --staged` — 5+1 categories with mandatory Codex second-opinion, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply) |
+| commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label** then chains audit-review against the merge SHA |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-workflow` (post-merge for non-auto-merge cases) |
 
 **Task-driver plugin** (1 skill):
 

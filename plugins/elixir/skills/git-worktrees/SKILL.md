@@ -66,6 +66,23 @@ git worktree prune
 
 To start working in a new worktree, open a fresh Claude Code session in that directory: `claude` from `~/_DATA/worktrees/<repo>/<id>/`.
 
+## After `gh pr create` — Run `audit-review`
+
+Before the worktree session ends, the implementer invokes `staged-review:audit-review` against the worktree's own commits. Catches hygiene drift (extractions, doc gaps, missing TODO markers, ROADMAP/CHANGELOG drift) that pre-commit `code-review` may have skipped under time pressure. The skill writes `.audit/<sha>.md` reports + lands one `audit(...)` commit on the feature branch (pushed with the next `git push` or amended into the open PR).
+
+**Auto-invoked at the end of the worktree session lifecycle**, after `gh pr create` returns successfully. The skill itself defaults to the unaudited tail since the last `audit(...)` commit, so no arguments needed.
+
+```
+# In the implementer session, after PR is open:
+Skill(audit-review)
+```
+
+**Manual override:** `/audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks.
+
+**Tiny-commit fast path.** For commits ≤100 LOC AND no `lib/` (or language equivalent) touched, the skill skips Codex dispatch and writes a `verdict: clean — fast-path` report. No separate skip flag needed; if every commit in the range is fast-path-eligible, the audit is cosmetic and ends in seconds.
+
+**Why at PR-creation time, not at cleanup time.** The audit commit can be pushed to the feature branch and reviewed alongside the PR. Running audit-review at `git worktree remove` time means the audit lands on a soon-to-be-deleted branch with no review surface.
+
 ## Lifecycle — Cleanup Is Part of Completion
 
 **The work isn't done until the worktree is gone.**
@@ -113,5 +130,6 @@ A project can opt out of the worktree workflow by pinning a memory file under `~
 
 - `~/.claude/CLAUDE.md` § "Worktree-Per-Branch Workflow" — the rule pointer
 - `~/.claude/includes/critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST" — the relaxed rule for tracked worktrees
-- `~/.claude/includes/delegation-rules.md` — strict rules that stay strict (merge, cloud-agent branches)
+- `~/.claude/includes/delegation-rules.md` — strict rules that stay strict (cloud-agent branches); auto-merge loosened for cloud-agent PRs
 - `~/.claude/includes/task-prioritization.md` § "Parallel Work (`[P]`)" — when ROADMAP-tracked work uses worktrees
+- `staged-review:audit-review` skill — the post-`gh pr create` hygiene pass

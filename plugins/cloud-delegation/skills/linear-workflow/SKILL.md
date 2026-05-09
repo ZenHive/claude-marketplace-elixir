@@ -80,7 +80,7 @@ When one Linear workspace serves multiple cloud-agent-targeted repos, Cursor nee
 
 > **🚨 Suspended (Elixir projects, 2026-05-05).** Codex Cloud has no Elixir runtime; tier-2 review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
 
-**When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Local Claude invokes `staged-review:commit-review`; **user merges** (see `delegation-rules.md` § "DON'T AUTO-MERGE PRS").
+**When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Local Claude invokes `staged-review:commit-review`; auto-merge fires when 5 preconditions hold, `audit-review` chains off the merge (see `delegation-rules.md` § "DON'T AUTO-MERGE PRS").
 
 **Marker semantics.** Mark ROADMAP tasks suitable for Codex delegation with `[CX]`. **Default: tasks meeting all criteria are `[CX]` unless there's a stated reason otherwise.** Claude's bias is to grab work; this default is a counterweight.
 
@@ -114,7 +114,7 @@ Same shape as the Codex flow with **broader eligibility** — Cursor's cloud env
 
 4. **Push back via Linear comment with `@cursor` mention.** Cursor picks up `@cursor` mentions within ~5 min, amends the PR with a fresh commit, posts confirmation, reruns the harness. See § "Wake-Mention Discipline" for placement rules.
 
-5. **User merges.** Verdict is informational — see `delegation-rules.md` § "DON'T AUTO-MERGE PRS".
+5. **Auto-merge on ✅ + green CI** (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"). When all 5 preconditions hold (✅ verdict, green CI, `cursor/*` or `codex/*` branch, no requested-changes, no `[BLOCK-MERGE]` label), `commit-review` runs `gh pr merge --squash --delete-branch` then chains `Skill(audit-review)` against the merge SHA. Verdict + audit run unattended. If any precondition fails, surface the verdict and stop — user merges manually.
 
 ### Wake-Mention Discipline
 
@@ -306,7 +306,7 @@ If cross-repo coordination becomes regular (3+ linked issues per month), promote
 
 | Tier | CI | Bots | Conflicts | Action |
 |---|---|---|---|---|
-| Ceremony | green | clean | none | Surface as "ready, awaiting `gh pr merge`" — user merges, cascade fires |
+| Ceremony | green | clean | none | Auto-merge if preconditions hold (cloud-agent PR), then chain `audit-review`; otherwise surface as "ready, awaiting `gh pr merge`" |
 | Standard | green | clean | none | Same as ceremony, plus 5-min skim if any bot finding |
 | Critical | green | clean | none | Hand off to `staged-review:commit-review` (single-PR Tier 2), back to queue |
 | Any | red | — | — | Surface for human triage; skip in current pass |
@@ -341,7 +341,7 @@ for each remaining PR in dependency order:
 - **Forbidden:** semantic conflict resolution, any logic edit, function-body changes during rebase, any push without `--force-with-lease`, any push to a non-cloud-agent branch under this carve-out.
 - **Abort path:** if mechanical resolution doesn't apply cleanly, `git rebase --abort` and post a Linear `@cursor` / `@codex` comment with conflict context. Agent picks up the rebase.
 
-**User-confirmation gate.** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" stays strict — merge-train surfaces ordered, rebase-clean PRs with the `gh pr merge` command per PR; user merges, reviewer rebases.
+**Auto-merge per PR (preconditions hold).** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" loosens for cloud-agent PRs that meet all 5 preconditions — merge-train auto-merges each PR in dependency order, chains `audit-review` against each merge SHA, then rebases the next PR onto the new tip. PRs failing preconditions surface with the `gh pr merge` command for the user.
 
 **When to use:**
 
@@ -352,7 +352,7 @@ for each remaining PR in dependency order:
 | 2+ PRs, mixed tiers | **Merge-train.** Cascades, sorts, hands critical-tier off to `commit-review` inline |
 | 2+ PRs, all ceremony/standard | **Merge-train.** Maximum gain — no per-PR Tier 2 cost, just cascade + user-confirm |
 
-**Bookkeeping commits.** Post-merge ROADMAP/CHANGELOG/README updates per `staged-review:commit-review` Step 15 still happen on `main` after each PR merges. Reviewer rebases each remaining PR onto the new default tip in parallel, force-with-leases, CI re-runs.
+**Bookkeeping commits.** Post-merge ROADMAP/CHANGELOG/README updates land in the chained `audit-review` `audit(<sha>): ...` commit on `main` per merge. Reviewer rebases each remaining PR onto the new default tip in parallel, force-with-leases, CI re-runs. The audit commit IS the bookkeeping; no separate `Update docs for PR #N` commit.
 
 ### Issue Body = The Prompt
 
@@ -386,21 +386,21 @@ Anything the local-review session needs — known gotchas, prior context, env ca
 
 ### Code-Only PRs + Required Acceptance Criteria
 
-**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:commit-review` and updated in a single post-merge follow-up commit on `main`.
+**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` (chained off `commit-review`'s auto-merge) and updated in a single post-merge `audit(...)` commit on `main`.
 
 **Why:** PRs that touch shared docs hit `mergeable: CONFLICTING DIRTY` against earlier merges of the same files — every PR adds a rebase round just to resolve doc conflicts. Centralizing doc updates in one reviewer-owned commit per PR eliminates the conflict class.
 
 **How to apply.** In the issue body's `## Out of scope`, list the files explicitly:
 
-> Out of scope: `ROADMAP.md`, `CHANGELOG.md`, `README.md`, `.sobelow-skips`. Reviewer (`staged-review:commit-review`) updates these on `main` after merge.
+> Out of scope: `ROADMAP.md`, `CHANGELOG.md`, `README.md`, `.sobelow-skips`. Reviewer (`staged-review:audit-review` post-merge chain) updates these on `main` after merge.
 
 **Required acceptance-criteria bullet** (every delegated issue's `## Acceptance criteria` MUST include this; do NOT add doc-update bullets):
 
 - **Full harness green at PR open** — `mix format --check-formatted`, `mix compile --warnings-as-errors`, `mix credo --strict` (TODO/FIXME exit-2 carve-out only), `mix sobelow --exit Low`, `mix doctor`, `mix test.json --quiet`, `mix test.json --cover --cover-threshold N` at the repo's coverage tier, `mix dialyzer` all clean. CI runs the same checks. A red harness on PR open is a blocking acceptance-criterion miss.
 
-`commit-review` Step 15 owns the post-merge commit: ROADMAP row marked ✅ (preserving the `[CX]` / `[CSR]` marker), CHANGELOG entry under `## [Unreleased]`, README updated if user-facing functionality changed, one commit, message `Update docs for PR #M (INE-N)`.
+**Audit-review owns the post-merge commit.** When `commit-review`'s auto-merge fires (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"), it chains `Skill(audit-review)` against the merge SHA. Audit-review runs the 5+1-category audit, dispatches mandatory Codex second-opinion, auto-applies hygiene fixes (ROADMAP row → ✅ preserving `[CX]` / `[CSR]` marker, CHANGELOG entry under `## [Unreleased]`, README/CLAUDE.md drift, in-code `@doc`/`@spec` fixes), and writes `.audit/<sha>.md`. Lands as one `audit(<sha>): N fixes — dual-reviewer pass` commit on `main`.
 
-**`.sobelow-skips` exception:** for repos with sobelow line-fingerprint drift, the harness fails-loud-with-diff if drift is detected; commit-review applies the regen at merge in the same post-merge commit. Agent never touches the file.
+**`.sobelow-skips` exception:** for repos with sobelow line-fingerprint drift, the harness fails-loud-with-diff if drift is detected; audit-review applies the regen at the post-merge audit pass in the same `audit(...)` commit. Agent never touches the file.
 
 ### Workspace-Specific Layout
 
@@ -422,7 +422,7 @@ Apply these filters **in order** when picking ROADMAP tasks to delegate. The fir
 
 ### Bundled Code-Revisions in Bookkeeping Commit (Variant)
 
-The canonical Step 14–16 sequence expects the post-merge follow-up commit on `main` to be **doc-only**. This variant uses the same skeleton with **code revisions bundled into that bookkeeping commit**, trading evaluator separation for round-trip-cost savings when push-back is high-cost / low-yield.
+The canonical post-merge `audit-review` chain expects the `audit(...)` commit on `main` to be **hygiene-only** (doc updates, ROADMAP/CHANGELOG, in-code `@doc`/`@spec` drift). This variant uses the same skeleton with **code revisions bundled into the audit commit**, trading evaluator separation for round-trip-cost savings when push-back is high-cost / low-yield.
 
 **When this fires.** All four conditions hold:
 
@@ -433,11 +433,11 @@ The canonical Step 14–16 sequence expects the post-merge follow-up commit on `
 
 **Shape.**
 
-1. **Merge the PR as-is** — `gh pr merge --squash --delete-branch`.
-2. **One follow-up commit on `main`** bundling: code revisions (drop dead code) + standard bookkeeping (ROADMAP row → ✅, CHANGELOG `[Unreleased]`, README/cross-ref updates if user-facing). Single commit, message: `Update docs for PR #N (INE-M) + remove dead X` so `git log --grep INE-M` surfaces the bundled scope.
-3. **Linear close-out:** the closing comment **explicitly distinguishes what was merged from what was reverted, and why the agent couldn't have caught it** (env constraint — preserves no-blame framing). Flip status → `Done` manually if Linear's auto-transition didn't fire (it only fires on the merge event, not on the bookkeeping commit).
+1. **Merge the PR as-is** — `gh pr merge --squash --delete-branch` (auto-merge if preconditions hold, otherwise user-confirmed).
+2. **Pre-stage the code revisions BEFORE invoking `audit-review`.** Edit the offending files on `main` to drop the dead code, `git add` (do NOT commit). The audit pass then runs against the staged-but-uncommitted state, applies hygiene fixes, and folds everything into one `audit(<merge-sha>): N fixes — bundled-revisions` commit.
+3. **Linear close-out:** the closing comment **explicitly distinguishes what was merged from what was reverted, and why the agent couldn't have caught it** (env constraint — preserves no-blame framing). Flip status → `Done` manually if Linear's auto-transition didn't fire.
 
-**Trade-offs.** Reviewer DOES grade the merged work this time (the trade), but against hard ground truth (dialyzer / hex / live-data) which is harder to fake. INE traceability preserved (PR # named in commit body). Touched-file scope rule applies. PR diff drift on GitHub: anyone reading `gh pr view N` sees the original diff (including dead code that no longer exists on `main`); the closing Linear comment documents the divergence. Revert atomicity: `git revert <bookkeeping-sha>` reverts both doc updates AND code revisions.
+**Trade-offs.** Reviewer DOES grade the merged work this time (the trade), but against hard ground truth (dialyzer / hex / live-data) which is harder to fake. INE traceability preserved (audit commit body names the PR). Touched-file scope rule applies. PR diff drift on GitHub: anyone reading `gh pr view N` sees the original diff (including dead code that no longer exists on `main`); the closing Linear comment + `.audit/<sha>.md` document the divergence. Revert atomicity: `git revert <audit-sha>` reverts both hygiene updates AND code revisions.
 
 **When NOT to use.** Dead code large enough to be its own PR (push back). Agent CAN run the necessary verification (no env constraint → no excuse to skip push-back). PR is net-negative (close-without-merging). User explicitly said "always push back" in this session.
 
@@ -540,11 +540,11 @@ Output is **always a recommendation + decision request** — workflow surfaces t
 
 **ROADMAP.md is source of truth in all delegation flows; Linear is a queue *view* on top.** Projects that don't use Linear — or temporarily can't reach the Linear MCP — still run the same delegation pattern via `[CX]` / `[CSR]` markers in ROADMAP.md rows directly.
 
-**Pickup signal without Linear:** cloud agents poll ROADMAP.md for rows with `[CX]` / `[CSR]` markers and `⬜` status (or matching their delegate field). Reviewer discovers PRs via `gh pr list --state open` filtered to cloud-agent branch prefixes (`codex/`, `cursor/`). Status updates are ROADMAP edits in the post-merge commit (Step 15 of commit-review): `🔄` → `✅` plus marker preserved.
+**Pickup signal without Linear:** cloud agents poll ROADMAP.md for rows with `[CX]` / `[CSR]` markers and `⬜` status (or matching their delegate field). Reviewer discovers PRs via `gh pr list --state open` filtered to cloud-agent branch prefixes (`codex/`, `cursor/`). Status updates land in the post-merge `audit(<sha>): ...` commit on `main`: `🔄` → `✅` plus marker preserved.
 
-**Changes vs Linear-backed:** no `mcp__linear-server__*` calls; skip Step 16 of commit-review. No Linear `@cursor` / `@codex` push-back channel — push-back goes on the GitHub PR review (line-level findings + scope paragraph in one PR comment), wake-mention discipline adapted to PR-only. No issue body — the ROADMAP row's prompt + the project's CLAUDE.md is the agent's full context, which pushes more weight onto plan-shaped ROADMAP rows.
+**Changes vs Linear-backed:** no `mcp__linear-server__*` calls; skip the Linear close-out step (audit-review writes `.audit/<sha>.md` as the durable trail). No Linear `@cursor` / `@codex` push-back channel — push-back goes on the GitHub PR review (line-level findings + scope paragraph in one PR comment), wake-mention discipline adapted to PR-only. No issue body — the ROADMAP row's prompt + the project's CLAUDE.md is the agent's full context, which pushes more weight onto plan-shaped ROADMAP rows.
 
-**Identical:** code-only PRs, plan-shaped specs, post-merge bookkeeping commit on `main`, draft-PR handling, bot ensemble integration in commit-review Step 8.4.
+**Identical:** code-only PRs, plan-shaped specs, post-merge `audit(...)` commit on `main` via audit-review chain, draft-PR handling, bot ensemble integration in commit-review.
 
 Use this fallback when the project hasn't onboarded Linear, when Linear is intentionally out-of-scope, or as a safety net during MCP outages. Linear is an upgrade-path, not a hard dependency.
 
@@ -578,7 +578,8 @@ Same shape as `critical-rules.md` § "NO EVASION — SIT WITH THE HARD THING": w
 
 - `task-writing.md` — body-as-prompt principle; plan-shape vs roadmap-shape distinction
 - `task-prioritization.md` § "Ceremony Floor" — review-time cost-benefit gate; § "Pre-Flight Conflict Detection" is the delegation-time analogue
-- `delegation-rules.md` § "DON'T AUTO-MERGE PRS" — `In Review` → user-merge boundary
+- `delegation-rules.md` § "DON'T AUTO-MERGE PRS" — auto-merge for cloud-agent PRs (5-precondition gate); audit-review chain off auto-merge
+- `staged-review:audit-review` skill — post-merge hygiene + bookkeeping, replaces the old commit-review Step 15 doc-only commit
 - `critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST" — local review verdict is informational, not merge authorization
 - `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — push-back is the default; merge-train mode's "Rebase-only carve-out" is the only authorized exception
 - `workflow-philosophy.md` § "Implementer / Reviewer Handoff" — the handoff shape Linear+cloud-agent implements

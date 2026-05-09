@@ -8,6 +8,20 @@ allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 
 Read the staged diff. Find real problems. Present them in a table. Auto-apply rated fixes. Ask only about judgment calls.
 
+## Position in the Three-Tier Review Chain
+
+`code-review` is the **pre-commit** layer. It complements two committed-state siblings:
+
+| Skill | When | Auto-mode? |
+|---|---|---|
+| `code-review` (this skill) | Pre-commit — `git diff --staged` | Plan-mode-with-auto-apply (one user gate: exit-plan-to-apply) |
+| `commit-review` | Pre-merge cloud-agent PR — narrowed correctness gate | Auto-merge on ✅ + green CI + cloud-agent branch (zero gates for the cloud-agent path) |
+| `audit-review` | Post-commit / post-merge — committed code | Fully autonomous (zero gates) |
+
+Same 5+1 categories across all three. `audit-review` skips plan-mode (the `audit(...)` commit IS the inspectable artifact). `commit-review` runs only Category 1 (Bugs) + a narrowed slice of Category 6 — hygiene categories moved to `audit-review` post-merge.
+
+**When NOT to use `code-review`:** if the code is already committed (use `audit-review`), or if reviewing a cloud-agent PR pre-merge (use `commit-review`).
+
 ## Scope
 
 WHAT THIS SKILL DOES:
