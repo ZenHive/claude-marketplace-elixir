@@ -352,7 +352,7 @@ for each remaining PR in dependency order:
 | 2+ PRs, mixed tiers | **Merge-train.** Cascades, sorts, hands critical-tier off to `commit-review` inline |
 | 2+ PRs, all ceremony/standard | **Merge-train.** Maximum gain — no per-PR Tier 2 cost, just cascade + user-confirm |
 
-**Bookkeeping commits.** Post-merge ROADMAP/CHANGELOG/README updates land in the chained `audit-review` `audit(<sha>): ...` commit on `main` per merge. Reviewer rebases each remaining PR onto the new default tip in parallel, force-with-leases, CI re-runs. The audit commit IS the bookkeeping; no separate `Update docs for PR #N` commit.
+**Bookkeeping commits.** Post-merge ROADMAP/CHANGELOG/README updates land in the chained `audit-review` `audit(<sha>): ...` commit on the repo's default branch (`main` / `master` / `development`) per merge. Reviewer rebases each remaining PR onto the new default tip in parallel, force-with-leases, CI re-runs. The audit commit IS the bookkeeping; no separate `Update docs for PR #N` commit.
 
 ### Issue Body = The Prompt
 
@@ -386,19 +386,19 @@ Anything the local-review session needs — known gotchas, prior context, env ca
 
 ### Code-Only PRs + Required Acceptance Criteria
 
-**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` (chained off `commit-review`'s auto-merge) and updated in a single post-merge `audit(...)` commit on `main`.
+**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` (chained off `commit-review`'s auto-merge) and updated in a single post-merge `audit(...)` commit on the repo's default branch.
 
 **Why:** PRs that touch shared docs hit `mergeable: CONFLICTING DIRTY` against earlier merges of the same files — every PR adds a rebase round just to resolve doc conflicts. Centralizing doc updates in one reviewer-owned commit per PR eliminates the conflict class.
 
 **How to apply.** In the issue body's `## Out of scope`, list the files explicitly:
 
-> Out of scope: `ROADMAP.md`, `CHANGELOG.md`, `README.md`, `.sobelow-skips`. Reviewer (`staged-review:audit-review` post-merge chain) updates these on `main` after merge.
+> Out of scope: `ROADMAP.md`, `CHANGELOG.md`, `README.md`, `.sobelow-skips`. Reviewer (`staged-review:audit-review` post-merge chain) updates these on the repo's default branch after merge.
 
 **Required acceptance-criteria bullet** (every delegated issue's `## Acceptance criteria` MUST include this; do NOT add doc-update bullets):
 
 - **Full harness green at PR open** — `mix format --check-formatted`, `mix compile --warnings-as-errors`, `mix credo --strict` (TODO/FIXME exit-2 carve-out only), `mix sobelow --exit Low`, `mix doctor`, `mix test.json --quiet`, `mix test.json --cover --cover-threshold N` at the repo's coverage tier, `mix dialyzer` all clean. CI runs the same checks. A red harness on PR open is a blocking acceptance-criterion miss.
 
-**Audit-review owns the post-merge commit.** When `commit-review`'s auto-merge fires (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"), it chains `Skill(audit-review)` against the merge SHA. Audit-review runs the 5+1-category audit, dispatches mandatory Codex second-opinion, auto-applies hygiene fixes (ROADMAP row → ✅ preserving `[CX]` / `[CSR]` marker, CHANGELOG entry under `## [Unreleased]`, README/CLAUDE.md drift, in-code `@doc`/`@spec` fixes), and writes `.audit/<sha>.md`. Lands as one `audit(<sha>): N fixes — dual-reviewer pass` commit on `main`.
+**Audit-review owns the post-merge commit.** When `commit-review`'s auto-merge fires (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"), it chains `Skill(audit-review)` against the merge SHA. Audit-review runs the 5+1-category audit, dispatches mandatory Codex second-opinion, auto-applies hygiene fixes (ROADMAP row → ✅ preserving `[CX]` / `[CSR]` marker, CHANGELOG entry under `## [Unreleased]`, README/CLAUDE.md drift, in-code `@doc`/`@spec` fixes), and writes `.audit/<sha>.md`. Lands as one `audit(<sha>): N fixes — dual-reviewer pass` commit on the repo's default branch.
 
 **`.sobelow-skips` exception:** for repos with sobelow line-fingerprint drift, the harness fails-loud-with-diff if drift is detected; audit-review applies the regen at the post-merge audit pass in the same `audit(...)` commit. Agent never touches the file.
 
@@ -422,7 +422,7 @@ Apply these filters **in order** when picking ROADMAP tasks to delegate. The fir
 
 ### Bundled Code-Revisions in Bookkeeping Commit (Variant)
 
-The canonical post-merge `audit-review` chain expects the `audit(...)` commit on `main` to be **hygiene-only** (doc updates, ROADMAP/CHANGELOG, in-code `@doc`/`@spec` drift). This variant uses the same skeleton with **code revisions bundled into the audit commit**, trading evaluator separation for round-trip-cost savings when push-back is high-cost / low-yield.
+The canonical post-merge `audit-review` chain expects the `audit(...)` commit on the repo's default branch to be **hygiene-only** (doc updates, ROADMAP/CHANGELOG, in-code `@doc`/`@spec` drift). This variant uses the same skeleton with **code revisions bundled into the audit commit**, trading evaluator separation for round-trip-cost savings when push-back is high-cost / low-yield.
 
 **When this fires.** All four conditions hold:
 
@@ -434,10 +434,10 @@ The canonical post-merge `audit-review` chain expects the `audit(...)` commit on
 **Shape.**
 
 1. **Merge the PR as-is** — `gh pr merge --squash --delete-branch` (auto-merge if preconditions hold, otherwise user-confirmed).
-2. **Pre-stage the code revisions BEFORE invoking `audit-review`.** Edit the offending files on `main` to drop the dead code, `git add` (do NOT commit). The audit pass then runs against the staged-but-uncommitted state, applies hygiene fixes, and folds everything into one `audit(<merge-sha>): N fixes — bundled-revisions` commit.
+2. **Pre-stage the code revisions BEFORE invoking `audit-review`.** On the repo's default branch, edit the offending files to drop the dead code, `git add` (do NOT commit). The audit pass then runs against the staged-but-uncommitted state, applies hygiene fixes, and folds everything into one `audit(<merge-sha>): N fixes — bundled-revisions` commit. **Recovery if interrupted:** if the session ends or audit-review aborts mid-run, you'll be left with staged-but-uncommitted edits on the default branch. Either resume in a new session by re-running `Skill(audit-review)` (the staged edits remain pre-staged), or `git stash` to set them aside, run a clean `audit-review`, then `git stash pop` and recommit. Don't leave the default branch dirty across sessions.
 3. **Linear close-out:** the closing comment **explicitly distinguishes what was merged from what was reverted, and why the agent couldn't have caught it** (env constraint — preserves no-blame framing). Flip status → `Done` manually if Linear's auto-transition didn't fire.
 
-**Trade-offs.** Reviewer DOES grade the merged work this time (the trade), but against hard ground truth (dialyzer / hex / live-data) which is harder to fake. INE traceability preserved (audit commit body names the PR). Touched-file scope rule applies. PR diff drift on GitHub: anyone reading `gh pr view N` sees the original diff (including dead code that no longer exists on `main`); the closing Linear comment + `.audit/<sha>.md` document the divergence. Revert atomicity: `git revert <audit-sha>` reverts both hygiene updates AND code revisions.
+**Trade-offs.** Reviewer DOES grade the merged work this time (the trade), but against hard ground truth (dialyzer / hex / live-data) which is harder to fake. INE traceability preserved (audit commit body names the PR). Touched-file scope rule applies. PR diff drift on GitHub: anyone reading `gh pr view N` sees the original diff (including dead code that no longer exists on the default branch); the closing Linear comment + `.audit/<sha>.md` document the divergence. Revert atomicity: `git revert <audit-sha>` reverts both hygiene updates AND code revisions.
 
 **When NOT to use.** Dead code large enough to be its own PR (push back). Agent CAN run the necessary verification (no env constraint → no excuse to skip push-back). PR is net-negative (close-without-merging). User explicitly said "always push back" in this session.
 
@@ -540,11 +540,11 @@ Output is **always a recommendation + decision request** — workflow surfaces t
 
 **ROADMAP.md is source of truth in all delegation flows; Linear is a queue *view* on top.** Projects that don't use Linear — or temporarily can't reach the Linear MCP — still run the same delegation pattern via `[CX]` / `[CSR]` markers in ROADMAP.md rows directly.
 
-**Pickup signal without Linear:** cloud agents poll ROADMAP.md for rows with `[CX]` / `[CSR]` markers and `⬜` status (or matching their delegate field). Reviewer discovers PRs via `gh pr list --state open` filtered to cloud-agent branch prefixes (`codex/`, `cursor/`). Status updates land in the post-merge `audit(<sha>): ...` commit on `main`: `🔄` → `✅` plus marker preserved.
+**Pickup signal without Linear:** cloud agents poll ROADMAP.md for rows with `[CX]` / `[CSR]` markers and `⬜` status (or matching their delegate field). Reviewer discovers PRs via `gh pr list --state open` filtered to cloud-agent branch prefixes (`codex/`, `cursor/`). Status updates land in the post-merge `audit(<sha>): ...` commit on the repo's default branch: `🔄` → `✅` plus marker preserved.
 
 **Changes vs Linear-backed:** no `mcp__linear-server__*` calls; skip the Linear close-out step (audit-review writes `.audit/<sha>.md` as the durable trail). No Linear `@cursor` / `@codex` push-back channel — push-back goes on the GitHub PR review (line-level findings + scope paragraph in one PR comment), wake-mention discipline adapted to PR-only. No issue body — the ROADMAP row's prompt + the project's CLAUDE.md is the agent's full context, which pushes more weight onto plan-shaped ROADMAP rows.
 
-**Identical:** code-only PRs, plan-shaped specs, post-merge `audit(...)` commit on `main` via audit-review chain, draft-PR handling, bot ensemble integration in commit-review.
+**Identical:** code-only PRs, plan-shaped specs, post-merge `audit(...)` commit on the repo's default branch via audit-review chain, draft-PR handling, bot ensemble integration in commit-review.
 
 Use this fallback when the project hasn't onboarded Linear, when Linear is intentionally out-of-scope, or as a safety net during MCP outages. Linear is an upgrade-path, not a hard dependency.
 

@@ -69,6 +69,21 @@ Workflow:
 
 The `audit(...)` commit is auto-allowed on `main` (per `critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE") — it IS the post-merge bookkeeping commit, replacing the old `commit-review` Step 15 doc-only commit.
 
+## `/audit-status` — Read-Only Drift Snapshot
+
+Quick "is this repo current?" check without running an audit:
+
+```
+/staged-review:audit-status              # current repo
+/staged-review:audit-status --all        # walk ~/_DATA/code/*, aggregate
+```
+
+Prints a table: branch / unaudited-count / last-audit-sha / last-audit-date / range. No mutations, no `git fetch`, no audit triggered. Reuses the same `git log --grep '^audit('` ancestor walk that `audit-review` uses.
+
+## SessionStart Hook — Unaudited-Tail Detection
+
+A `SessionStart` hook (`scripts/check-unaudited-commits.sh`) fires when ≥3 commits sit past the last `audit(...)` ancestor on the current branch. Emits a one-line `additionalContext` recommendation pointing at `/staged-review:audit-status` (for the snapshot) or `Skill(audit-review)` (to actually audit). Silent below the threshold, silent outside a git repo. Catches the gap-cases the auto-invoke chain misses — interrupted sessions, manual `git commit` outside any flow, branch switches.
+
 ## Usage
 
 ```
@@ -77,6 +92,8 @@ The `audit(...)` commit is auto-allowed on `main` (per `critical-rules.md` § "G
 /staged-review:audit-review             # post-commit / post-merge audit (manual)
 /staged-review:audit-review HEAD~3..HEAD  # explicit range
 /staged-review:audit-review --full <sha>  # suppress tiny-commit fast-path
+/staged-review:audit-status             # read-only drift snapshot
+/staged-review:audit-status --all       # portfolio-wide aggregate
 ```
 
 ## Relationship to Language Commands

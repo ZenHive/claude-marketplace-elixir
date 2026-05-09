@@ -4,7 +4,22 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**`/staged-review:audit-status` command + unaudited-commits SessionStart hook — staged-review v1.17.0** (Tasks 38 + 39)
+- **New `/staged-review:audit-status` slash command** — read-only "is this repo current?" snapshot. No-arg prints a one-line table for the current repo (branch / unaudited-count / last-audit-sha / last-audit-date / range); `--all` walks `~/_DATA/code/*` and aggregates a portfolio-wide table sorted by drift, omitting clean repos. Reuses the same `git log --grep '^audit('` ancestor walk that `audit-review` itself uses.
+- **New SessionStart hook `check-unaudited-commits.sh`** — fires when ≥3 commits sit past the last `audit(...)` ancestor; emits `additionalContext` with the unaudited range and a recommendation to run `/staged-review:audit-status` or `Skill(audit-review)`. Below the threshold, or outside any git repo, emits `suppressOutput`. Threshold defaults to 3 to avoid noise on small in-progress branches; never blocks. Registered in new `plugins/staged-review/hooks/hooks.json` (staged-review's first hook directory).
+- **Shared helper `unaudited-commits.sh`** — TSV output (`count<TAB>last_audit_sha<TAB>last_audit_date<TAB>range`) consumed by both the slash command and the SessionStart hook. Empty fields are emitted as `-` placeholders so consumers using `read -r` with `IFS=$'\t'` don't collapse adjacent tabs (bash whitespace-IFS rule). Flags: `--threshold N` (default 1), `--short-sha` (7-char form for `last_audit_sha`).
+- **Behavior on first-audit-ever repos:** when no `audit(...)` ancestor exists, the helper reports up to 50 commits with empty `last_audit_sha`; the hook surfaces a "no audit history yet" message pointing at `Skill(audit-review)` to start the corpus.
+- Plugin version 1.16.0 → 1.17.0.
+
 ### Changed
+
+**`linear-workflow` generalized to repo's default branch — cloud-delegation v1.9.2**
+- **Hardcoded `main` references generalized to "the repo's default branch (`main` / `master` / `development`)"** across five locations: merge-train bookkeeping commit destination, code-only-PRs scoping note, post-merge `audit(...)` chain wording, bundled-revisions variant pre-stage instructions, and the no-Linear fallback's pickup-signal subsection. Necessary for the workflow to compose correctly with repos that use `master` (legacy) or `development` (some Phoenix conventions) as their default branch — the earlier wording would have led the audit-review chain to push to a non-existent `main` on those repos.
+- **New "Recovery if interrupted" paragraph** in the bundled-revisions variant, covering the failure mode where pre-staged code edits sit uncommitted on the default branch after audit-review aborts mid-run. Two recovery paths: re-run `Skill(audit-review)` to continue (staged edits preserved), or `git stash` → clean audit → `git stash pop` → recommit. Closes the previously-undocumented "default branch left dirty across sessions" gap.
+- No new workflow steps, no new acceptance criteria, no behavior change for repos already on `main`. Pure clarification + recovery doc.
+- Plugin version 1.9.1 → 1.9.2.
 
 **`ex-unit-json` `--output FILE` is the unconditional default — elixir v1.26.1**
 - **Reframed Using-jq guidance** in `ex-unit-json` skill from "default to `--output FILE` whenever you'll query more than once" to "default to `--output FILE`. Always." Pick a path before running; reserve piping for genuinely throwaway shell composition. The conditional framing left room to skip the file-write on perceived-one-shot calls, which is wrong-by-default — the moment a second facet of the same run is interesting, the suite has been paid for twice.

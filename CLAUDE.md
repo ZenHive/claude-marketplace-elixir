@@ -155,6 +155,9 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 **Cloud-delegation plugin** - Cross-cutting AGENTS.md sync:
 1. **agents-md-sync.sh** (non-blocking, PostToolUse): After editing `~/.claude/CLAUDE.md`, any direct child of `~/.claude/includes/`, or any `~/_DATA/code/<repo>/CLAUDE.md`, regenerates `AGENTS.md` via `scripts/sync-agents-md.sh` in every affected repo that has an existing `AGENTS.md` (never auto-creates). Idempotent; never stages or commits. Closes the staleness window between edit and the next SessionStart drift check.
 
+**Staged-review plugin** - Audit-tail detection:
+1. **check-unaudited-commits.sh** (non-blocking, SessionStart): Walks `git log --grep '^audit('` to find the last audit ancestor; emits `additionalContext` recommending `/staged-review:audit-status` or `Skill(audit-review)` when ≥3 commits sit past it. Silent below threshold or outside any git repo. Shares `unaudited-commits.sh` helper with the `/audit-status` slash command (Tasks 38 + 39).
+
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
 ### Skills (32 total)

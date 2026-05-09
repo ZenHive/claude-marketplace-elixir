@@ -16,9 +16,9 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 7. Skill Quality | 5/5 ✅ | - |
 | 8. Hook Scripts | 0/4 | 4 |
 | 9. Codex Delegation | 5/5 ✅ | - |
-| 10. Audit-Review Follow-Ups | 0/6 | 6 |
+| 10. Audit-Review Follow-Ups | 2/6 | 4 |
 
-**Total: 33/43 complete (77%)**
+**Total: 35/43 complete (81%)**
 
 ---
 
@@ -192,28 +192,15 @@ Add two `##` sections to `~/.claude/includes/critical-rules.md`: "DON'T STEAL `[
 
 > **Methodology:** Quality-of-life and edge-case extensions to the `audit-review` workflow shipped in v1.16 of `staged-review`. v1 covers the load-bearing chain (worktree → audit, commit-review → auto-merge → audit). These follow-ups extend coverage and observability without blocking the core flow.
 
-#### Task 38: SessionStart hook for audit detection [D:3/B:5/U:6 → Eff:1.83] 🚀
+#### Task 38: SessionStart hook for audit detection ✅ [D:3/B:5/U:6 → Eff:1.83]
 
-Add a `SessionStart` hook in `plugins/elixir/hooks/hooks.json` (or a new language-agnostic plugin) that detects unaudited commits — i.e. commits since the last `audit(...)` ancestor — and force-invokes `audit-review` against the unaudited tail before the user's first turn proceeds. Hardening pass once skill-chain auto-invocation (worktree-workflow, linear-workflow, commit-review tail) is observed in practice and we can identify the gap-cases the chain misses (interrupted sessions, manual `git commit` outside any flow, branch switches without re-running audit).
-
-**Success criteria:**
-- New script in `plugins/elixir/scripts/check-unaudited-commits.sh` (or sibling), registered under `SessionStart`
-- Detects unaudited tail via `git log --grep '^audit('` ancestor walk
-- Outputs `additionalContext` JSON with the unaudited range and a recommendation to run `/staged-review:audit-review`
-- Configurable threshold (e.g. only fire when ≥3 unaudited commits) to avoid noise
-- Tests cover: clean state (no fire), unaudited tail (fires), branch with no audit history yet (silent on first run)
+`plugins/staged-review/scripts/check-unaudited-commits.sh` registered in new `plugins/staged-review/hooks/hooks.json` under `SessionStart`. Detects unaudited tail via `git log --grep '^audit('` ancestor walk, fires when ≥3 commits sit past the anchor. Shares `unaudited-commits.sh` helper with Task 39. See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-#### Task 39: `/audit-status` roll-up command [D:2/B:4/U:5 → Eff:2.25] 🎯
+#### Task 39: `/audit-status` roll-up command ✅ [D:2/B:4/U:5 → Eff:2.25]
 
-Add a slash command `plugins/staged-review/commands/audit-status.md` that shows how many unaudited commits exist per branch / repo. Quality-of-life — answers "is this repo current?" without needing to run a full audit. Useful when juggling worktrees or returning to a repo after a gap.
-
-**Success criteria:**
-- `/staged-review:audit-status` prints a table: branch, unaudited-commit-count, last-audit-sha, last-audit-date
-- Optionally `--all` flag walks `~/_DATA/code/*` for portfolio-level snapshot
-- No mutations — read-only command
-- Reuses the same ancestor-walk logic as the SessionStart hook (Task 38) — extract into shared helper if both ship
+`/staged-review:audit-status` (with optional `--all` flag) — read-only per-branch / portfolio-wide drift snapshot. Shares `unaudited-commits.sh` helper with Task 38. See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
