@@ -1,12 +1,12 @@
 {
   "name": "staged-review",
-  "version": "1.15.1",
-  "description": "Universal code review workflow — staged file review with bug detection, extraction analysis, TODO tracking, and abstraction opportunities. v1.15.1: fix commit-review's invalid `gh pr diff --stat` (flag doesn't exist) — use `gh pr view --json files` for per-file LOC, `gh pr view --json additions,deletions,changedFiles` for totals. v1.15: commit-review owns merge-time bookkeeping (auto-undraft on green CI, sobelow drift check, bot cite-and-skip policy, user-gated merge + ROADMAP/CHANGELOG/README update on main + Linear close-out). Tier-2 Codex-Reviews-Cursor delegation disabled.",
+  "version": "1.16.0",
+  "description": "Universal three-tier code review workflow — pre-commit (code-review), pre-merge cloud-agent PR gate (commit-review), post-commit / post-merge audit (audit-review). v1.16: NEW audit-review skill — full 5+1 audit on committed code, mandatory parallel Codex dispatch, auto-applies hygiene fixes, auto-resolves discuss-design via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP), writes .audit/<sha>.md + commits as audit(...). FULLY AUTONOMOUS. Auto-invoked by worktree-workflow, linear-workflow, and commit-review's auto-merge tail. commit-review SIMPLIFIED — narrowed to pre-merge correctness gate (Cat 1 bugs + @doc/@spec drift only), AUTO-MERGES cloud-agent PRs on ✅ + green CI + 5 preconditions, then chains audit-review. Hygiene categories (extractions, TODO markers, abstractions, full doc gaps, sobelow drift) moved to audit-review post-merge. Step 15 doc-only commit replaced by audit() commit. Optional Codex CLI second-opinion removed (audit-review's mandatory parallel Codex covers it).",
   "author": {
     "name": "DeltaHedge",
     "url": "https://github.com/ZenHive"
   },
   "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
   "license": "MIT",
-  "keywords": ["code-review", "review", "bugs", "extraction", "todo", "abstraction", "staged", "universal"]
+  "keywords": ["code-review", "review", "audit", "bugs", "extraction", "todo", "abstraction", "staged", "auto-merge", "post-merge", "universal"]
 }

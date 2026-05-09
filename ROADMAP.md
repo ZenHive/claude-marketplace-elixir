@@ -16,8 +16,9 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 | 7. Skill Quality | 5/5 ✅ | - |
 | 8. Hook Scripts | 0/4 | 4 |
 | 9. Codex Delegation | 5/5 ✅ | - |
+| 10. Audit-Review Follow-Ups | 0/6 | 6 |
 
-**Total: 33/37 complete (89%)**
+**Total: 33/43 complete (77%)**
 
 ---
 
@@ -184,6 +185,83 @@ Add two `##` sections to `~/.claude/includes/critical-rules.md`: "DON'T STEAL `[
 #### Task 37: commit-review skill in staged-review plugin ✅ [D:5/B:9/U:8 → Eff:1.70]
 
 `plugins/staged-review/skills/commit-review/SKILL.md` — sibling of `code-review`. Polls Linear for `In Review` issues delegated to Codex, runs `gh pr checkout`, executes full local harness (format/compile/credo/dialyzer.json/test.json --cover/doctor/sobelow), fixes harness drift, runs same 5-category audit + mandatory Codex second-opinion as `code-review`, presents verdict (no merge). Updates `task-driver` SKILL.md to route `[CX]` rows.
+
+---
+
+### Phase 10: Audit-Review Follow-Ups
+
+> **Methodology:** Quality-of-life and edge-case extensions to the `audit-review` workflow shipped in v1.16 of `staged-review`. v1 covers the load-bearing chain (worktree → audit, commit-review → auto-merge → audit). These follow-ups extend coverage and observability without blocking the core flow.
+
+#### Task 38: SessionStart hook for audit detection [D:3/B:5/U:6 → Eff:1.83] 🚀
+
+Add a `SessionStart` hook in `plugins/elixir/hooks/hooks.json` (or a new language-agnostic plugin) that detects unaudited commits — i.e. commits since the last `audit(...)` ancestor — and force-invokes `audit-review` against the unaudited tail before the user's first turn proceeds. Hardening pass once skill-chain auto-invocation (worktree-workflow, linear-workflow, commit-review tail) is observed in practice and we can identify the gap-cases the chain misses (interrupted sessions, manual `git commit` outside any flow, branch switches without re-running audit).
+
+**Success criteria:**
+- New script in `plugins/elixir/scripts/check-unaudited-commits.sh` (or sibling), registered under `SessionStart`
+- Detects unaudited tail via `git log --grep '^audit('` ancestor walk
+- Outputs `additionalContext` JSON with the unaudited range and a recommendation to run `/staged-review:audit-review`
+- Configurable threshold (e.g. only fire when ≥3 unaudited commits) to avoid noise
+- Tests cover: clean state (no fire), unaudited tail (fires), branch with no audit history yet (silent on first run)
+
+---
+
+#### Task 39: `/audit-status` roll-up command [D:2/B:4/U:5 → Eff:2.25] 🎯
+
+Add a slash command `plugins/staged-review/commands/audit-status.md` that shows how many unaudited commits exist per branch / repo. Quality-of-life — answers "is this repo current?" without needing to run a full audit. Useful when juggling worktrees or returning to a repo after a gap.
+
+**Success criteria:**
+- `/staged-review:audit-status` prints a table: branch, unaudited-commit-count, last-audit-sha, last-audit-date
+- Optionally `--all` flag walks `~/_DATA/code/*` for portfolio-level snapshot
+- No mutations — read-only command
+- Reuses the same ancestor-walk logic as the SessionStart hook (Task 38) — extract into shared helper if both ship
+
+---
+
+#### Task 40: Cross-repo audit corpus aggregation [D:7/B:6/U:3 → Eff:0.64] ⚠️
+
+Portfolio-level dashboard of audit findings across all repos with `.audit/` directories. Strategic, not tactical — answers "what categories of finding recur across my repos?" so the canonical includes can be tightened to prevent future occurrences. Expected output: aggregate frequency table (Category × repo), discuss-design divergence themes, ROADMAP-candidate findings that span repos.
+
+**Success criteria:**
+- Script in `~/.claude/scripts/audit-corpus.sh` (user-scope, not plugin) walks `~/_DATA/code/*/.audit/*.md`
+- Parses frontmatter + Findings tables, aggregates by category and resolution
+- Output: markdown report with cross-repo trends, candidate include changes
+- Defer until ≥3 repos have ≥10 audit reports each (otherwise no signal)
+
+---
+
+#### Task 41: Auto-merge for self-authored worktree PRs [D:4/B:6/U:5 → Eff:1.38] 📋
+
+Extend the cloud-agent auto-merge (added in v1.16, scoped to `cursor/*` / `codex/*`) to self-authored PRs from worktrees. Needs separate analysis — self-authored work has different blast-radius than reviewed cloud-agent work: no upstream reviewer signal, no agent-PR template, fewer evaluator-separation layers. Likely requires stricter preconditions (e.g. mandatory `staged-review:code-review` ✅ before commit, mandatory `audit-review` ✅ on the PR head, `[BLOCK-MERGE]` label still honored).
+
+**Success criteria:**
+- Decision document: which preconditions apply to self-authored vs cloud-agent
+- Loosen `delegation-rules.md` § "DON'T AUTO-MERGE PRS" to cover self-authored if preconditions hold
+- Update `worktree-workflow.md` to document the new auto-merge tail (PR-merge → cleanup)
+- Test: open a self-authored worktree PR, run audit, verify auto-merge fires only when all preconditions hold
+
+---
+
+#### Task 42: Audit re-run on amend / rebase [D:5/B:3/U:3 → Eff:0.60] ⚠️
+
+Detect orphaned `.audit/<old-sha>.md` files when a commit is amended (`git commit --amend`) or rebased (interactive or otherwise). The audit is keyed on commit SHA; rewriting history orphans the report. Offer to re-audit the new SHA and remove the stale file. Edge case: not blocking the v1 flow because amend/rebase post-`audit(...)` commit is rare in practice (the audit IS the post-merge commit; further history rewrites are uncommon).
+
+**Success criteria:**
+- Detection logic: walk `.audit/*.md`, check if each `sha:` frontmatter still exists in `git log`
+- On orphan detection, prompt to re-audit OR mark the old report as `superseded-by: <new-sha>`
+- Hook into `audit-review` skill startup so it runs before the next audit pass
+- Tests cover amend (single-commit rewrite), rebase (multi-commit rewrite), squash-merge (range collapse)
+
+---
+
+#### Task 43: Codex code-mutation re-enablement check [D:2/B:3/U:4 → Eff:1.75] 🚀
+
+The auto-merge precondition added in v1.16 mentions `codex/*` branches but Codex code-mutation is currently suspended per `linear-workflow.md`. Track when/if to re-enable so the auto-merge precondition becomes live for Codex too. Periodic check (quarterly?) on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.
+
+**Success criteria:**
+- Decision document: criteria for re-enabling Codex code-mutation
+- Verify auto-merge precondition #3 (`cursor/*` or `codex/*`) becomes live for Codex
+- Update `linear-workflow.md` and `cloud-agent-environments.md` to lift the suspension
+- Run end-to-end Codex delegation test (Linear issue → `[CX]` → PR → `commit-review` → auto-merge → `audit-review`) before declaring re-enabled
 
 ---
 
