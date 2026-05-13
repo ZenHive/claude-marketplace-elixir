@@ -42,7 +42,9 @@ MAPPINGS=(
   "plugins/elixir/skills/upstream-pr-workflow/SKILL.md:upstream-pr-workflow.md"
   "plugins/cloud-delegation/skills/linear-workflow/SKILL.md:linear-workflow.md"
   "plugins/cloud-delegation/skills/cloud-agent-environments/SKILL.md:cloud-agent-environments.md"
+  "plugins/cloud-delegation/skills/sprite-claude-code/SKILL.md:sprite-claude-code.md"
   "plugins/elixir/skills/git-worktrees/SKILL.md:worktree-workflow.md"
+  "plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md:dev-lifecycle.md"
 )
 
 synced=0

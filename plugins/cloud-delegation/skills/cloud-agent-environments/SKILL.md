@@ -165,6 +165,10 @@ Cursor's setup task can autonomously open a PR scaffolding an `AGENTS.md` for it
 - **Extract any genuinely useful env-specific bits** (paths, gotchas, runtime quirks) and add them here in this include — so they auto-flow to every repo's AGENTS.md via the standard `@`-import chain.
 - Don't merge ad-hoc per-repo `AGENTS.md` content. The whole point of generating from `CLAUDE.md` is single-source consistency across the portfolio.
 
+### Fly Sprite (third target — different shape)
+
+Fly Sprite-hosted Claude Code is a third delegation option that doesn't fit the harness model documented above — it's a raw VM (Ubuntu 25.10 + Fly kernel) with Claude Code 2.1.92 pre-installed in `--dangerously-skip-permissions` mode, full network access, full ext4 persistence backed by JuiceFS + Litestream, and **Elixir/Erlang/Mix pre-installed at `/.sprite/bin/` without an asdf shim layer** — closes the entire class of asdf-PATH gotchas Cursor's env has. Tokens billed against the user's existing Anthropic plan via OAuth (no extra subscription stack). Different shape, different operational concerns (no built-in task ingestion, no completion signal, `claude --print` exit code unreliable). See **`sprite-claude-code.md`** for the CLI surface, auth threading, sleep/wake quirks, and the manual-orchestration loop. Strictly more capable than Codex/Cursor on hex.pm + live-Phoenix-app + dialyzer-memory axes; strictly less polished on auto-task-ingestion + status-loop axes — pick Sprite for env-capability tasks, Cursor for routine self-contained PRs.
+
 ### Cross-References
 
 - `linear-workflow.md` § "Cloud Agent Environments" — reviewer-side push-back-vs-fix calculus
