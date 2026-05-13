@@ -211,16 +211,51 @@ You don't have data either way. The honest framing is: *"I don't know if you'll 
 - Cite **concrete precedents** when scoring complexity (see `development-philosophy.md` "Cite Ecosystem Precedents Before Crying Complexity"). Generic "this could grow" without naming a specific failure pattern is the same hedging by another name.
 - If the task genuinely scores low on benefit/usefulness, score it that way honestly — don't smuggle a demand-speculation into the U/B numbers and pretend it came from analysis.
 
-## 🚨 NEVER COMMIT WITHOUT EXPLICIT REQUEST — INCLUDING SUBAGENTS
+## 🚨 GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE
 
-**Never run `git commit` or `git push` unless the user has explicitly asked, in this session, in this scope.** This applies to *every* repo touched in a session: the main project, freshly created sibling repos, worktrees, and dependency repos checked out for inspection.
+**The act of creating a tracked worktree under `~/_DATA/worktrees/<repo>/<id>/` is itself the scope authorization for git operations on that branch.** Outside a tracked worktree, the strict default still applies: don't commit or push without explicit user request. See `~/.claude/includes/worktree-workflow.md` for the worktree workflow itself.
 
-**Why:** the user controls git history and commit timing. A commit you make "to wrap things up" rewrites the user's intended workflow. Confirmed multiple times across sessions ("don't push and commit please", "i told you not to commit") after sibling-repo commits surprised the user.
+### ✅ Auto-allowed inside a tracked worktree (`~/_DATA/worktrees/<repo>/<id>/`)
 
-**How to apply:**
-- When a chunk of work is done, **stage** the relevant files (`git add <paths>`) and summarize what's ready. Stop there. Let the user decide when to commit.
-- When dispatching a subagent that may touch git (implementation, refactor, review), **explicitly include "do NOT run git commit or git push"** in the prompt. Subagents inherit the rule but reinforce it — they're the most common source of accidental commits because their tool calls are less visible to the user.
-- Approval is scope-bound: "commit this fix" authorizes one commit for that fix, not subsequent commits in the same session.
+- `git commit` to the worktree's own branch
+- `git push -u origin <branch>` to publish the feature branch
+- `gh pr create` against the repo's default base branch
+
+The worktree's HEAD is the feature branch by construction, so accidental commits to a shared branch (`main`, `master`, `development`) can't happen here.
+
+### ✅ Auto-allowed: `audit(...)` commits from `audit-review`
+
+`staged-review:audit-review` commits its findings as a single commit per run with subject prefix `audit(...)` (e.g. `audit(abc1234): 3 fixes — dual-reviewer pass`). These are auto-allowed:
+
+- **Inside a tracked worktree** — same as any commit on the worktree's own branch (covered above).
+- **On the repo's default branch** (`main`, `master`, or `development` — many of this user's repos use `development` as the default; treat the repo's actual default branch, whatever it's named, as the target) — post-merge audit-review runs on the default branch by design (audit IS the post-merge bookkeeping commit). This is one of the few exceptions to the strict "no commits to shared branches" rule, scoped specifically to commits whose subject matches `^audit\(` from a single audit-review run.
+
+The skill writes `.audit/<sha>.md` reports + applies hygiene fixes + commits as one atomic step. The audit commit IS the inspectable artifact for the run; no manual override is needed.
+
+❌ **Still asks first:** non-`audit(...)` commits to the default branch; multiple audit commits in one run (audit-review batches into one); commits prefixed `audit(...)` from any source other than the audit-review skill.
+
+### ❌ Still requires explicit user request
+
+- **Commit/push on the main checkout** (`~/_DATA/code/<repo>/`) directly to a shared branch (`main`, `master`, `development`) — even if the user authorized commits in a worktree this session, the main checkout is a separate scope
+- **Commits in dependency repos / sibling repos checked out for inspection** — original "surprised the user" scenario; these aren't tracked worktrees
+- **`gh pr merge`** — governed by `delegation-rules.md` § "DON'T AUTO-MERGE PRS" (in repos that load delegation)
+- **Force-push, amend published commits, rebase shared history** — irreversible-by-default
+- **`git push` to a cloud-agent's branch** (`codex/...`, `cursor/...`) — governed by `delegation-rules.md` § "Force-Push to `cursor/*` Is One-Shot Scope Authorization"
+
+### 🟡 One-shot scope authorization: force-push to `cursor/*`
+
+Once the user explicitly authorizes a force-push (or any push) to a specific `cursor/<name>` branch in a session, that authorization is **scope-bound to that branch for the remainder of the session** — re-running the same operation against the same branch does NOT require re-asking. Mirrors the worktree rule: scope is granted once, then the loop runs without per-call friction.
+
+- **In scope:** subsequent `git push --force` / `git push --force-with-lease` to the SAME `cursor/<name>` branch in the same session
+- **Out of scope (still ask first):** a different `cursor/<other>` branch, any `codex/...` branch (Codex flow remains strict), force-push to shared branches (`main`, `master`, `development`), force-push to your own feature branches outside a worktree
+- **How to apply:** when you're about to force-push to a `cursor/*` branch and the user has already authorized it for this branch in this session, just announce in one line ("Force-pushing to `cursor/foo`") and do it. Don't re-ask. If they haven't authorized it yet for this branch, ask once, then proceed freely for the rest of the session.
+
+### How to apply
+
+- **In a tracked worktree:** when work is done, run the full loop (`git commit` → `git push -u origin <branch>` → `gh pr create`) without asking. Briefly state what you're doing in one line, then do it. Cleanup (`git worktree remove`) happens after PR merge — same session, as part of completing the task.
+- **In the main checkout or anywhere else:** stage with `git add <paths>` and summarize what's ready. Stop there.
+- **Subagents inherit the same scoping.** When dispatching a subagent that may touch git, include the worktree path in the prompt so the subagent knows where it's auto-allowed; outside that path, the strict rule applies.
+- **Approval is scope-bound to one branch / one PR.** "Push and PR this fix" authorizes the loop for that worktree's branch — not subsequent branches.
 
 **Cloud-agent-flow corollaries** (PR merge, push-to-agent-branch, default-DO Linear/PR comments, don't-steal-`[CX]`/`[CSR]` tasks) → see `delegation-rules.md`. Only loaded in repos that actively delegate.
 
@@ -339,38 +374,58 @@ A delegation marker means the task is queued for a specific cloud agent's pickup
 
 ## 🚨 DON'T AUTO-MERGE PRS
 
-**Never run `gh pr merge` or click-merge equivalents** unless the user explicitly asks in this session, in this scope.
+**Default: never run `gh pr merge` or click-merge equivalents.** Surface the verdict and stop.
 
-After `staged-review:commit-review` finishes a PR review, surface the verdict ("ready to merge" / "blockers: …") and stop. The user merges. Same shape as the commit-without-request rule, extended one level up the workflow.
+### Narrow exception — auto-merge feature-branch PRs when ALL preconditions hold
 
-**Why:** PR merge is the highest-blast-radius action in the delegation flow — once merged, the PR is on main. Mistakes after merge compound (force-push to fix, revert PRs, narrow back-out window). The user controls merge timing the same way they control commit timing.
+After `staged-review:commit-review` reaches verdict ✅ on a feature-branch PR (any branch that isn't the repo's default — worktree branches, `cursor/*`, `codex/*` all qualify), auto-merge is allowed when ALL FIVE preconditions hold:
 
-**How to apply:**
-- After `commit-review`, the deliverable is a verdict, not a merge.
-- Approval is scope-bound: "merge this Codex PR" authorizes the one PR being reviewed, not subsequent PRs in the session.
-- Subagents reviewing PRs inherit this rule — explicitly include "do NOT run `gh pr merge`" in delegation prompts.
+1. **✅ verdict** from `commit-review` (no blocker-tier findings).
+2. **Green CI** — `gh pr checks <n>` shows all required checks green.
+3. **Feature branch** — PR head is NOT the repo's default branch (`main` / `master` / `development` — resolve via `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`). Worktree branches, `cursor/*`, `codex/*` all qualify; only PRs whose head IS the default branch are out of scope (which gh wouldn't accept anyway, but stated explicitly).
+4. **No requested-changes** review state from a human reviewer.
+5. **No `[BLOCK-MERGE]` label** on the PR.
 
-## 🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH
+If any precondition fails, fall back to surfacing the verdict — user merges manually.
 
-**Never run `git push` to a branch owned by Codex (`codex/...`), Cursor (`cursor/...`), or any future cloud agent**, even when the matrix in `linear-workflow.md` puts the finding in a fix-locally row. Cloud-agent branches are the agent's commit history; mixing Claude commits onto them breaks provenance, breaks the asymmetric push-back model, and bypasses the agent's CI verification cycle.
+**`[BLOCK-MERGE]` label is the user's manual override.** Add the label to any PR (cloud-agent or self-authored worktree) to pause auto-merge — useful when the verdict reads ✅ but the user wants to inspect manually before shipping (uncertainty, late-arriving context, holding for a coordination batch). Remove the label and re-run `commit-review` (or just `gh pr merge` manually) to ship.
 
-**Why:** observed failure mode (Cursor PR #16) — a `defp` extraction with ~30 callsites was committed locally and pushed directly to `cursor/...`. The finding belonged to the implementing agent's matrix row (push-back, not fix-locally) and the cleanest channel was a Linear `@cursor` comment. Direct push muddied the branch's commit history, attributed Claude's code to Cursor's authorship, and bypassed Cursor's own harness run on its commits.
+**On auto-merge, immediately chain `audit-review`:**
 
-**How to apply:**
-- Default action for in-PR findings is push-back via Linear `@cursor` / `@codex` mention. The agent picks it up and amends. See `linear-workflow.md` § "Preferred channel for fix-locally-required findings: paste-as-`@cursor`-comment".
-- For env-constraint rows of the matrix where local fix IS required, prefer paste-as-comment with a verbatim code block. Fallback to a separate branch off the PR's base commit only when the fix can't be safely applied verbatim — never amend the agent's branch directly.
-- Subagents reviewing PRs inherit this rule — explicitly include "do NOT push to the agent's branch" in delegation prompts.
+```
+gh pr merge <n> --squash --delete-branch          # capture <merge-sha>
+DEFAULT=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)  # `main`, `master`, or `development`
+git checkout "$DEFAULT" && git pull
+Skill(audit-review)  # arguments: <merge-sha>^..<merge-sha>
+```
 
-**Override:** the user can authorize a direct push for a specific PR ("just push it"). Authorization is scope-bound to that one PR — same scope rule as commit/merge authorization (`NEVER COMMIT WITHOUT EXPLICIT REQUEST`, `DON'T AUTO-MERGE PRS`). Subsequent PRs revert to push-back default.
+The `audit-review` chain is the post-merge hygiene + bookkeeping pass — replaces the old `commit-review` Step 15 doc-update commit. See `staged-review:audit-review` skill for details.
 
-**Rebase-only carve-out (merge-train mode):** during `linear-workflow` § "Merge-Train Mode (`flow-review`)" execution, `git rebase origin/<default>` + `git push --force-with-lease` to a cloud-agent branch IS allowed under strict invariants:
+### Forbidden under any condition
 
-- Post-rebase diff vs. pre-rebase diff (against the new merge base) MUST be byte-identical except inside conflict regions. Verify with `git diff <pre-rebase-tip>..HEAD -- <files-not-in-conflict>` returning empty.
-- Conflict resolution MUST be mechanical (deterministic from source — alphabetical re-merge of registry append-only edits like `@descripex_modules` / supervisor children / plug-pipeline lists, append-only test additions, append-only doc blocks).
-- Push MUST use `--force-with-lease` (fails-loud if the agent pushed concurrently — never blind `--force`).
-- Any non-mechanical resolution → `git rebase --abort`, push back via Linear `@cursor` / `@codex` comment with conflict context, agent picks up the rebase.
+- **Force-merge over red CI** — preconditions are non-negotiable.
+- **Merging without `commit-review` running first** — no implicit "looks fine" merges.
+- **Any human-reviewer `requested-changes` state** — reviewer must explicitly resolve first.
+- **Auto-merge on a different PR after a per-PR approval** — approval is scope-bound to the one PR; preconditions re-run for each.
+- **PRs targeting the default branch from the default branch** — out of scope by definition (and gh wouldn't accept anyway).
 
-The carve-out is scoped to merge-train rebases only. Logic edits, function-body changes, and semantic conflict resolution remain forbidden under this rule. The default "fix-locally requires push-back via Linear comment" still governs all non-rebase operations on cloud-agent branches. Why the carve-out is safe: mechanical resolutions are deterministic from the diff; CI re-runs catch any subtle break; `--force-with-lease` prevents silent overwrites; agent's authorship is preserved (rebase rewrites tip SHAs but keeps author metadata).
+### Why this loosens
+
+Pre-commit `code-review` (Phase 2 sub-phase) + bots (Phase 3, CodeRabbit/Copilot/Codex bot) + pre-merge `commit-review` correctness gate (Phase 4: blocker-tier bugs + acceptance-criteria + CI gate) + post-merge `audit-review` (Phase 6: full 5+1 categories with mandatory Codex second-opinion) together cover what the user gate previously caught. The user gate was load-bearing when commit-review was the *only* review pass; with the six-phase chain in place, the autonomy-first lens applies — gating each merge behind manual user approval is redundant work for an inspection surface (`.audit/<sha>.md` reports + `audit(...)` commits) that's already durable post-merge.
+
+**Why self-authored worktree PRs are no longer carved out.** The original carve-out reasoned that self-authored work has different blast-radius (review depth varies; the user often wants to land their own merges deliberately). The user's stated stance is now autonomy-first: *"I trust the chain; PRs + audits are the inspection surface."* The five preconditions remain the actual safety net; the cloud-agent-vs-self-authored axis is no longer load-bearing. The `[BLOCK-MERGE]` label is the per-PR manual override for the rare case the user wants a deliberate inspection before shipping.
+
+### How to apply
+
+- **After `commit-review` reaches ✅ on a feature-branch PR:** run the 5-precondition check. All hold → `gh pr merge --squash --delete-branch`, capture merge SHA, check out the repo's default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — usually `main` / `master` / `development`) and pull, then `Skill(audit-review)` against `<merge-sha>^..<merge-sha>`. One short status line per step. Applies to worktree branches, `cursor/*`, and `codex/*` alike.
+- **If any precondition fails:** surface the merge command and the failing precondition, then stop. User merges (or addresses the failure first — fix CI, resolve requested-changes, remove `[BLOCK-MERGE]`).
+- **Subagents reviewing PRs inherit the preconditions** — explicitly include "auto-merge allowed only when all 5 preconditions hold; otherwise surface verdict" in delegation prompts.
+
+### Cross-references
+
+- `~/.claude/includes/critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE" — `audit(...)` commits are auto-allowed on the repo's default branch (the audit-review chain depends on this exception).
+- `~/.claude/includes/delegation-rules.md` § "Force-Push to `cursor/*` Is One-Shot Scope Authorization" — companion autonomy-first loosening for the iteration loop.
+- `staged-review:audit-review` skill — the post-merge hygiene + bookkeeping pass that auto-merge chains into.
 
 ## 🚨 POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS
 
@@ -379,7 +434,7 @@ The carve-out is scoped to merge-train rebases only. Logic edits, function-body 
 **In scope (default DO, no permission ask):**
 - Linear issue comments — `@cursor` / `@codex` summon mentions, push-back paragraphs, evidence-tier asks (Tidewave findings, hex-docs lookups), status-transition narration
 - PR review comments on cloud-agent PRs (`codex/...`, `cursor/...`, future agent branches) — line-level findings, verbatim paste-as-comment fix proposals
-- Linear issue status transitions tied to the flow (`Todo` → `In Progress` on pickup, `In Progress` → `In Review` on PR open, `In Review` → `Done` after the user merges)
+- Linear issue status transitions tied to the flow (`Todo` → `In Progress` on pickup, `In Progress` → `In Review` on PR open, `In Review` → `Done` after merge — user-driven or auto-merge per § "DON'T AUTO-MERGE PRS")
 
 **Out of scope (still ask first):**
 - Comments on third-party / open-source PRs not in your delegation queue
@@ -395,16 +450,51 @@ The carve-out is scoped to merge-train rebases only. Logic edits, function-body 
 - Subagents inherit this authorization — explicitly include "post Linear / cloud-agent-PR comments without asking, but never `git commit`, `git push`, `gh pr merge`, or push to a cloud-agent's branch" in delegation prompts. Three rules stay strict; one rule loosens.
 - If a specific post feels boundary, "ask once, then post freely going forward in this scope" — never "ask for every comment."
 
-**The four-rule asymmetry:**
+**The five-rule asymmetry:**
 
-| Action                                              | During active delegation flow |
-|-----------------------------------------------------|-------------------------------|
-| `git commit` / `git push` (your own branch)         | ❌ ask first                  |
-| `gh pr merge`                                       | ❌ ask first                  |
-| `git push` to cloud-agent branch                    | ❌ ask first                  |
-| Linear / cloud-agent-PR comments                    | ✅ default DO                 |
+| Action                                                                        | During active delegation flow |
+|-------------------------------------------------------------------------------|-------------------------------|
+| `git commit` / `git push` (your own branch, outside a tracked worktree)       | ❌ ask first                  |
+| `gh pr merge` — preconditions fail                                            | ❌ ask first                  |
+| `gh pr merge` on a feature-branch PR — all 5 preconditions hold               | ✅ default DO (auto-merge)    |
+| `git push` to `codex/*` branch                                                | ❌ ask first                  |
+| `git push` (incl. `--force`) to `cursor/*` branch                             | 🟡 ask once per branch, then default DO |
+| Linear / cloud-agent-PR comments                                              | ✅ default DO                 |
 
-Commits / merges / branch-pushes are irreversible-by-default; comments are reversible and ARE the workflow. The asymmetry is deliberate.
+Commits outside tracked worktrees / `codex/*` branch-pushes / merges with failed preconditions are irreversible-by-default; comments are reversible and ARE the workflow. `cursor/*` force-pushes and feature-branch auto-merge sit between — gated on preconditions, but once preconditions hold, re-asking per-call defeats the loop. The asymmetry is deliberate.
+
+## 🟡 Force-Push to `cursor/*` Is One-Shot Scope Authorization
+
+**Once the user explicitly authorizes a push (including `--force` / `--force-with-lease`) to a specific `cursor/<name>` branch in a session, that authorization is scope-bound to that branch for the remainder of the session.** Re-running the same operation against the same branch does NOT require re-asking.
+
+This is the same shape as the worktree rule in `critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE": scope is granted once, then the loop runs without per-call friction.
+
+**Why:** during an active Cursor iteration round (review push-back → Cursor amends → user wants the local fix force-pushed onto the same branch to keep the PR linear), Claude was re-asking before every push. The user explicitly named this friction ("enough of this"). Per-push permission gates defeat the iteration loop the same way per-comment permission gates defeat the comment loop — and the comment-loop fix (default DO during active flow) is already established.
+
+**Why `cursor/*` and not `codex/*`:** Cursor PRs commonly need local force-pushes to land review fixes on the same branch — Cursor's iteration shape rewards this. Codex PRs follow a different flow where pushing to `codex/*` is much rarer and historically a foot-gun. Keep Codex strict; loosen Cursor.
+
+**Companion autonomy-first loosening:** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" allows auto-merge on any feature-branch PR (worktree branches, `cursor/*`, `codex/*`) when all 5 preconditions hold — same scope-bound autonomy-first lens. The two loosenings are complementary: cursor-force-push handles the iteration loop, auto-merge handles the merge step.
+
+### In scope (after one-shot authorization for `cursor/<name>`)
+
+- `git push origin cursor/<name>` (the SAME branch) — non-force or force
+- `git push --force origin cursor/<name>` / `--force-with-lease`
+- Any subagent push to that same branch when explicitly told to operate on it
+
+### Out of scope (still ask first)
+
+- A different `cursor/<other>` branch — each Cursor branch is its own scope
+- Any `codex/...` branch — Codex flow stays strict
+- `git push --force` to shared branches (`main`, `master`, `development`) — irreversible blast radius
+- Force-push to your own feature branches outside a tracked worktree — covered by `critical-rules.md`
+- A new session — scope authorization does NOT carry across sessions
+
+### How to apply
+
+1. **First push to `cursor/<name>` in this session:** ask once, plainly. *"Push these fixes to `cursor/foo`? It'll be a force-push because the local branch has rewritten history."* Wait for explicit ok.
+2. **Subsequent pushes to the SAME `cursor/<name>` in this session:** announce in one line ("Force-pushing to `cursor/foo`") and run it. No re-ask.
+3. **New `cursor/<other>` branch:** treat as fresh scope — ask once, then loosen for that branch.
+4. **Subagents inherit the scope.** When dispatching a subagent that may push to a cursor branch the user already authorized, name the branch in the prompt: *"Force-pushing to `cursor/foo` is pre-authorized for this session; proceed without re-asking."*
 
 ## Commit-Review Header
 
@@ -491,7 +581,7 @@ If below, raising coverage is **part of this task** — not a follow-up to defer
 
 ### Parallel Work (`[P]`)
 
-Mark independent tasks with `[P]`. Before starting: update status to 🔄 with branch name, commit to main, create worktree.
+Mark independent tasks with `[P]`. Before starting: update status to 🔄 with branch name, commit any pending work on the main checkout, then create a worktree at `~/_DATA/worktrees/<repo>/task-<N>/` (use the ROADMAP task number as the worktree ID). See `worktree-workflow.md` for the full convention.
 
 ```
 | Task 79 `[P]` | ⬜ | Independent |
@@ -1097,7 +1187,7 @@ defp deps do
     {:tidewave, "~> 0.5", only: :dev},
     {:bandit, "~> 1.10", only: :dev},      # non-Phoenix only
     {:ex_dna, "~> 1.3", only: [:dev, :test], runtime: false},
-    {:ex_ast, "~> 0.5", only: [:dev, :test], runtime: false},
+    {:ex_ast, "~> 0.11", only: [:dev, :test], runtime: false},
     {:descripex, "~> 0.6"},                # full dep — macros expand at compile time
     {:api_toolkit, "~> 0.1"}               # API services only
   ]
@@ -1201,13 +1291,13 @@ Config: `.ex_dna.exs` in project root. Suppress intentional dupes with `@no_clon
 
 ```bash
 mix ex_ast.search 'IO.inspect(_)'           # find debug leftovers
-mix ex_ast.search 'IO.inspect(...)'         # 0.4+ ellipsis — any arity
+mix ex_ast.search 'IO.inspect(...)'         # ellipsis — any arity
 mix ex_ast.replace 'dbg(expr)' 'expr'       # remove dbg, keep expression
 mix ex_ast.replace --dry-run old new        # preview
-mix ex_ast.diff lib/old.ex lib/new.ex       # 0.4+ syntax-aware diff
+mix ex_ast.diff lib/old.ex lib/new.ex       # syntax-aware diff
 ```
 
-Patterns: `_` = wildcard, named vars (`expr`) capture and carry to replacement. `...` = zero-or-more (args, list items, block body). Structs/maps match partially. See `development-commands.md` for the full surface (pipe awareness, `--inside`/`--not-inside`, multi-node, `~p` sigil, quoted patterns, AST/zipper input).
+Patterns: `_` = wildcard, named vars (`expr`) capture and carry to replacement. `...` = zero-or-more (args, list items, block body). Structs/maps match partially. `_` in function-name position of `def`/`defp` patterns matches the function name even when arguments are present (e.g. `defp _(_), do: _` matches `defp helper(x), do: x + 1`). The `piped()` selector predicate distinguishes form inside the `~p`/`where` DSL — `where(piped())` matches only `|>` calls, `where(not piped())` matches only direct calls. `ExAST.search_many/3` and `ExAST.Patcher.find_many/3` run multiple named patterns in a single traversal, returning matches tagged with `:pattern`. See `development-commands.md` for the full surface (pipe awareness, `--inside`/`--not-inside`, multi-node, `~p` sigil, quoted patterns, AST/zipper input).
 
 ### Quality Gates
 
@@ -1245,7 +1335,7 @@ Config: `.ex_dna.exs`. Suppress intentional dupes with `@no_clone true`.
 
 ### ExAST — AST Search & Replace
 
-**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.5"}`.
+**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.11"}`.
 
 ```bash
 mix ex_ast.search 'IO.inspect(_)'                              # find debug leftovers
@@ -1253,23 +1343,23 @@ mix ex_ast.search --count 'Logger.debug(_)'
 mix ex_ast.replace 'dbg(expr)' 'expr'                          # cleanup, preserve expression
 mix ex_ast.replace --dry-run 'use Mix.Config' 'import Config'  # preview migrations
 
-# 0.3.0: pipe awareness — matches both forms bidirectionally
+# Pipe awareness — matches both forms bidirectionally
 mix ex_ast.search 'Enum.map(_, _)'                             # matches `data |> Enum.map(f)` too
 mix ex_ast.search 'data |> Enum.map(f)'                        # matches `Enum.map(data, f)` too
 
-# 0.3.0: ancestor-context filters
+# Ancestor-context filters
 mix ex_ast.search 'Repo.get!(_, _)' --inside 'def _(_)'        # only inside function defs
 mix ex_ast.search 'IO.inspect(_)' --not-inside 'test _, do: _' # skip inside tests
 
-# 0.3.0: multi-node patterns (sequential statements)
+# Multi-node patterns (sequential statements)
 mix ex_ast.search 'a = Repo.get!(_, _); Repo.delete(a)'        # N+1-ish load-then-delete pairs
 
-# 0.4+: ellipsis `...` — matches zero or more nodes (args, list items, block body)
+# Ellipsis `...` — matches zero or more nodes (args, list items, block body)
 mix ex_ast.search 'IO.inspect(...)'                            # any arity
 mix ex_ast.search 'foo(first, ..., last)'                      # head + tail
 mix ex_ast.search 'def run(_) do ... end'                      # any body
 
-# 0.4+: syntax-aware diff (GumTree-inspired — matches fns by name/arity,
+# Syntax-aware diff (GumTree-inspired — matches fns by name/arity,
 # classifies edits :insert | :delete | :update | :move)
 mix ex_ast.diff lib/old.ex lib/new.ex
 mix ex_ast.diff --summary lib/old.ex lib/new.ex                # one-line per edit
@@ -1277,7 +1367,7 @@ mix ex_ast.diff --no-moves lib/old.ex lib/new.ex               # disable move de
 mix ex_ast.diff --json lib/old.ex lib/new.ex                   # structured output
 ```
 
-**0.4+ programmatic extras:**
+**Programmatic API — quoted patterns, sigil, AST/zipper input:**
 
 ```elixir
 # Quoted expressions or ~p sigil instead of strings
@@ -1293,6 +1383,41 @@ ExAST.Patcher.replace_all(ast, "dbg(expr)", "expr")   # returns AST (not string)
 %{edits: edits} = ExAST.diff(old_source, new_source)
 # edits are %ExAST.Diff.Edit{op:, kind:, summary:, old_range:, new_range:, meta:}
 ExAST.apply_diff(diff_result)                         # produces patched source
+```
+
+**Multi-pattern single traversal:**
+
+```elixir
+# search_many — multiple named patterns, matches tagged with :pattern
+ExAST.search_many(source, %{
+  debug_inspect: ~p"IO.inspect(...)",
+  dbg_call:      ~p"dbg(...)",
+  console_log:   ~p"Logger.debug(_)"
+}, limit: 50)
+# => [%{pattern: :debug_inspect, ...}, %{pattern: :dbg_call, ...}, ...]
+
+# ExAST.Patcher.find_many/3 — same idea, accepts source/AST/zipper
+ExAST.Patcher.find_many(ast, [debug: ~p"IO.inspect(...)", trace: ~p"dbg(...)"])
+```
+
+**Selector predicates, indexing, symbol queries:**
+
+```elixir
+# piped()/not piped() in where clauses — distinguish pipe form from direct form.
+# Useful when the piped subject is at a different argument slot than the direct form.
+from(~p"Regex.replace(_, _, _)") |> where(piped())     # only `text |> Regex.replace(re, "")`
+from(~p"Enum.map(_, _)")         |> where(not piped()) # only direct calls
+
+# Indexing API — build an external candidate index, keep ExAST as semantic verifier
+plan = ExAST.Index.plan(~p"IO.inspect(...)")
+ExAST.Index.terms(plan)                                # term signals for indexing
+ExAST.Selector.find_all(plan, files, source: true)     # source-aware planning
+
+# Symbol queries — syntactic def/ref extraction with stable qualified names
+ExAST.Symbols.definitions(source)                      # all def/defp/defmacro sites
+ExAST.Symbols.references(source)                       # all callsites
+ExAST.Symbols.qualified_name(node)                     # "MyApp.Foo.bar/2"
+ExAST.Symbols.mfa(node)                                # {MyApp.Foo, :bar, 2}
 ```
 
 Named captures (`expr`, `x`) in search carry to replacement. Structs/maps match partially. Run `mix format` after replacements.
@@ -1365,7 +1490,11 @@ Conditional fields: `coverage` only with `--cover`; `coverage.threshold_met` onl
 
 ### Using jq
 
-Piping requires `MIX_QUIET=1` to suppress compilation output that would corrupt the JSON stream. For full output, prefer `--output FILE` over piping.
+**One run captures everything — never summarize-then-detail.** `mix test.json --quiet --output /tmp/r.json` writes the full schema in one payload: `summary`, failing `tests`, `error_groups`, `coverage`, `module_failures`. Slice it after: `jq '.summary' /tmp/r.json` for the summary view, `jq '.tests[] | select(.state == "failed")'` for detail, `jq '.error_groups'` for clusters. The default output is *already* compacted (v0.3.0+ shows only failed tests in `.tests[]`), so a "summary-only first, full run for details next" pass doubles compile-cache rehydration + suite-execution cost for zero informational gain. **Do not** start with `--summary-only` to "scope the failure space" — the captured full JSON contains the summary AND the detail AND the error-groups already.
+
+**Default to `--output FILE`. Always.** Pick a path (e.g. `/tmp/r.json`) before running. A re-run is seconds-to-minutes; a `jq` against the captured file is microseconds. Even a "one-shot" pipe is wrong-by-default: the moment you want to slice a second facet you've paid for the suite twice. Piping is the exception, not the rule — reserve it for genuinely throwaway shell composition.
+
+Piping (when you actually need it) requires `MIX_QUIET=1` to suppress compilation output that would corrupt the JSON stream.
 
 ```bash
 MIX_QUIET=1 mix test.json --quiet --summary-only | jq '.summary'
@@ -1486,6 +1615,8 @@ Piping to jq: use `MIX_QUIET=1` to suppress compilation messages.
 
 This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem development. It provides automated development workflows through hooks that trigger on file edits and git operations.
 
+**Naming:** GitHub repo is `claude-marketplace-elixir` (describes scope), Claude Code marketplace namespace is `deltahedge` (org identity — also covers language-agnostic plugins: `cloud-delegation`, `staged-review`, `task-driver`, `portfolio-strategy`). Plugins are referenced as `<plugin>@deltahedge`.
+
 ### Includes → Skills Sync
 
 **`~/.claude/includes/*.md` files are canonical.** Skill SKILL.md files are auto-synced from includes — never edit skill bodies directly. After editing an include, run:
@@ -1555,14 +1686,6 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   └── commands/
-├── serena/                   # MCP integration
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   └── commands/
-├── notifications/            # OS notifications
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   └── hooks/
 ├── code-quality/             # Language-agnostic LLM code quality gate
 │   ├── .claude-plugin/
 │   │   └── plugin.json
@@ -1607,9 +1730,12 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 **Cloud-delegation plugin** - Cross-cutting AGENTS.md sync:
 1. **agents-md-sync.sh** (non-blocking, PostToolUse): After editing `~/.claude/CLAUDE.md`, any direct child of `~/.claude/includes/`, or any `~/_DATA/code/<repo>/CLAUDE.md`, regenerates `AGENTS.md` via `scripts/sync-agents-md.sh` in every affected repo that has an existing `AGENTS.md` (never auto-creates). Idempotent; never stages or commits. Closes the staleness window between edit and the next SessionStart drift check.
 
+**Staged-review plugin** - Audit-tail detection:
+1. **check-unaudited-commits.sh** (non-blocking, SessionStart): Walks `git log --grep '^audit('` to find the last audit ancestor; emits `additionalContext` recommending `/staged-review:audit-status` or `Skill(audit-review)` when ≥3 commits sit past it. Silent below threshold or outside any git repo. Shares `unaudited-commits.sh` helper with the `/audit-status` slash command (Tasks 38 + 39).
+
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (32 total)
+### Skills (33 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
@@ -1655,12 +1781,13 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands (research, plan, implement, qa) |
 
-**Staged-review plugin** (2 skills):
+**Staged-review plugin** (3 skills):
 
 | Skill | Description |
 |-------|-------------|
-| code-review | Universal staged-file review — bugs, extractions, TODO markers, abstractions |
-| commit-review | Tier 2 cloud-agent PR review (Codex/Cursor) — CI-as-gate via `gh pr checks`, tiny-PR fast path (<100 LOC + no `lib/`), asymmetric push-back channels (PR=line-level / Linear=scope), per-agent reachability matrix, optional Codex CLI second-opinion (default off), verdict-only (user merges) |
+| code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` post-PR-create / post-merge to avoid duplicate dual-reviewer cost (every commit reaches audit-review either way via worktree-workflow auto-invoke). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
+| commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label** then chains audit-review against the merge SHA |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-workflow` (post-merge for non-auto-merge cases) |
 
 **Task-driver plugin** (1 skill):
 
@@ -1911,63 +2038,24 @@ When using TodoWrite in slash commands and workflows:
 ]
 ```
 
-## Agent Pattern for Token Efficiency
-
-The marketplace uses specialized agents for token-efficient workflows:
-
-**Finder Agent** (`.claude/agents/finder.md`):
-- **Role**: Fast file location without reading (uses haiku model)
-- **Tools**: Grep, Glob, Bash, Skill (NO Read tool)
-- **Purpose**: Creates maps of WHERE files are, organized by purpose
-- **Output**: File paths and locations, no code analysis
-
-**Analyzer Agent** (`.claude/agents/analyzer.md`):
-- **Role**: Deep code analysis with file reading (uses sonnet model)
-- **Tools**: Read, Grep, Glob, Bash, Skill
-- **Purpose**: Explains HOW things work by reading specific files
-- **Output**: Execution flows, technical analysis with file:line references
-
-**Token-Efficient Workflow Pattern**:
-```
-Step 1: Spawn finder → Locates relevant files (cheap, fast)
-Step 2: Spawn analyzer → Reads files found by finder (expensive but targeted)
-```
-
-This pattern reduces token usage by 30-50% compared to having analyzer explore and read everything.
-
-**When to Use**:
-- Use **parallel** when researching independent aspects (no dependency)
-- Use **sequential** (finder first, then analyzer) when analyzer needs file paths from finder
-
-See `.claude/commands/elixir-qa.md` (lines 807-844) and `.claude/commands/elixir-research.md` (lines 56-73) for examples.
-
-## Workflow System
-
-The marketplace includes a comprehensive workflow system for development:
-
-**Commands**:
-- `/elixir-interview` - Gather context through interactive questioning
-- `/elixir-research` - Research codebase with parallel agents
-- `/elixir-plan` - Create detailed implementation plans
-- `/elixir-implement` - Execute plans with verification
-- `/elixir-qa` - Validate implementation quality
-- `/elixir-oneshot` - Complete workflow (research → plan → implement → qa)
-- `/create-plugin` - Scaffold new plugin structure (no prefix - not Elixir-specific)
-
-**Naming Convention**: Commands use `elixir-` prefix for Elixir/BEAM-specific workflows. The `/create-plugin` command intentionally has no prefix because it creates Claude Code plugins for any language or purpose.
-
-**Documentation Location**: All workflow artifacts saved to `.thoughts/`
-```
-.thoughts/
-├── interview/          # Interview context documents
-├── research/           # Research documents
-├── plans/              # Implementation plans
-└── [date]-*.md        # QA and oneshot reports
-```
-
-See `.claude/WORKFLOWS.md` for complete workflow documentation.
-
 **Elixir-workflows Plugin**: The `elixir-workflows` plugin can generate customized workflow commands for other Elixir projects via `/elixir-workflows:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
+
+### Six-Phase Development Lifecycle
+
+```
+task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)
+```
+
+| Phase | Skill / Actor |
+|---|---|
+| 1 — Plan-and-File | `task-driver:task-driver` (Plan-and-File mode) |
+| 2 — Implement | implementer session + `staged-review:code-review` (pre-commit sub-phase) |
+| 3 — Bots | external (CodeRabbit, Copilot, Codex's GitHub bot) |
+| 4 — Pre-merge gate | `staged-review:commit-review` |
+| 5 — Merge | `commit-review` auto-merge tail OR user manual `gh pr merge` |
+| 6 — Post-merge audit | `staged-review:audit-review` |
+
+Canonical reference (full phase descriptions, Linear-status transitions, handoff rules, end-to-end narrative): **`Skill(dev-lifecycle)`** or `~/.claude/includes/dev-lifecycle.md` / `plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md`. The chain is language-agnostic and composes only the already-language-agnostic `task-driver`, `staged-review`, and `cloud-delegation` plugins. Auto-merge preconditions: `delegation-rules.md` § "DON'T AUTO-MERGE PRS". Worktree scoping: `worktree-workflow.md`.
 
 ## Plugin Development Tools
 
@@ -2012,21 +2100,6 @@ When creating or modifying plugins, hooks, skills, or agents in this marketplace
 3. **Validate**: Use `plugin-dev:plugin-validator` agent to check structure
 4. **Review**: Use `plugin-dev:skill-reviewer` agent to review skill quality
 5. **Create hooks from behavior**: Use `/hookify:hookify` to generate hooks from unwanted behaviors
-
-## Quality Gates
-
-Before pushing changes, run:
-```bash
-/elixir-qa
-```
-
-This validates:
-- JSON structure and validity
-- Hook script correctness (exit codes, output patterns)
-- Version management (marketplace and plugin versions)
-- Documentation completeness
-- Test coverage
-- Comment quality (removes unnecessary, keeps critical)
 
 ## Git Commit Configuration
 

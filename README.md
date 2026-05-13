@@ -26,8 +26,6 @@ claude
 /plugin install phoenix@deltahedge          # Phoenix-specific skills
 /plugin install elixir-workflows@deltahedge # Workflow commands (research, plan, implement, qa)
 /plugin install git-commit@deltahedge       # Commit workflow
-/plugin install serena@deltahedge           # Serena MCP integration
-/plugin install notifications@deltahedge    # OS notifications
 /plugin install code-quality@deltahedge     # Language-agnostic LLM code quality gate
 /plugin install staged-review@deltahedge    # Universal code review workflow
 /plugin install task-driver@deltahedge     # Roadmap-driven task execution
@@ -52,15 +50,11 @@ Automated Hooks (post-edit-check.sh, pre-commit-unified.sh)
 
 Each phase runs in a **fresh session** with file-based handoffs (`.thoughts/` directory):
 
-1. **Interview/Brainstorm** → context docs
-2. **Plan** → implementation plan with acceptance criteria
-3. **Implement** → code + ROADMAP updates (`task-driver`)
-4. **Code Review** → `staged-review:code-review` (pre-commit, any language) → commit
-5. **Pre-merge gate** → `staged-review:commit-review` (cloud-agent PRs only — Cursor / Codex)
-6. **Post-merge audit** → `staged-review:audit-review` (auto-fires after `gh pr create` and after every cloud-agent merge)
-7. **QA** → `/elixir-qa` (post-implementation, Elixir-specific)
-
-For small-medium features, `/elixir-oneshot` runs the implementation phases in one session. See [WORKFLOWS.md](.claude/WORKFLOWS.md) for details.
+1. **Plan** → implementation plan with acceptance criteria (`task-driver`)
+2. **Implement** → code + ROADMAP updates (`task-driver`)
+3. **Code Review** → `staged-review:code-review` (pre-commit, any language) → commit
+4. **Pre-merge gate** → `staged-review:commit-review` (cloud-agent PRs only — Cursor / Codex)
+5. **Post-merge audit** → `staged-review:audit-review` (auto-fires after `gh pr create` and after every cloud-agent merge)
 
 ### Three-Tier Code Review Chain
 
@@ -76,7 +70,7 @@ The expensive dual-reviewer work (parallel Codex dispatch + Claude+Codex dialogu
 
 Implementer / reviewer separation is preserved across the chain: each layer is a different session, no agent grades its own work.
 
-## Available Plugins (9)
+## Available Plugins (10)
 
 **Universal plugins** (language-agnostic):
 
@@ -86,7 +80,9 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 | [staged-review](./plugins/staged-review/README.md) | Universal code review workflow — bugs, extractions, TODOs, abstractions |
 | [task-driver](./plugins/task-driver/README.md) | Roadmap-driven task execution — select by efficiency, implement, update docs |
 | [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
-| [notifications](./plugins/notifications/README.md) | Native OS notifications when Claude Code needs attention |
+| [portfolio-strategy](./plugins/portfolio-strategy) | Power-law portfolio rule — cross-repo decision framework |
+| [cloud-delegation](./plugins/cloud-delegation) | Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow |
+| [dev-lifecycle](./plugins/dev-lifecycle) | Canonical reference for the six-phase development lifecycle |
 
 **Elixir/Phoenix plugins**:
 
@@ -94,8 +90,7 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 |--------|-------------|
 | [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 24 skills |
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns — setup and Nexus template |
-| [elixir-workflows](./plugins/elixir-workflows/README.md) | Development workflow commands (research, plan, implement, QA, oneshot) |
-| [serena](./plugins/serena/README.md) | Serena MCP integration - auto-activation and workflow helpers |
+| [elixir-workflows](./plugins/elixir-workflows/README.md) | Workflow-command generator for other Elixir projects |
 
 ## Available Skills (33)
 

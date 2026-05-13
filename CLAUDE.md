@@ -103,14 +103,6 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   └── commands/
-├── serena/                   # MCP integration
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   └── commands/
-├── notifications/            # OS notifications
-│   ├── .claude-plugin/
-│   │   └── plugin.json
-│   └── hooks/
 ├── code-quality/             # Language-agnostic LLM code quality gate
 │   ├── .claude-plugin/
 │   │   └── plugin.json
@@ -463,62 +455,6 @@ When using TodoWrite in slash commands and workflows:
 ]
 ```
 
-## Agent Pattern for Token Efficiency
-
-The marketplace uses specialized agents for token-efficient workflows:
-
-**Finder Agent** (`.claude/agents/finder.md`):
-- **Role**: Fast file location without reading (uses haiku model)
-- **Tools**: Grep, Glob, Bash, Skill (NO Read tool)
-- **Purpose**: Creates maps of WHERE files are, organized by purpose
-- **Output**: File paths and locations, no code analysis
-
-**Analyzer Agent** (`.claude/agents/analyzer.md`):
-- **Role**: Deep code analysis with file reading (uses sonnet model)
-- **Tools**: Read, Grep, Glob, Bash, Skill
-- **Purpose**: Explains HOW things work by reading specific files
-- **Output**: Execution flows, technical analysis with file:line references
-
-**Token-Efficient Workflow Pattern**:
-```
-Step 1: Spawn finder → Locates relevant files (cheap, fast)
-Step 2: Spawn analyzer → Reads files found by finder (expensive but targeted)
-```
-
-This pattern reduces token usage by 30-50% compared to having analyzer explore and read everything.
-
-**When to Use**:
-- Use **parallel** when researching independent aspects (no dependency)
-- Use **sequential** (finder first, then analyzer) when analyzer needs file paths from finder
-
-See `.claude/commands/elixir-qa.md` (lines 807-844) and `.claude/commands/elixir-research.md` (lines 56-73) for examples.
-
-## Workflow System
-
-The marketplace includes a comprehensive workflow system for development:
-
-**Commands**:
-- `/elixir-interview` - Gather context through interactive questioning
-- `/elixir-research` - Research codebase with parallel agents
-- `/elixir-plan` - Create detailed implementation plans
-- `/elixir-implement` - Execute plans with verification
-- `/elixir-qa` - Validate implementation quality
-- `/elixir-oneshot` - Complete workflow (research → plan → implement → qa)
-- `/create-plugin` - Scaffold new plugin structure (no prefix - not Elixir-specific)
-
-**Naming Convention**: Commands use `elixir-` prefix for Elixir/BEAM-specific workflows. The `/create-plugin` command intentionally has no prefix because it creates Claude Code plugins for any language or purpose.
-
-**Documentation Location**: All workflow artifacts saved to `.thoughts/`
-```
-.thoughts/
-├── interview/          # Interview context documents
-├── research/           # Research documents
-├── plans/              # Implementation plans
-└── [date]-*.md        # QA and oneshot reports
-```
-
-See `.claude/WORKFLOWS.md` for complete workflow documentation.
-
 **Elixir-workflows Plugin**: The `elixir-workflows` plugin can generate customized workflow commands for other Elixir projects via `/elixir-workflows:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
 
 ### Six-Phase Development Lifecycle
@@ -581,21 +517,6 @@ When creating or modifying plugins, hooks, skills, or agents in this marketplace
 3. **Validate**: Use `plugin-dev:plugin-validator` agent to check structure
 4. **Review**: Use `plugin-dev:skill-reviewer` agent to review skill quality
 5. **Create hooks from behavior**: Use `/hookify:hookify` to generate hooks from unwanted behaviors
-
-## Quality Gates
-
-Before pushing changes, run:
-```bash
-/elixir-qa
-```
-
-This validates:
-- JSON structure and validity
-- Hook script correctness (exit codes, output patterns)
-- Version management (marketplace and plugin versions)
-- Documentation completeness
-- Test coverage
-- Comment quality (removes unnecessary, keeps critical)
 
 ## Git Commit Configuration
 

@@ -44,10 +44,8 @@ This section describes the verified local setup on `/Users/efries/...`.
 
 ### Intentionally excluded from Codex sync
 
-- `serena`
 - `elixir-workflows`
 - `git-commit`
-- `notifications`
 - `code-quality`
 
 ## What We Verified

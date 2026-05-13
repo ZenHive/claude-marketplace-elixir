@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Elixir and BEAM ecosystem development tools for Claude Code",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   "pluginRoot": "../plugins",
   "plugins": [
@@ -37,22 +37,6 @@
       "name": "git-commit",
       "source": "./plugins/git-commit",
       "description": "Intelligent git commit workflow automation",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "serena",
-      "source": "./plugins/serena",
-      "description": "Serena MCP integration - auto-activation and workflow helpers",
-      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
-      "license": "MIT",
-      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
-    },
-    {
-      "name": "notifications",
-      "source": "./plugins/notifications",
-      "description": "Native OS notifications when Claude Code needs attention (idle, permission prompts)",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"

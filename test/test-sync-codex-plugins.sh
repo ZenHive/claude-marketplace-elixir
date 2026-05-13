@@ -145,10 +145,13 @@ test_core_sync_and_apply() {
   jq -e '(has("hooks") | not) and (.skills == "./skills/")' \
     "$plugins_root/staged-review/.codex-plugin/plugin.json" >/dev/null || return 1
 
-  jq -e '(.plugins | length) == 5' "$marketplace" >/dev/null || return 1
+  jq -e '(.plugins | length) == 7' "$marketplace" >/dev/null || return 1
   jq -e '.plugins[0].name == "elixir"' "$marketplace" >/dev/null || return 1
   jq -e '.plugins[2].name == "staged-review"' "$marketplace" >/dev/null || return 1
   jq -e '.plugins[3].name == "task-driver"' "$marketplace" >/dev/null || return 1
+  jq -e '.plugins[4].name == "portfolio-strategy"' "$marketplace" >/dev/null || return 1
+  jq -e '.plugins[5].name == "cloud-delegation"' "$marketplace" >/dev/null || return 1
+  jq -e '.plugins[6].name == "dev-lifecycle"' "$marketplace" >/dev/null || return 1
   jq -e 'all(.plugins[]; .source.path | startswith("./plugins/"))' "$marketplace" >/dev/null || return 1
 }
 
