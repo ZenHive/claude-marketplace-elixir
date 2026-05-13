@@ -27,6 +27,7 @@ PLUGIN_ORDER = [
     "task-driver",
     "portfolio-strategy",
     "cloud-delegation",
+    "dev-lifecycle",
 ]
 
 PLUGIN_CONFIG = {
@@ -73,6 +74,10 @@ PLUGIN_CONFIG = {
     "cloud-delegation": {
         "category": "Productivity",
         "display_name": "Cloud Delegation",
+    },
+    "dev-lifecycle": {
+        "category": "Productivity",
+        "display_name": "Dev Lifecycle",
     },
 }
 

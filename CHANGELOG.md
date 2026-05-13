@@ -4,6 +4,19 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**`dev-lifecycle` plugin — canonical home for the six-phase chain (marketplace v1.3.0)**
+
+New plugin whose single purpose is to be the marketplace-discoverable, canonical reference for the six-phase development lifecycle (`task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)`). The chain already existed implicitly across `task-driver`, `staged-review`, and `cloud-delegation`, but nothing in the marketplace named it — discoverability was "read this repo's CLAUDE.md or stumble across mentions in individual skills." This plugin closes that gap.
+
+- **New skill `dev-lifecycle:dev-lifecycle`** — full phase reference (5+1 category catalog placement, Linear-status transitions, handoff shape between phases, end-to-end narrative, where each phase lives). Body auto-synced from new canonical include `~/.claude/includes/dev-lifecycle.md`.
+- **New slash command `/dev-lifecycle:dev-lifecycle`** — terse in-chat printer of the chain + ownership table. Read-only, no branch-state introspection (deferred). Useful when a one-screen reminder is wanted without opening the skill.
+- **New include `~/.claude/includes/dev-lifecycle.md`** — canonical source. Skill body auto-syncs via `scripts/sync-skills-from-includes.sh` (24th mapping). Standalone-extractable: no Elixir coupling, references sibling plugins by name only, sync mapping is one-way.
+- **`scripts/sync-codex-plugins.py`** — `dev-lifecycle` added to `PLUGIN_ORDER` and `PLUGIN_CONFIG` (category: Productivity, display name: Dev Lifecycle) for inclusion in the Codex-friendly subset.
+- **Project `CLAUDE.md` § "Six-Phase Development Lifecycle"** — collapsed from ~30 lines of narrative + tables to a 3-line chain diagram + one-glance phase-ownership table + pointer at the skill. The narrative now lives in exactly one place (the include); CLAUDE.md keeps only the at-a-glance reference. Drift surface shrinks accordingly.
+- **Marketplace registry** — top-level `version` bumped 1.2.0 → 1.3.0 (catalog grew). New entry appended to `plugins[]` after `cloud-delegation`.
+
 ### Changed
 
 **Six-phase development lifecycle refactor — staged-review v1.19.0, task-driver v1.2.0, cloud-delegation v1.10.0**
