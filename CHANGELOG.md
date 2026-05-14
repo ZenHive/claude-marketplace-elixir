@@ -6,6 +6,15 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**Add `SKILLS.md` — agent-facing skill catalog — and slim the README skill section**
+
+The README carried six per-plugin skill tables (~70 lines) duplicating descriptions that also live in `CLAUDE.md`, and its count was stale (38, missing the `dev-lifecycle` and `portfolio-strategy` plugin skills — actual total is 40).
+
+- **New `SKILLS.md`** at the repo root — the canonical agent-facing catalog. Audience is AI agents (Claude Code, Codex, Cursor) *consuming* the marketplace, not humans installing it. Includes a "how skills work" primer, a task → skill quick-routing table, the full catalog grouped by concern (each skill with what-it-gives-you + when-to-invoke), a commands appendix, and install snippets.
+- **README skill section slimmed** — the six verbose tables replaced by an 8-row plugin summary (count + focus per plugin) plus a prominent pointer to `SKILLS.md`. Removes the drift surface; the detailed catalog now has one home.
+- **`CLAUDE.md` corrected** — skill count 38 → 40; added the missing `dev-lifecycle` and `portfolio-strategy` plugin skill tables; noted `SKILLS.md` as the agent-facing catalog to keep in sync.
+- No plugin or marketplace version bump — pure repo-root documentation, no plugin surface touched.
+
 **Split the monolithic `linear-workflow` skill into four composable skills — cloud-delegation v1.11.0 → v1.12.0**
 
 The 596-line `linear-workflow` skill braided five concerns (one-time setup, dispatch, review/merge, the `flow-review` merge-train sub-workflow, cross-cutting reference) into one mega-skill — every invocation loaded all 596 lines when most needs were ~⅓. Worse, Linear-queue mechanics were welded to cloud-agent delegation: someone tracking their own non-delegated work in Linear, or running without cloud agents at all, still loaded the entire delegation stack. Split along a substrate/layer axis so the substrate is usable standalone.

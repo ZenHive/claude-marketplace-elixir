@@ -1756,9 +1756,9 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (38 total)
+### Skills (40 total)
 
-Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
+Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance. The agent-facing catalog (what each does, when to invoke) lives in `SKILLS.md` at the repo root — keep it in sync when adding or removing skills.
 
 **Elixir plugin** (24 skills):
 
@@ -1829,6 +1829,18 @@ The Linear-as-queue + cloud-agent delegation workflow is split into four composa
 | linear-workflow | Hub index — points to the four skills above; use it to find which skill owns a concern |
 | cloud-agent-environments | Cloud-agent env reference — what each cloud agent can/can't reach (hex.pm, mix tasks, Tidewave, HTTP), runtime gotchas, AGENTS.md generation workflow |
 | sprite-claude-code | Operational reference for Fly Sprite-hosted Claude Code as a third cloud-delegation target |
+
+**Dev-lifecycle plugin** (1 skill):
+
+| Skill | Description |
+|-------|-------------|
+| dev-lifecycle | Canonical six-phase chain reference — answers "which phase am I in?", "which skill owns this?", "what's the handoff?". Pure documentation |
+
+**Portfolio-strategy plugin** (1 skill):
+
+| Skill | Description |
+|-------|-------------|
+| portfolio-strategy | Power-law portfolio rule for cross-repo decisions — start/continue/kill a project, where to spend attention. NOT for within-project prioritization (use roadmap-planning) |
 
 **Skill Composition**: Skills are single-purpose and composed by agents/commands. `usage-rules` provides conventions (how to use correctly), `hex-docs-search` provides API docs (what's available). Agents can invoke both for comprehensive guidance.
 
@@ -1976,6 +1988,14 @@ Plugin and marketplace versions are **independent** and version for different re
 This follows standard package registry practices (npm, PyPI, Homebrew) where the registry version is independent of package versions. Think of it like a bookstore: book editions (plugin versions) change independently of catalog editions (marketplace version).
 
 ## File Modification Guidelines
+
+**After completing any task** — `SKILLS.md`, `README.md`, and `CLAUDE.md` all carry skill/plugin catalogs that drift if not updated together. A task is not complete until all three agree:
+1. `SKILLS.md` (repo root) — agent-facing skill catalog. If the task added/removed/renamed a skill or changed its description, update the catalog row, the task→skill quick-routing table, and the skill count.
+2. `README.md` — human-facing landing page. Update the plugin summary table, skill count, and install surface if the plugin set or counts changed.
+3. `CLAUDE.md` (this file) — update the `### Skills` tables, the dir-tree, and the total count if marketplace structure changed.
+4. `CHANGELOG.md` — add a `[Unreleased]` entry.
+
+For a task that touches no skills or plugins this is a no-op — but still verify the three catalogs, don't assume.
 
 **When editing JSON files**: Always maintain valid JSON structure. Use `jq` to validate after changes.
 
