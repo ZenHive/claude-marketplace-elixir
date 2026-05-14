@@ -198,11 +198,19 @@ Dispatch `codex:codex-rescue` **in parallel** with Step 5a for each non-tiny com
 
 **The dispatch prompt MUST include the project's tool inventory** — see "Dispatch Payload" below.
 
-**Batched dispatch optimization.** When the range has ≤5 non-tiny commits, dispatch them concurrently — one Agent call per commit. When the range is wider, batch into groups of 5 to control concurrency; sequential batches keep total Codex usage bounded. The reuse of context across commits (the same project tool inventory ships every dispatch) makes per-commit dispatches cheap relative to single-shot review.
+**Wait for substantive Codex output. Do not background the dispatch.** Two layers can each silently background the call and both must be pinned:
+
+1. **Agent tool** — invoke `codex:codex-rescue` with `run_in_background: false` (the default; do NOT set `true`). A backgrounded Agent call returns immediately with a queued-task acknowledgment, not findings.
+2. **Rescue agent's own routing** — the `codex-rescue` agent picks `--background` vs `--wait` based on task shape and defaults to `--background` for anything that "looks complicated, open-ended, multi-step, or likely to keep Codex running for a long time." A per-commit audit qualifies. **Include `--wait` explicitly in the dispatch prompt** so the rescue agent forwards it to `codex-companion task --wait` and returns Codex's stdout (the actual findings table) synchronously.
+
+A backgrounded dispatch returns an ack, which Step 6 has nothing to merge — it's functionally equivalent to "Codex unreachable" and silently degrades the run to single-reviewer. The closing summary line (`dual-reviewer pass` vs `Codex unreachable`) will lie, because the dispatch succeeded but the findings never arrived.
+
+**Batched dispatch optimization.** When the range has ≤5 non-tiny commits, dispatch them concurrently — one Agent call per commit, all in a single message, each with `--wait`. When the range is wider, batch into groups of 5 to control concurrency; sequential batches keep total Codex usage bounded. The reuse of context across commits (the same project tool inventory ships every dispatch) makes per-commit dispatches cheap relative to single-shot review. Concurrent ≠ backgrounded: multiple synchronous-`--wait` dispatches run in parallel within one tool-call round and all return findings before the round closes.
 
 **Failure modes:**
 - Codex unreachable / agent errors → continue with single-reviewer pass for that commit. Mark the closing summary `Codex unreachable — single-reviewer pass` for affected commits.
 - Codex returns garbage / refuses → same as unreachable; don't fall back to "trust Codex" or "drop this commit" — single-reviewer the commit and surface the failure in the summary.
+- Dispatch returned a queued-task ack instead of findings → you backgrounded it. Re-dispatch with `--wait` and `run_in_background: false` before Step 6. Do NOT treat the ack as "Codex unreachable" — that hides the real failure (skill instruction not followed) under a normal-looking summary line.
 
 #### Dispatch Payload (What to Send Codex on Every Dispatch)
 
@@ -292,7 +300,7 @@ Otherwise, for each `discuss-design` finding:
 
 1. **Claude position.** Write a short paragraph: proposed resolution + reasoning, factoring in the roadmap (already read in Step 4), codebase conventions, and the specific trade-off. Keep it ~3 sentences.
 
-2. **Codex position.** Dispatch `codex:codex-rescue` with the four-section payload (Task = "resolve this `discuss-design` finding"; Context = the finding + Claude's position + ROADMAP excerpts; Tool inventory = same as Step 5b; Verification instruction = "verify before asserting"). Ask for an independent resolution and reasoning.
+2. **Codex position.** Dispatch `codex:codex-rescue` with the four-section payload (Task = "resolve this `discuss-design` finding"; Context = the finding + Claude's position + ROADMAP excerpts; Tool inventory = same as Step 5b; Verification instruction = "verify before asserting"). Ask for an independent resolution and reasoning. **Same wait semantics as Step 5b: `run_in_background: false` on the Agent call AND `--wait` in the dispatch prompt.** Step 3 (compare and decide) needs Codex's actual resolution, not a queued-task ack. A backgrounded dialogue dispatch returns an ack the comparison can't reason about, and the finding will incorrectly fall through to the "Codex unreachable" branch (drop + file as ROADMAP candidate) even though Codex would have converged on apply.
 
 3. **Compare and decide:**
    - **Convergence** — same resolution, or resolutions that differ only in minor wording → **apply the fix.** Record both reasoners' justifications in `.audit/<sha>.md`.
