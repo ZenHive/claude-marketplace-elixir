@@ -55,7 +55,7 @@ Fully autonomous post-commit pass. Triggered:
 
 1. Auto-invoked by `worktree-workflow` after `gh pr create` (audits self-authored worktree commits)
 2. Auto-invoked by `commit-review`'s auto-merge tail (audits the merge SHA on `main`)
-3. Auto-invoked by `linear-workflow` after a user-confirmed merge for non-auto-merge cases
+3. Auto-invoked by `linear-queue` (self-authored worktree flow) after a user-confirmed merge for non-auto-merge cases
 4. Manually via `/audit-review [<sha>|<range>]`
 
 Workflow:

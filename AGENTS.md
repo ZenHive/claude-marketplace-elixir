@@ -352,7 +352,7 @@ This rule complements **Integrity and Accuracy** above: that one says *don't fab
 <!-- @-import: ~/.claude/includes/delegation-rules.md -->
 # Delegation Flow Rules
 
-Load this in repos that actively delegate to cloud agents (Codex, Cursor, future agents). For repos with no delegation, these rules add cognitive load without payoff. Foundational rule for all four below: `critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST".
+Load this in repos that actively delegate to cloud agents (Codex, Cursor, future agents). For repos with no delegation, these rules add cognitive load without payoff. Foundational rule for all five below: `critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST".
 
 ## 🚨 DON'T STEAL CLOUD-AGENT-DELEGATED TASKS
 
@@ -429,7 +429,7 @@ Pre-commit `code-review` (Phase 2 sub-phase) + bots (Phase 3, CodeRabbit/Copilot
 
 ## 🚨 POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS
 
-**During an active `linear-workflow` flow, posting Linear comments and cloud-agent PR comments is DEFAULT-DO, not default-ask.** The Claude Code harness lists "creating/closing/commenting on PRs or issues" alongside `git push` as actions requiring user confirmation. That generic caution is correctly tuned for one-off PR comments on unfamiliar repos; it's wrong-tuned for a delegation queue the user has already authorized work in. This rule explicitly overrides the harness default for the scoped set below.
+**During an active delegation flow, posting Linear comments and cloud-agent PR comments is DEFAULT-DO, not default-ask.** The Claude Code harness lists "creating/closing/commenting on PRs or issues" alongside `git push` as actions requiring user confirmation. That generic caution is correctly tuned for one-off PR comments on unfamiliar repos; it's wrong-tuned for a delegation queue the user has already authorized work in. This rule explicitly overrides the harness default for the scoped set below.
 
 **In scope (default DO, no permission ask):**
 - Linear issue comments — `@cursor` / `@codex` summon mentions, push-back paragraphs, evidence-tier asks (Tidewave findings, hex-docs lookups), status-transition narration
@@ -442,7 +442,7 @@ Pre-commit `code-review` (Phase 2 sub-phase) + bots (Phase 3, CodeRabbit/Copilot
 - Creating new Linear issues outside the explicit task the user asked you to delegate
 - Anything where the user hasn't named the project, queue, or PR you're operating in
 
-**Why:** the asymmetric push-back model in `linear-workflow.md` only works if comment-posting is friction-free. If every `@cursor` mention requires "should I post this?" confirmation, the loop slows to manual-dictation pace — exactly the failure mode the delegation pattern exists to eliminate. Observed failure: Claude evading every comment-decision during active flows, treating each post as a fresh permission question — defeating the queue model.
+**Why:** the asymmetric push-back model in `agent-pr-review.md` only works if comment-posting is friction-free. If every `@cursor` mention requires "should I post this?" confirmation, the loop slows to manual-dictation pace — exactly the failure mode the delegation pattern exists to eliminate. Observed failure: Claude evading every comment-decision during active flows, treating each post as a fresh permission question — defeating the queue model.
 
 **How to apply:**
 - Surface what you're about to post in one short line ("Posting push-back to Linear issue MW-247: missing nil-check in `validate_address/1`"), then post. Don't wait for "ok."
@@ -462,6 +462,27 @@ Pre-commit `code-review` (Phase 2 sub-phase) + bots (Phase 3, CodeRabbit/Copilot
 | Linear / cloud-agent-PR comments                                              | ✅ default DO                 |
 
 Commits outside tracked worktrees / `codex/*` branch-pushes / merges with failed preconditions are irreversible-by-default; comments are reversible and ARE the workflow. `cursor/*` force-pushes and feature-branch auto-merge sit between — gated on preconditions, but once preconditions hold, re-asking per-call defeats the loop. The asymmetry is deliberate.
+
+## 🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH
+
+**Push-back is the default; never amend a cloud agent's branch (`codex/*`, `cursor/*`, future agent branches) to land a review fix.** The agent authored the work — corrections go back as a Linear `@cursor` / `@codex` comment or a GitHub PR review comment, and the agent re-pushes. Authorship stays intact and every change routes through the shared CI gate (`harness.yml`) instead of a local edit the agent never sees.
+
+Fix-locally is the narrow exception, reserved for env-constraint cases the agent fundamentally can't verify — see `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Even then, the preferred channel is a verbatim paste-as-comment the agent applies, not a direct push.
+
+**Two authorized exceptions, both scope-bound:**
+
+1. **`cursor/*` one-shot force-push** — once the user authorizes a push to a specific `cursor/<name>` branch, it's scope-bound to that branch for the session. See § "Force-Push to `cursor/*` Is One-Shot Scope Authorization" below.
+2. **Rebase-only carve-out (merge-train mode)** — during a `flow-review` merge train, rebasing a cloud-agent branch onto an advanced default branch + `git push --force-with-lease` is allowed when the post-rebase diff is byte-identical outside conflict regions and conflicts are resolved mechanically (no semantic edits). The full invariants live in `flow-review.md` § "Rebase cascade" — that file is the canonical statement of the carve-out.
+
+**Forbidden under any condition:** semantic conflict resolution during a rebase, any logic / function-body edit on an agent's branch, any push to `codex/*` outside the rebase-only carve-out, any force-push without `--force-with-lease`.
+
+**Why:** amending the agent's branch silently self-grades the work and breaks the implementer/reviewer separation the delegation model depends on. The agent never learns what was wrong, so the next PR repeats the mistake.
+
+### Cross-references
+
+- `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent" — when fix-locally is the narrow exception, and the paste-as-comment channel
+- `flow-review.md` § "Rebase cascade" — canonical statement of the rebase-only carve-out invariants
+- `delegation-rules.md` § "Force-Push to `cursor/*` Is One-Shot Scope Authorization" — the cursor-branch exception in detail
 
 ## 🟡 Force-Push to `cursor/*` Is One-Shot Scope Authorization
 
@@ -612,7 +633,7 @@ Findings during code review or PR review have a ceremony floor below which they 
 
 **Why "correctness × size" not "D/B/U × LOC":** D/B/U scores prioritize tracked work; they don't decide whether work should be tracked. A D:1 finding can still be a real bug (3-line missing nil-check) — dropping it because the score is low is exactly the failure mode "iterate fast but error-free" forbids. Correctness vs cosmetic is the load-bearing axis; LOC is just a tiebreaker for tracking-vs-inline.
 
-**Cross-references (delegation flows only — applies if `delegation.md` is imported):** push-back-vs-fix-locally calculus is in `linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Hard rule against pushing to cloud-agent branches is in `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
+**Cross-references (delegation flows only — applies if `delegation.md` is imported):** push-back-vs-fix-locally calculus is in `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Hard rule against pushing to cloud-agent branches is in `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
 
 ### Task Descriptions as Prompts
 
@@ -1701,7 +1722,7 @@ plugins/
 └── cloud-delegation/         # Linear-as-queue + cloud-agent (Codex/Cursor) delegation
     ├── .claude-plugin/
     │   └── plugin.json
-    └── skills/               # linear-workflow, cloud-agent-environments
+    └── skills/               # linear-queue, agent-dispatch, agent-pr-review, flow-review, linear-workflow hub, cloud-agent-environments, sprite-claude-code
 ```
 
 ### Key Concepts
@@ -1735,7 +1756,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (33 total)
+### Skills (38 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
@@ -1787,7 +1808,7 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` post-PR-create / post-merge to avoid duplicate dual-reviewer cost (every commit reaches audit-review either way via worktree-workflow auto-invoke). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
 | commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label** then chains audit-review against the merge SHA |
-| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-workflow` (post-merge for non-auto-merge cases) |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-queue` (self-authored worktree flow, post-merge for non-auto-merge cases) |
 
 **Task-driver plugin** (1 skill):
 
@@ -1795,12 +1816,19 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | task-driver | Roadmap-driven task execution — select by efficiency, implement, update all docs |
 
-**Cloud-delegation plugin** (2 skills):
+**Cloud-delegation plugin** (7 skills):
+
+The Linear-as-queue + cloud-agent delegation workflow is split into four composable skills along a substrate/layer axis, plus a thin hub index. `linear-queue` is standalone — usable without cloud agents at all.
 
 | Skill | Description |
 |-------|-------------|
-| linear-workflow | Linear-as-queue + cloud-agent (Codex, Cursor) delegation — flows, polling, push-back-vs-fix matrix, fetching comments from both GitHub PR and Linear issue, cross-repo coordination |
+| linear-queue | Substrate — Linear MCP setup, workspace shape, issue-body-as-prompt template, status transitions, self-authored worktree flow, cross-repo coordination, ROADMAP-fallback. **Standalone** — usable without cloud agents |
+| agent-dispatch | Dispatch layer — push self-contained tasks to cloud agents (Codex, Cursor): delegation flows, per-agent eligibility, plan-shaped issue specs, batch sizing, pre-flight conflict detection |
+| agent-pr-review | Review layer — review and land cloud-agent PRs: polling, comment-fetch, review tiering, push-back-vs-fix-locally matrix, wake-mention discipline |
+| flow-review | Merge-train mode for 2+ open cloud-agent PRs — dependency-sort, rebase cascade, per-PR auto-merge |
+| linear-workflow | Hub index — points to the four skills above; use it to find which skill owns a concern |
 | cloud-agent-environments | Cloud-agent env reference — what each cloud agent can/can't reach (hex.pm, mix tasks, Tidewave, HTTP), runtime gotchas, AGENTS.md generation workflow |
+| sprite-claude-code | Operational reference for Fly Sprite-hosted Claude Code as a third cloud-delegation target |
 
 **Skill Composition**: Skills are single-purpose and composed by agents/commands. `usage-rules` provides conventions (how to use correctly), `hex-docs-search` provides API docs (what's available). Agents can invoke both for comprehensive guidance.
 

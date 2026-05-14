@@ -77,7 +77,7 @@ Read `ROADMAP.md`, project CLAUDE.md, and any user-pointed-at docs. Survey the c
 
 ### P2. Draft Plan with Acceptance Criteria
 
-The drafted plan IS the issue body. Use the plan-shaped template from `linear-workflow.md` § "Plan-Shaped Linear Task Specs":
+The drafted plan IS the issue body. Use the plan-shaped template from `agent-dispatch.md` § "Plan-Shaped Linear Task Specs":
 
 ```markdown
 ## Context
@@ -146,7 +146,7 @@ Capture the returned issue URL (e.g. `https://linear.app/<workspace>/issue/INE-2
 
    The commit lands on the host branch (main checkout — no worktree exists yet for an unimplemented task). This is an explicit exception to the "no commits to shared branches without authorization" rule: Plan-and-File's contract IS the filed plan, so committing the row + plan on the host branch is part of the contract.
 
-(See `linear-workflow.md` § "ROADMAP-Fallback Flow" for the broader pattern.)
+(See `linear-queue.md` § "ROADMAP-Fallback Flow" for the broader pattern.)
 
 ### P6. Return the Handoff Identifier — STOP
 
@@ -226,7 +226,7 @@ Wait for the user to pick. Do NOT proceed without approval.
 
 ### Step 3.5: Cloud-Agent Delegation Router
 
-Before entering plan mode, check the selected task's marker (see `task-prioritization.md` § "Codex Delegation (`[CX]`)" for `[CX]`; `linear-workflow.md` § "Cursor Delegation Flow" + `cloud-agent-environments.md` for `[CSR]`):
+Before entering plan mode, check the selected task's marker (see `agent-dispatch.md` § "Codex Delegation (`[CX]`)" for `[CX]`; `agent-dispatch.md` § "Cursor Delegation Flow" + `cloud-agent-environments.md` for `[CSR]`):
 
 - **Task is `[CX]` or `[CSR]` and status is `🔄 in-review`** → the cloud agent's PR is open and awaiting review. Invoke `staged-review:commit-review` and exit normally — that skill polls Linear, runs the harness, presents a verdict. Do NOT proceed to plan mode (no local implementation).
 

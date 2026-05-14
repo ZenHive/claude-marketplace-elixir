@@ -10,7 +10,9 @@ allowed-tools: Read, Bash, Grep, Glob
 
 QuickJS-NG as a Zig NIF. Each runtime is a GenServer with a persistent JS context — run JS libraries, bridge Elixir↔JS bidirectionally. No Node.js.
 
-**Min version: `{:quickbeam, "~> 0.10.4"}`.** Requires `oxc ~> 0.10` (atom-keyed AST — see `oxc.md`). 0.10 adds `QuickBEAM.Cover` (JS line coverage via `mix test --cover`), `Beam.XML.parse` (xmerl), and bumps default `max_stack_size` 4→8MB. 0.10.2–0.10.4 are bug-fix releases worth the floor: segfault on nested empty BEAM map property enumeration (0.10.2), upstream QuickJS-NG GC fix for closures captured in long-lived handlers (0.10.3), and a use-after-free in coverage recording (0.10.4). If you're using `QuickBEAM.Cover` or holding runtimes in a supervision tree, do NOT pin below 0.10.4.
+**Min version: `{:quickbeam, "~> 0.10.11"}`.** Requires `oxc ~> 0.12` (atom-keyed AST — see `oxc.md`). Ships `QuickBEAM.Cover` (JS line coverage via `mix test --cover`), `Beam.XML.parse` (xmerl), and a default `max_stack_size` of 8MB. Vendored C symbols are hidden in the native library, so QuickBEAM can be loaded alongside other Zig/C NIFs without symbol collisions.
+
+**`npm_ex` is optional.** QuickBEAM does not pull `npm_ex` into your dep tree. The runtime / `eval` / `call` / `load_module` path works without it. Add `{:npm, "~> 0.7"}` to your own `mix.exs` only when you actually need `mix npm.install`, lockfile resolution, or browser-bundle hot-loading. The public `QuickBEAM.JS` surface (`parse`, `transform`, `minify`, `bundle`, `bundle_file`) does NOT depend on npm.
 
 **Does NOT cover:** static JS/TS analysis (→ OXC), installing npm packages (→ `mix npm.install`), frontend builds (→ Volt).
 
@@ -28,7 +30,7 @@ QuickJS-NG as a Zig NIF. Each runtime is a GenServer with a persistent JS contex
   handlers: %{},               # Elixir functions callable from JS
   define: %{},                 # compile-time globals (JSON-encoded)
   memory_limit: 256_000_000,   # 256MB default
-  max_stack_size: 8_000_000,   # 8MB default (was 4MB pre-0.10; ~55 recursive frames)
+  max_stack_size: 8_000_000,   # 8MB default — ~55 recursive frames
   max_convert_depth: 32,       # nested structure depth limit
   max_convert_nodes: 10_000    # total nodes in conversion
 )
@@ -101,7 +103,7 @@ QuickBEAM.set_global(rt, "items", [1, 2, 3])
 ### Module Loading
 
 ```elixir
-# Load ES module (v0.9.0+: propagates top-level evaluation errors as {:error, %JSError{}})
+# Load ES module — top-level evaluation errors propagate as {:error, %JSError{}}
 QuickBEAM.load_module(rt, "utils", "export function add(a, b) { return a + b; }")
 
 # Compile to bytecode (for reuse across runtimes)
@@ -197,7 +199,7 @@ With `:browser` APIs, native DOM is included:
 
 ### QuickBEAM.JS — TypeScript Toolchain
 
-Mirrors OXC's API but runs inside a runtime. Same atom-keyed contract as OXC 0.7+.
+Mirrors OXC's API but runs inside a runtime. Same atom-keyed AST contract as OXC.
 
 ```elixir
 {:ok, ast} = QuickBEAM.JS.parse(source, "file.ts")
@@ -209,7 +211,7 @@ Mirrors OXC's API but runs inside a runtime. Same atom-keyed contract as OXC 0.7
 
 Prefer OXC (Rust NIF) for performance. Use `QuickBEAM.JS` when you need `bundle_file` (disk resolution) or are already in a runtime.
 
-### QuickBEAM.Cover — JS Line Coverage (v0.10+)
+### QuickBEAM.Cover — JS Line Coverage
 
 Integrates with `mix test --cover`:
 
@@ -265,7 +267,7 @@ QuickBEAM.eval(rt, """
 """)
 ```
 
-### WebSocket (v0.9.0+)
+### WebSocket
 
 Mint-backed, full JS `WebSocket` API — `onopen`, `onmessage`, `onclose`, `onerror`, `send()`, `close()`, subprotocol negotiation:
 
@@ -284,7 +286,7 @@ Mint-backed, full JS `WebSocket` API — `onopen`, `onmessage`, `onclose`, `oner
 """, timeout: 15_000)
 ```
 
-### WebAssembly (v0.9.0+)
+### WebAssembly
 
 WAMR-backed, standard JS `WebAssembly` API — `Module`, `Instance`, `Memory`, `Table`, `Global`, `compile`, `instantiate`, `validate`, `CompileError`, `LinkError`, `RuntimeError`.
 

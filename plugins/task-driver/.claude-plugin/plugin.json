@@ -1,6 +1,6 @@
 {
   "name": "task-driver",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Phase 1 of the six-phase development lifecycle. Two entry modes: Pickup (existing flow — read ROADMAP, score-and-rank shortlist, plan-mode design, implement with TODO tracking, update all project docs) and Plan-and-File (new in v1.2 — research → draft plan → EnterPlanMode → on ExitPlanMode approval, save_issue to Linear with status Todo OR ROADMAP-fallback row + .thoughts/plans/<id>.md, then STOP — fresh implementer session picks up). Plan-and-File preserves the implementer/reviewer separation principle: same session that designs a plan should not also implement against it without a clean session boundary. Phase Awareness header in SKILL.md (predecessor: user; successor: implementer in Phase 2).",
   "author": {
     "name": "DeltaHedge",

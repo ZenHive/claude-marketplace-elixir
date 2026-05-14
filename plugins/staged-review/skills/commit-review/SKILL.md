@@ -21,7 +21,7 @@ Read the PR diff. Read upstream reviewer comments (PR + Linear). Read CI status.
 
 The autonomy-first design rests on three layers: pre-merge correctness gate (this skill), post-merge hygiene (audit-review), and CI as the deterministic harness. Together they replace the old single-step user merge gate. See `delegation-rules.md` § "DON'T AUTO-MERGE PRS" for the precondition list and the `[BLOCK-MERGE]` escape hatch the user can label any PR with to manually pause an auto-merge.
 
-**Tier-2 Codex-Reviews-Cursor delegation is currently DISABLED** (2026-05-06; see `linear-workflow.md` § "Codex-Reviews-Cursor Pattern"). This skill is the single review path for cloud-agent PRs in v1. Step 10b retains its body as legacy reference but is gated behind the disabled-callout — do NOT spawn delegation issues.
+**Tier-2 Codex-Reviews-Cursor delegation is currently DISABLED** (2026-05-06; see `agent-dispatch.md` § "Codex Delegation (`[CX]`)"). This skill is the single review path for cloud-agent PRs in v1. Step 10b retains its body as legacy reference but is gated behind the disabled-callout — do NOT spawn delegation issues.
 
 ## Scope
 
@@ -125,7 +125,7 @@ digraph commit_review {
 
 Linear is **optional** as of v1.18. Two pickup modes; pick whichever fits the project state.
 
-**Linear-aware mode** (when Linear MCP is available — verified by checking that `mcp__linear-server__list_issues` exists in the tool inventory). Used for cloud-agent flows and self-authored worktrees that file against Linear (per `linear-workflow.md` § "Self-Authored Worktree Flow"). Skill uses `mcp__linear-server__list_issues`, `mcp__linear-server__get_issue`, `mcp__linear-server__list_comments`, and (for comment posting) `mcp__linear-server__save_comment`.
+**Linear-aware mode** (when Linear MCP is available — verified by checking that `mcp__linear-server__list_issues` exists in the tool inventory). Used for cloud-agent flows and self-authored worktrees that file against Linear (per `linear-queue.md` § "Self-Authored Worktree Flow"). Skill uses `mcp__linear-server__list_issues`, `mcp__linear-server__get_issue`, `mcp__linear-server__list_comments`, and (for comment posting) `mcp__linear-server__save_comment`.
 
 **gh-only mode** (Linear MCP absent OR self-authored worktree without a Linear issue OR explicit user invocation with a PR number). Skill takes the PR as a starting point and uses `gh pr view`, `gh pr diff`, `gh api` for everything. The Linear-side context (acceptance criteria, prior push-back rounds) is replaced by the PR body, the source-issue ROADMAP row (if any), and existing PR review comments. Steps that call `mcp__linear-server__*` short-circuit cleanly:
 
@@ -138,7 +138,7 @@ Linear is **optional** as of v1.18. Two pickup modes; pick whichever fits the pr
 
 **Mode detection is one-shot at Step 1.** Don't bounce between modes mid-flow. If Linear MCP is available BUT the PR has no linked Linear issue (rare for cloud-agent PRs, common for self-authored worktree PRs that the user opened locally without filing in Linear first), fall back to gh-only mode for THAT PR specifically.
 
-**No abort.** Earlier versions of this skill (≤ v1.17) aborted at Step 1 when Linear MCP was missing. That gate stranded self-authored worktree PRs and projects that intentionally don't use Linear (per `linear-workflow.md` § "ROADMAP-Fallback Flow"). The mode-split in v1.18+ removes the gate.
+**No abort.** Earlier versions of this skill (≤ v1.17) aborted at Step 1 when Linear MCP was missing. That gate stranded self-authored worktree PRs and projects that intentionally don't use Linear (per `linear-queue.md` § "ROADMAP-Fallback Flow"). The mode-split in v1.18+ removes the gate.
 
 ### Step 2: List PRs Awaiting Review
 
@@ -185,9 +185,9 @@ CI_STATE=$(gh pr checks <number> --json bucket -q '[.[] | .bucket] | unique')
 # CI_STATE = ["pass"] means all checks succeeded
 ```
 
-If `IS_DRAFT == "true"` AND `CI_STATE == ["pass"]`, run `gh pr ready <number>` to flip the PR to ready-for-review. Conservative — never flip a still-running, failing, or mixed-state PR (drafts the user kept intentionally as drafts must have CI not-yet-green; if a reviewer wants to reset, they un-ready manually). This compensates for cloud-agent template drift where Cursor opens a PR with `--draft` and Linear's PR-opened-non-draft → In Progress auto-transition (per `~/.claude/includes/linear-workflow.md` § "Linear GH Auto-Transitions") doesn't fire until the PR is undrafted. The cartouche audit (PR #36) showed drafts sat for ~31 minutes before manual flip — this check eliminates that delay class for any PR that already passed CI.
+If `IS_DRAFT == "true"` AND `CI_STATE == ["pass"]`, run `gh pr ready <number>` to flip the PR to ready-for-review. Conservative — never flip a still-running, failing, or mixed-state PR (drafts the user kept intentionally as drafts must have CI not-yet-green; if a reviewer wants to reset, they un-ready manually). This compensates for cloud-agent template drift where Cursor opens a PR with `--draft` and Linear's PR-opened-non-draft → In Progress auto-transition (per `~/.claude/includes/linear-queue.md` § "Status Transitions") doesn't fire until the PR is undrafted. The cartouche audit (PR #36) showed drafts sat for ~31 minutes before manual flip — this check eliminates that delay class for any PR that already passed CI.
 
-**Default flow is review-only — no worktree, no checkout.** The reviewer reads the diff via `gh` commands against the PR head; the host session's branch and working tree are never touched. Worktree-checkout is **lazy**: spawned only later, when Step 6 falls back to local harness OR Step 7 routes a finding to a fix-locally matrix row. This default avoids the silent bias toward "I'll amend this" that branch checkout creates, and keeps the push-back-default posture (per `~/.claude/includes/linear-workflow.md` § "Default flow is review-only").
+**Default flow is review-only — no worktree, no checkout.** The reviewer reads the diff via `gh` commands against the PR head; the host session's branch and working tree are never touched. Worktree-checkout is **lazy**: spawned only later, when Step 6 falls back to local harness OR Step 7 routes a finding to a fix-locally matrix row. This default avoids the silent bias toward "I'll amend this" that branch checkout creates, and keeps the push-back-default posture (per `~/.claude/includes/agent-pr-review.md` § "Default flow is review-only").
 
 Find the PR linked to the Linear issue. Linear surfaces linked PRs in the issue's `attachments` or in the body. If unsure, search:
 
@@ -246,7 +246,7 @@ This matches the `git-worktrees` skill convention — see `plugins/elixir/skills
 
 ### Step 5: Fetch Existing Comments — GitHub PR AND Linear Issue
 
-**Before auditing, read both comment streams.** Auditing without reading them duplicates work and misses context that's already documented (intent, prior discussion, won't-fix decisions, scope amendments, prior push-back rounds). This is the same shape covered in `~/.claude/includes/linear-workflow.md` § "Fetch Existing Comments Before Auditing" — apply both sub-blocks.
+**Before auditing, read both comment streams.** Auditing without reading them duplicates work and misses context that's already documented (intent, prior discussion, won't-fix decisions, scope amendments, prior push-back rounds). This is the same shape covered in `~/.claude/includes/agent-pr-review.md` § "Fetch Existing Comments Before Auditing" — apply both sub-blocks.
 
 **GitHub PR comments** — Copilot, CodeRabbit, and human reviewers may have left comments on the PR; both PR-level reviews and line-level review comments matter:
 
@@ -285,7 +285,7 @@ Triage the Linear thread for:
 - **Disputed** — your audit disagrees with an existing comment. Surface explicitly in Step 11 (verdict) so the user sees the disagreement and decides
 - **Scope-shifting** — a Linear comment re-scopes what the PR should do. Treat the comment's scope as authoritative for Step 9's acceptance-criteria cross-reference
 
-**Bot-finding policy: cite-and-skip, don't re-litigate.** CodeRabbit, Copilot, and Codex's GitHub bot run on every PR by default and produce high-signal findings (`linear-workflow.md` § "Review Tiering" cartouche audit: the 3-bot ensemble caught every substantive code-correctness defect this skill caught at critical tier). The verdict's job is to ORCHESTRATE these — list bot findings explicitly with attribution + agree/disagree disposition, and only ADD findings the bots missed (project-specific rule enforcement, scope/intent drift, deep diagnosis, runtime/Tidewave-verified evidence). Format in the verdict:
+**Bot-finding policy: cite-and-skip, don't re-litigate.** CodeRabbit, Copilot, and Codex's GitHub bot run on every PR by default and produce high-signal findings (`agent-pr-review.md` § "Review Tiering: When Full Tier 2 Earns Its Cost" cartouche audit: the 3-bot ensemble caught every substantive code-correctness defect this skill caught at critical tier). The verdict's job is to ORCHESTRATE these — list bot findings explicitly with attribution + agree/disagree disposition, and only ADD findings the bots missed (project-specific rule enforcement, scope/intent drift, deep diagnosis, runtime/Tidewave-verified evidence). Format in the verdict:
 
 > **Bot findings (CodeRabbit, Copilot, Codex GitHub bot):**
 > - `lib/foo/bar.ex:42` — CodeRabbit flagged missing nil-guard. **Agreed** — push back to agent for fix.
@@ -294,7 +294,7 @@ Triage the Linear thread for:
 > **New findings (not raised by bots):**
 > - `lib/cartouche/sleuth.ex:88` — TODO marker missing per project convention (cite ROADMAP)
 
-If a finding overlaps with a bot finding, do NOT present it as fresh — that's the duplicating-bot-work failure mode `linear-workflow.md` § "Review Tiering" warns against. If there are no existing comments on either stream (fresh PR, fresh Linear issue), proceed normally.
+If a finding overlaps with a bot finding, do NOT present it as fresh — that's the duplicating-bot-work failure mode `agent-pr-review.md` § "Review Tiering: When Full Tier 2 Earns Its Cost" warns against. If there are no existing comments on either stream (fresh PR, fresh Linear issue), proceed normally.
 
 ### Step 5.5: Classify PR for Fast-Path Routing
 
@@ -386,7 +386,7 @@ EOF
 )"
 ```
 
-Scope: line-level findings, code-specific reasoning, cite `file:line`. This is where the cloud-agent's GitHub bot picks up the mention and iterates. Prefix with `@codex` / `@cursor` per `~/.claude/includes/linear-workflow.md` § "Push-Back vs Fix Locally Matrix" so the agent receives the mention.
+Scope: line-level findings, code-specific reasoning, cite `file:line`. This is where the cloud-agent's GitHub bot picks up the mention and iterates. Prefix with `@codex` / `@cursor` per `~/.claude/includes/agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent" so the agent receives the mention.
 
 **Linear issue comment (ONE PARAGRAPH ON SCOPE / INTENT MATCH):**
 
@@ -432,7 +432,7 @@ For each blocker, classify by whether **the implementing agent can realistically
 | Coverage below tier on a touched module | New code → **push back**. Pre-existing debt the PR uncovered → **fix locally** | New code → **push back**. Pre-existing debt the PR uncovered → **fix locally** | New-code coverage is the agent's responsibility; legacy gap surfacing now → local fix per `critical-rules.md` § "RAISE COVERAGE BEFORE MUTATING" |
 | CI format / credo / dialyzer / doctor drift | **Push back** — quote the failing check + log link | **Push back** — quote the failing check + log link | Both agents can re-run the checks against CI signal. Cursor especially (mix tasks runnable). Local fix-up was the old default; the harness-via-CI shift makes push-back viable |
 
-**When a matrix row routes to fix-locally, the default channel is paste-as-`@cursor`-comment with a verbatim code block** (per `~/.claude/includes/linear-workflow.md` § "Preferred channel for fix-locally-required findings"). The reviewer composes the fix locally — using hex_docs MCP, Tidewave, WebFetch on RFC/EIP, etc. — and pastes the code block into a Linear `@cursor` / `@codex` mention. The agent applies, re-pushes, CI verifies the combined state in **one** harness run. Authorship preserved; single error gate.
+**When a matrix row routes to fix-locally, the default channel is paste-as-`@cursor`-comment with a verbatim code block** (per `~/.claude/includes/agent-pr-review.md` § "Preferred channel for fix-locally-required findings"). The reviewer composes the fix locally — using hex_docs MCP, Tidewave, WebFetch on RFC/EIP, etc. — and pastes the code block into a Linear `@cursor` / `@codex` mention. The agent applies, re-pushes, CI verifies the combined state in **one** harness run. Authorship preserved; single error gate.
 
 **Fallback (separate branch off the PR's base commit)** — only when the fix is too large to paste, too context-sensitive to apply verbatim, or requires generated artifacts the agent can't reproduce. This triggers Step 7b's worktree creation; the worktree is the staging surface, then a separate branch off the PR base. **Never amend `cursor/...` or `codex/...` branches directly** (per `critical-rules.md` § "🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH").
 
@@ -470,7 +470,7 @@ Same confidence filter as `code-review`: only report bugs you can name the trigg
 
 **Use Tidewave to verify suspected bugs before push-back.** Local Claude has `mcp__tidewave__project_eval` and live runtime access — neither Codex nor Cursor does. When the audit suspects a runtime/data-shape bug, verify in the **host project's** running BEAM (not the PR's worktree — Tidewave queries don't require the PR checked out, and the default review flow stays read-only). Paste the verified result into the push-back comment as evidence.
 
-This is a push-back **strengthener**, not a fix-locally trigger. Per `~/.claude/includes/linear-workflow.md` § "Tidewave is verification, not necessarily fix": Claude is the evidence generator; the implementing agent owns the fix. Only when the verified finding's fix can't be pasted does the matrix route to local-fix.
+This is a push-back **strengthener**, not a fix-locally trigger. Per `~/.claude/includes/agent-pr-review.md` § "Tidewave is verification, not necessarily fix": Claude is the evidence generator; the implementing agent owns the fix. Only when the verified finding's fix can't be pasted does the matrix route to local-fix.
 
 Verification examples worth pasting into push-back comments:
 
@@ -507,11 +507,11 @@ If a specific PR genuinely needs a pre-merge Codex pass (rare — auth/money/mig
 
 ### Step 10b: Cursor PR — Delegate Review to Codex Cloud (Fire-and-Fetch) — **DISABLED (2026-05-06)**
 
-> **🚨 DISABLED.** Tier-2 Codex-Reviews-Cursor delegation is paused — see `linear-workflow.md` § "Codex-Reviews-Cursor Pattern (Review Delegation)" for the structural-race rationale (INE-26 was canceled when PR #32 closed before Codex picked up the polling task) and the re-enable conditions. **Skip this step entirely on every invocation; proceed straight to Step 11 verdict.** The body below retains its content as historical reference for if/when delegation resumes.
+> **🚨 DISABLED.** Tier-2 Codex-Reviews-Cursor delegation is paused — see `agent-dispatch.md` § "Codex Delegation (`[CX]`)" for the structural-race rationale (INE-26 was canceled when PR #32 closed before Codex picked up the polling task) and the re-enable conditions. **Skip this step entirely on every invocation; proceed straight to Step 11 verdict.** The body below retains its content as historical reference for if/when delegation resumes.
 >
-> The bot ensemble (CodeRabbit, Copilot, Codex's own GitHub bot) already runs on every cloud-agent PR and covers correctness; this skill's role is the orchestration layer above the bots (triage, project-rule enforcement, deep diagnosis, push-back routing) per `linear-workflow.md` § "Review Tiering". Don't re-introduce delegation issues for fresh PRs while this disable is in force.
+> The bot ensemble (CodeRabbit, Copilot, Codex's own GitHub bot) already runs on every cloud-agent PR and covers correctness; this skill's role is the orchestration layer above the bots (triage, project-rule enforcement, deep diagnosis, push-back routing) per `agent-pr-review.md` § "Review Tiering: When Full Tier 2 Earns Its Cost". Don't re-introduce delegation issues for fresh PRs while this disable is in force.
 
-When the PR being reviewed was implemented by Cursor, delegate the **review itself** to Codex Cloud. Codex is a stronger bug-finder than Claude on this user's PR surface; Cursor PRs ship with green CI and self-validation, so the high-value remaining work is deeper code-review, which Codex does well. This step composes the existing `linear-workflow.md` flows (Cursor implements + Codex delegates) into a single review-delegation pattern. See `linear-workflow.md` § "Codex-Reviews-Cursor Pattern (Review Delegation)" for the cross-flow shape.
+When the PR being reviewed was implemented by Cursor, delegate the **review itself** to Codex Cloud. Codex is a stronger bug-finder than Claude on this user's PR surface; Cursor PRs ship with green CI and self-validation, so the high-value remaining work is deeper code-review, which Codex does well. This step composes the existing `agent-dispatch.md` flows (Cursor implements + Codex delegates) into a single review-delegation pattern. See `agent-dispatch.md` § "Codex Delegation (`[CX]`)" for the cross-flow shape.
 
 **Trigger condition (BOTH must hold):**
 
@@ -744,7 +744,7 @@ else
 fi
 ```
 
-**Auto-remove only when the worktree is clean** (no staged or unstaged changes). When the Step 7 matrix routed any blocker to "fix locally," the staged changes live in the worktree by design — auto-removal would silently destroy intentional state. Surface the manual cleanup command instead and let the user decide whether to push the fixes (paste-as-`@cursor`-comment is preferred over a direct branch push — see `~/.claude/includes/linear-workflow.md` § "Preferred channel for fix-locally-required findings").
+**Auto-remove only when the worktree is clean** (no staged or unstaged changes). When the Step 7 matrix routed any blocker to "fix locally," the staged changes live in the worktree by design — auto-removal would silently destroy intentional state. Surface the manual cleanup command instead and let the user decide whether to push the fixes (paste-as-`@cursor`-comment is preferred over a direct branch push — see `~/.claude/includes/agent-pr-review.md` § "Preferred channel for fix-locally-required findings").
 
 The fast-path verdict (Step 11 fast-path block) cannot have local fixes (Step 7 is skipped on fast-path), so when a worktree exists on the fast path it always auto-removes.
 
@@ -843,11 +843,11 @@ Skill(audit-review) with arguments: <merge-sha>^..<merge-sha>
 
 ### Step 16: Linear Close-Out
 
-If the project doesn't use Linear (per `linear-workflow.md` § "ROADMAP-Fallback Flow"), skip this step entirely.
+If the project doesn't use Linear (per `linear-queue.md` § "ROADMAP-Fallback Flow"), skip this step entirely.
 
 Otherwise:
 
-1. **Verify Linear issue auto-transitioned to `Done`.** Linear's GH integration (per `linear-workflow.md` § "Linear GH Auto-Transitions") should fire PR-merged-to-default → `Done` within ~10 sec of merge. Check:
+1. **Verify Linear issue auto-transitioned to `Done`.** Linear's GH integration (per `linear-queue.md` § "Status Transitions") should fire PR-merged-to-default → `Done` within ~10 sec of merge. Check:
    ```
    mcp__linear-server__get_issue with the issue ID from Step 3
    ```
@@ -857,7 +857,7 @@ Otherwise:
    ```
    mcp__linear-server__save_issue with id + state: <Done state ID>
    ```
-   Surface a one-line note in the verdict: *"Linear auto-transition didn't fire — manually transitioned to Done. Consider verifying workspace config per `linear-workflow.md` § 'Linear GH Auto-Transitions'."*
+   Surface a one-line note in the verdict: *"Linear auto-transition didn't fire — manually transitioned to Done. Consider verifying workspace config per `linear-queue.md` § 'Status Transitions'."*
 
 3. **Post a closing comment on the Linear issue.** Single comment, scope: PR-link + merge SHA + audit-commit SHA + one-line summary + flag any divergence-dropped findings audit-review filed to ROADMAP. Format:
    ```
@@ -915,7 +915,7 @@ Skill ends here. The user can verify the state via Linear UI / `gh pr view` / `g
 | **Running `git worktree remove --force` to clean up a dirty review worktree silently** | **Discards Step 7 fix-locally staged changes the user explicitly intended to use as a paste-as-`@cursor`-comment fix. Step 12 auto-removes only when clean; dirty worktree → surface manual cleanup with the path. Forced removal is the user's call** |
 | **Pushing fixes to `cursor/...` or `codex/...` branch directly** | **Per `critical-rules.md` § "🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — paste as Linear comment with verbatim code block (preferred), or fallback to a separate branch off the PR base. Never amend the agent's branch. Override only with explicit user authorization, scope-bound to that PR** |
 | **Offering to file ≤5 LOC cosmetic findings as ROADMAP tasks** | **Ceremony floor (per `~/.claude/includes/task-prioritization.md` § "Ceremony Floor — When NOT to Open a Task") — push back inline OR drop with one-line rationale. ROADMAP queue is for cross-session coordination cost, not in-PR cleanup. Bugs at any size still always surface — never silently drop** |
-| **Treating "Tidewave verified" as a fix-locally trigger** | **Tidewave is verification, not fix. Verified evidence belongs in the push-back comment — the agent still owns the code (per `~/.claude/includes/linear-workflow.md` § "Tidewave is verification, not necessarily fix"). Only when the verified finding's CODE FIX is too large to paste does the matrix route to local-fix** |
+| **Treating "Tidewave verified" as a fix-locally trigger** | **Tidewave is verification, not fix. Verified evidence belongs in the push-back comment — the agent still owns the code (per `~/.claude/includes/agent-pr-review.md` § "Tidewave is verification, not necessarily fix"). Only when the verified finding's CODE FIX is too large to paste does the matrix route to local-fix** |
 | **Running Tidewave from inside the PR's worktree** | **Tidewave runs against the host project's running BEAM. Use it from the host (default read-only flow), NOT from a checked-out worktree. Worktree-checkout for verification is unnecessary and contradicts the read-only default — verification can happen without ever entering Step 7b** |
 | **Spinning up a worktree before knowing whether fix-locally is required** | **Step 4 reads diff via `gh pr diff` / `gh pr view` / `gh api`; Step 7b creates a worktree only when CI is absent OR a finding routes to fix-locally. Eager worktree creation biases the review toward "I'll amend this," contradicting the push-back default. Defer worktree creation until the trigger fires** |
 
@@ -924,9 +924,9 @@ Skill ends here. The user can verify the state via Linear UI / `gh pr view` / `g
 Closely related includes and skills the workflow composes with:
 
 - `~/.claude/includes/task-prioritization.md` § "Ceremony Floor — When NOT to Open a Task" — correctness × size floor for review-surface findings; bug-vs-cosmetic and small-vs-large guardrails on whether to push back, drop, or open a ROADMAP task
-- `~/.claude/includes/linear-workflow.md` § "Default flow is review-only" — the read-only default that gates worktree creation in Step 4 / 7b
-- `~/.claude/includes/linear-workflow.md` § "Preferred channel for fix-locally-required findings: paste-as-`@cursor`-comment" — the preferred channel for the rare fix-locally rows of the matrix
-- `~/.claude/includes/linear-workflow.md` § "Tidewave is verification, not necessarily fix" — Tidewave-as-evidence-generator pattern that strengthens push-back without triggering local fix
+- `~/.claude/includes/agent-pr-review.md` § "Default flow is review-only" — the read-only default that gates worktree creation in Step 4 / 7b
+- `~/.claude/includes/agent-pr-review.md` § "Preferred channel for fix-locally-required findings" — the preferred channel for the rare fix-locally rows of the matrix
+- `~/.claude/includes/agent-pr-review.md` § "Tidewave is verification, not necessarily fix" — Tidewave-as-evidence-generator pattern that strengthens push-back without triggering local fix
 - `~/.claude/includes/critical-rules.md` § "🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — hard rule against amending `cursor/...` or `codex/...` branches; user-scoped override
 - `~/.claude/includes/delegation-rules.md` § "DON'T AUTO-MERGE PRS" — auto-merge precondition list for feature-branch PRs (widened from cloud-agent-only in v1.18); `[BLOCK-MERGE]` label as the user's manual override
 - `~/.claude/includes/delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — auto-post posture for push-back drafts (default DO during active flow)

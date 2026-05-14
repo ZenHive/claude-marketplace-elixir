@@ -242,12 +242,12 @@ Detect orphaned `.audit/<old-sha>.md` files when a commit is amended (`git commi
 
 #### Task 43: Codex code-mutation re-enablement check [D:2/B:3/U:4 → Eff:1.75] 🚀
 
-The auto-merge precondition added in v1.16 mentions `codex/*` branches but Codex code-mutation is currently suspended per `linear-workflow.md`. Track when/if to re-enable so the auto-merge precondition becomes live for Codex too. Periodic check (quarterly?) on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.
+The auto-merge precondition added in v1.16 mentions `codex/*` branches but Codex code-mutation is currently suspended per `agent-dispatch.md`. Track when/if to re-enable so the auto-merge precondition becomes live for Codex too. Periodic check (quarterly?) on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.
 
 **Success criteria:**
 - Decision document: criteria for re-enabling Codex code-mutation
 - Verify auto-merge precondition #3 (`cursor/*` or `codex/*`) becomes live for Codex
-- Update `linear-workflow.md` and `cloud-agent-environments.md` to lift the suspension
+- Update `agent-dispatch.md` and `cloud-agent-environments.md` to lift the suspension
 - Run end-to-end Codex delegation test (Linear issue → `[CX]` → PR → `commit-review` → auto-merge → `audit-review`) before declaring re-enabled
 
 ---

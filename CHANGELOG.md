@@ -4,6 +4,21 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**Split the monolithic `linear-workflow` skill into four composable skills — cloud-delegation v1.11.0 → v1.12.0**
+
+The 596-line `linear-workflow` skill braided five concerns (one-time setup, dispatch, review/merge, the `flow-review` merge-train sub-workflow, cross-cutting reference) into one mega-skill — every invocation loaded all 596 lines when most needs were ~⅓. Worse, Linear-queue mechanics were welded to cloud-agent delegation: someone tracking their own non-delegated work in Linear, or running without cloud agents at all, still loaded the entire delegation stack. Split along a substrate/layer axis so the substrate is usable standalone.
+
+- **New skill `linear-queue`** (substrate) — Linear MCP setup, workspace shape, issue-body-as-prompt template, status transitions, self-authored worktree flow, cross-repo coordination, ROADMAP-fallback. **Standalone** — zero cloud-agent dependency; invoke it alone if you don't delegate. Keeps the `linear-` prefix honestly: it *is* Linear-centric.
+- **New skill `agent-dispatch`** (dispatch layer) — Codex/Cursor delegation flows, per-agent eligibility filtering, plan-shaped issue specs, code-only-PR acceptance criteria, batch sizing, pre-flight file-conflict detection, honest-gap discipline. Builds on `linear-queue`.
+- **New skill `agent-pr-review`** (review layer) — review tiering, the push-back-vs-fix-locally matrix by agent, fetching existing bot/human comments before auditing, polling for ready-for-review, wake-mention discipline, the bundled-code-revisions variant, `flow-stats.sh`. Pairs with `agent-dispatch`.
+- **New skill `flow-review`** (merge-train mode) — for 2+ open cloud-agent PRs: polls open PRs, classifies by tier and mergeability, dependency-sorts by file-overlap, runs the rebase cascade between merges. Rebase-carve-out invariants kept inline (so `flow-review` stays standalone-usable), annotated with `delegation-rules.md` as the canonical cross-ref.
+- **`linear-workflow` retained as a thin ~30-line hub index** — one-paragraph intro, the four-skill index, a composability note, a cross-ref table. Use it to find which skill owns a concern; invoke the specific skill for content.
+- **Canonical includes** — `~/.claude/includes/linear-workflow.md` carved into `linear-queue.md`, `agent-dispatch.md`, `agent-pr-review.md`, `flow-review.md` + the hub. `delegation.md` aggregator now imports the four content includes (not the hub). `scripts/sync-skills-from-includes.sh` gains four `MAPPINGS` entries.
+- **Stale-reference cleanup** — repointed all ~25 cross-references across `~/.claude/includes/` and the repo, fixing ~15 stale `§` section anchors absorbed or renamed over prior revisions (`Codex-Reviews-Cursor Pattern`, `Linear GH Auto-Transitions`, `MCP Tool Reference`, `Default flow is review-only`, `Tidewave is verification`, etc.). `commit-review/SKILL.md` alone carried ~17. Real H4 anchors added in the new skills so the surviving pointers resolve stably.
+- **Pure structural doc split** — content stays semantically identical; no workflow behavior changes. `marketplace.json` does NOT bump (adding skills to an existing plugin is not a catalog-structure change). Codex-friendly subset regenerated via `scripts/sync-codex-plugins.py --plugin cloud-delegation`.
+
 ### Removed
 
 **Retire `serena` + `notifications` plugins and repo-local commands/agents (marketplace v1.3.0 → v1.4.0)**

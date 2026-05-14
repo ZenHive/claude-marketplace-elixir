@@ -1,6 +1,6 @@
 ---
 name: cloud-agent-environments
-description: Operational reference for cloud-agent harnesses (Codex Cloud, Cursor Background Agent) — what each can and can't reach (hex.pm, mix tasks, Tidewave, external HTTP), runtime gotchas (Cursor's Erlang/Elixir paths, asdf shim interception, Credo TODO exit-code-2 expected behavior), self-validation expectations (Cursor should run the harness pre-PR; Codex can't), and the AGENTS.md generation workflow that gives both agents the same instruction set Claude Code uses. Loaded into AGENTS.md via @-import. Sibling of linear-workflow (the reviewer/dispatcher view).
+description: Operational reference for cloud-agent harnesses (Codex Cloud, Cursor Background Agent) — what each can and can't reach (hex.pm, mix tasks, Tidewave, external HTTP), runtime gotchas (Cursor's Erlang/Elixir paths, asdf shim interception, Credo TODO exit-code-2 expected behavior), self-validation expectations (Cursor should run the harness pre-PR; Codex can't), and the AGENTS.md generation workflow that gives both agents the same instruction set Claude Code uses. Loaded into AGENTS.md via @-import. Sibling of the `agent-dispatch` / `agent-pr-review` delegation skills (the dispatcher / reviewer view).
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -10,26 +10,32 @@ allowed-tools: Read, Grep, Glob, Bash
 
 Operational reference for cloud-agent harnesses (Codex Cloud, Cursor Background Agent). Loaded into AGENTS.md via `@`-import so agents read env-specific runtime details, gotchas, and capability scope before doing work.
 
-For the **reviewer / dispatcher** view (push-back-vs-fix calculus, eligibility markers), see `linear-workflow.md` § "Cloud Agent Environments". This file is the **agent's own** env reference.
+For the **reviewer / dispatcher** view (push-back-vs-fix calculus, eligibility markers), see `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent" and `agent-dispatch.md` § "Delegation Eligibility Filter Order". This file is the **agent's own** env reference.
 
 ### Codex Cloud
 
 #### 🚨 Code-mutation delegation SUSPENDED (Elixir projects, 2026-05-05)
 
-**Codex Cloud has no Elixir/Erlang runtime.** `mix`, `iex`, `elixir`, and `erl` are not installed in the harness — verified 2026-05-05 against in-flight cartouche PRs where Codex's own testing log surfaced `mix: command not found in this container` for every attempted `mix` invocation (compile, format, test, credo, dialyzer). PRs landed with zero harness evidence; every check the agent claimed to run was a no-op.
+**Codex Cloud's Elixir path is broken at the proxy layer, not the runtime layer.** Verified 2026-05-13 with a Symphony Elixir dispatch (sharper than the 2026-05-05 cartouche finding that recorded this as "no runtime"):
 
-This is a structural env gap, not a configuration miss. Until the Codex Cloud harness is restored to a working Elixir env, **`[CX]` code-mutation delegation is suspended** for any Elixir repo. See `task-prioritization.md` § "Codex Delegation (`[CX]`)" for the policy lock; route everything to `[CSR]` (Cursor) in the meantime — Cursor's harness has Elixir/OTP and runs the full mix toolchain.
+- `mise` is present in the image, with **Erlang 27.1.2** and **Elixir 1.18.3-otp-27** pre-installed at `/root/.local/share/mise/installs/{erlang,elixir}/...`. Binaries exist but aren't on default PATH — naive `mix ...` fails `command not found`, which is what produced the original "no runtime" misread.
+- Even when you point at the pre-installed binary directly with explicit PATH + `MIX_HOME`, **`mix local.hex` and `mix deps.get` return `hex.pm` 403 Forbidden through the agent-phase proxy**. The Codex Cloud "Common dependencies" allowlist preset covers crates.io / npmjs.com / pypi.org but not hex.pm.
+- Repos that pin a newer toolchain via `mise.toml` (e.g. Symphony's Erlang 28 / Elixir 1.19.5-otp-28) hit a second wall: `mise install` can't reach the toolchain assets through the proxy either.
 
-**What's still permitted (no runtime needed):** review-only delegations — see § "Review-only tasks" below. Codex reads PR diffs from the issue body and posts a verdict comment; no `mix` invocation, no compile, no test runner involved. The Codex-Reviews-Cursor pattern (in `linear-workflow.md`) remains usable while the code-mutation suspension is in force, but treat as exception-not-default until the broader env is verified healthy.
+Net effect is the same — Codex can't run any `mix` task, ships zero harness evidence — but the load-bearing fix is hex.pm allowlisting (and ideally putting the mise-installed Elixir on default PATH), not "install Elixir." Until that lands, **`[CX]` code-mutation delegation is suspended** for any Elixir repo. See `task-prioritization.md` § "Codex Delegation (`[CX]`)" for the policy lock; route everything to `[CSR]` (Cursor) in the meantime — Cursor's harness has Elixir/OTP on PATH, hex.pm reachable, and runs the full mix toolchain.
 
-#### Constraints (no internet, no Elixir runtime)
+Public ask filed with Symphony team: [openai/symphony#70](https://github.com/openai/symphony/discussions/70) (Q&A discussion, 2026-05-13).
+
+**What's still permitted (no runtime needed):** review-only delegations — see § "Review-only tasks" below. Codex reads PR diffs from the issue body and posts a verdict comment; no `mix` invocation, no compile, no test runner involved. The Codex-Reviews-Cursor pattern (see `agent-dispatch.md` § "Codex Delegation (`[CX]`)") remains usable while the code-mutation suspension is in force, but treat as exception-not-default until the broader env is verified healthy.
+
+#### Constraints (configurable network, no Elixir runtime)
 
 Even setting aside the suspended-delegation policy above, Codex Cloud's env has structural gaps that scope what it can do at all:
 
-- **No Elixir runtime.** `mix`, `iex`, `elixir`, `erl` not installed. Codex cannot run any mix task — compile, format, test, credo, dialyzer all unavailable. Verified 2026-05-05.
-- **No hex.pm.** Even if mix were installed, `mix deps.get` would fail — third-party hex-package API signatures cannot be verified at runtime. Stick to API surface that's reliably in training data; flag any uncertainty as `# TODO: verify against hex_docs` for the local reviewer rather than guessing.
+- **Elixir runtime present but unreachable.** `mise` ships with Erlang 27.1.2 + Elixir 1.18.3-otp-27 installed at `/root/.local/share/mise/installs/{erlang,elixir}/...`, but not on default PATH (so naive `mix` fails `command not found`). Even with explicit PATH/`MIX_HOME` pointing at the pre-installed binary, **`hex.pm` returns 403 through the proxy** — `mix local.hex` and `mix deps.get` both fail at the registry layer. Repos pinning a newer toolchain via `mise.toml` also can't fetch toolchain assets via `mise install`. Verified 2026-05-05 (initial finding, recorded as "no runtime") and 2026-05-13 (sharpened with Symphony Elixir dispatch transcript). This is the load-bearing reason for the Elixir suspension above; the fix is hex.pm allowlisting, not runtime install.
+- **Network access is environment-configurable, not categorically absent.** Per [OpenAI's Codex Cloud docs](https://developers.openai.com/codex/cloud/internet-access), the agent phase defaults to offline, but operators may enable per-environment allowlists. The "Common dependencies" preset reaches **crates.io, npmjs.com, pypi.org, and ~70 dev domains** (source control, vendor docs for the common ecosystems, etc.). **hex.pm is NOT in the common preset** — even with the preset enabled, `mix deps.get` would still fail, which is why this whole section reads "no internet" from the Elixir perspective. For Rust / Python / Node delegations: assume reach to the canonical registry is plausible-but-unverified; try before trusting, and fall back to in-prompt context when blocked. Don't assume RFCs / EIPs / arbitrary vendor docs are reachable unless explicitly allowlisted.
 - **No Tidewave.** `mcp__tidewave__project_eval` is not available. Tasks needing live-data diagnosis or runtime-state inspection should not be in scope.
-- **No external HTTP.** RFCs, EIPs, reference implementations, vendor docs cannot be fetched. Cite the spec the user already pasted into the issue body; don't speculate from training-data recall.
+- **HTTP-method restriction (when network IS enabled).** Operators can lock allowlisted domains to `GET` / `HEAD` / `OPTIONS` only; state-changing methods (`POST`, `PUT`, `PATCH`, `DELETE`) are then blocked. Treat any allowlisted endpoint as read-only unless verified otherwise.
 
 #### What to ship in the PR (when delegation is restored)
 
@@ -37,7 +43,7 @@ When the runtime gap is fixed and `[CX]` code-mutation delegation resumes, Codex
 
 - **List acceptance criteria you addressed** in the PR description (one bullet per criterion).
 - **Flag uncertainty explicitly** — "I'm assuming `assert_receive/3` here based on training-data recall; please verify against ExUnit's hex docs."
-- **Don't fabricate test counts or runtime claims** you can't verify. Past failure mode (2026-05-05): Codex PRs claimed harness runs that the env couldn't actually execute. CI is the only honest signal until the env is verified — see `linear-workflow.md` § "CI as the Shared Harness".
+- **Don't fabricate test counts or runtime claims** you can't verify. Past failure mode (2026-05-05): Codex PRs claimed harness runs that the env couldn't actually execute. CI is the only honest signal until the env is verified — see `agent-pr-review.md` § "CI as the Shared Harness".
 
 #### Review-only tasks (review delegation)
 
@@ -91,7 +97,7 @@ curl -s -X POST http://localhost:4002/tidewave/mcp \
 
 Tools available on Cursor identical to local: `project_eval`, `get_docs`, `get_source_location`, `get_logs`, `search_package_docs`. Port comes from the project's Tidewave registry entry (`~/.claude/tidewave-ports.md`); the `.cursor/mcp.json` URL must match.
 
-**Implication for delegation:** live-data / runtime-state tasks are NOT a Cursor-eligibility blocker the way they used to be. Push-back-vs-fix matrix updates accordingly — see `linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent".
+**Implication for delegation:** live-data / runtime-state tasks are NOT a Cursor-eligibility blocker the way they used to be. Push-back-vs-fix matrix updates accordingly — see `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent".
 
 #### Self-validation expectation
 
@@ -112,7 +118,7 @@ mix dialyzer                     # MUST be clean — first-run PLT cost is on Cu
 
 **Why MUST not SHOULD:** Cursor's env has the runtime to do this work; if the harness fails post-push, every reviewer/CI cycle that catches it is wasted ceremony. Push-back-on-red-harness is the cheapest enforcement loop — Cursor amends, re-pushes, CI re-runs in parallel with whatever else is in flight. The reviewer's audit attention should land on the diff's *substance* (acceptance criteria coverage, design judgment, edge cases the harness can't catch), not on `mix format` complaints.
 
-**For the issue body's acceptance criteria:** see `linear-workflow.md` § "Mandatory Acceptance-Criteria Bullets" — every delegated issue carries an explicit "harness green at PR open" bullet, so a failing harness is a blocking acceptance-criterion miss, not a "soft polish" item.
+**For the issue body's acceptance criteria:** see `agent-dispatch.md` § "Code-Only PRs + Required Acceptance Criteria" — every delegated issue carries an explicit "harness green at PR open" bullet, so a failing harness is a blocking acceptance-criterion miss, not a "soft polish" item.
 
 #### Gotchas
 
@@ -131,7 +137,7 @@ The shift this enables:
 
 - **Reviewer reads `gh pr checks <n>`** instead of running the full local harness (was 15+ min per PR via local mix; CI runs in parallel with the agent's work and is done by the time the reviewer looks)
 - **Push-back becomes the default for harness drift.** When CI flags a format / credo / dialyzer / coverage issue, the reviewer's job is to point the agent at the failing check — not to fix it locally. The cloud agent (Cursor especially, since it has hex.pm + can run mix) iterates against the same CI signal the reviewer sees
-- **Local fix shrinks to the env-constraint exception cases.** Per `linear-workflow.md` § "Push-Back-vs-Fix-Locally Matrix by Agent", local-fix is reserved for items the agent fundamentally can't verify — hex.pm for Codex, Tidewave for Codex (Cursor reaches it via curl), external specs for Codex. CI handles everything else
+- **Local fix shrinks to the env-constraint exception cases.** Per `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent", local-fix is reserved for items the agent fundamentally can't verify — hex.pm for Codex, Tidewave for Codex (Cursor reaches it via curl), external specs for Codex. CI handles everything else
 
 `staged-review:commit-review` defers to CI status when present (Step 6 reads `gh pr checks` and treats green as the harness-gate signal). When CI is absent, it falls back to running the local harness inline and surfaces a `TODO(setup-ci)` finding pointing at this skill so the next iteration of the PR has CI.
 
@@ -171,8 +177,8 @@ Fly Sprite-hosted Claude Code is a third delegation option that doesn't fit the 
 
 ### Cross-References
 
-- `linear-workflow.md` § "Cloud Agent Environments" — reviewer-side push-back-vs-fix calculus
-- `linear-workflow.md` § "Cursor Delegation Flow" / "Codex Delegation Flow" — issue creation, PR review, merge gate
+- `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent" — reviewer-side push-back-vs-fix calculus
+- `agent-dispatch.md` § "Cursor Delegation Flow" / "Codex Delegation (`[CX]`)" — issue creation, PR review, merge gate
 - `task-prioritization.md` § "Codex Delegation (`[CX]`)" — eligibility criteria for delegation
 - `critical-rules.md` § "FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH" — touched-file scope for harness fixes
 - `elixir-ci-harness` skill (claude-marketplace-elixir) — copy-ready CI workflow that closes the Codex-Cloud-no-hex.pm gap

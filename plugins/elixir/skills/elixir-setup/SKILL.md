@@ -55,7 +55,7 @@ defp deps do
     {:tidewave, "~> 0.5", only: :dev},
     {:bandit, "~> 1.10", only: :dev},      # non-Phoenix only
     {:ex_dna, "~> 1.3", only: [:dev, :test], runtime: false},
-    {:ex_ast, "~> 0.5", only: [:dev, :test], runtime: false},
+    {:ex_ast, "~> 0.11", only: [:dev, :test], runtime: false},
     {:descripex, "~> 0.6"},                # full dep — macros expand at compile time
     {:api_toolkit, "~> 0.1"}               # API services only
   ]
@@ -159,13 +159,13 @@ Config: `.ex_dna.exs` in project root. Suppress intentional dupes with `@no_clon
 
 ```bash
 mix ex_ast.search 'IO.inspect(_)'           # find debug leftovers
-mix ex_ast.search 'IO.inspect(...)'         # 0.4+ ellipsis — any arity
+mix ex_ast.search 'IO.inspect(...)'         # ellipsis — any arity
 mix ex_ast.replace 'dbg(expr)' 'expr'       # remove dbg, keep expression
 mix ex_ast.replace --dry-run old new        # preview
-mix ex_ast.diff lib/old.ex lib/new.ex       # 0.4+ syntax-aware diff
+mix ex_ast.diff lib/old.ex lib/new.ex       # syntax-aware diff
 ```
 
-Patterns: `_` = wildcard, named vars (`expr`) capture and carry to replacement. `...` = zero-or-more (args, list items, block body). Structs/maps match partially. See `development-commands.md` for the full surface (pipe awareness, `--inside`/`--not-inside`, multi-node, `~p` sigil, quoted patterns, AST/zipper input).
+Patterns: `_` = wildcard, named vars (`expr`) capture and carry to replacement. `...` = zero-or-more (args, list items, block body). Structs/maps match partially. `_` in function-name position of `def`/`defp` patterns matches the function name even when arguments are present (e.g. `defp _(_), do: _` matches `defp helper(x), do: x + 1`). The `piped()` selector predicate distinguishes form inside the `~p`/`where` DSL — `where(piped())` matches only `|>` calls, `where(not piped())` matches only direct calls. `ExAST.search_many/3` and `ExAST.Patcher.find_many/3` run multiple named patterns in a single traversal, returning matches tagged with `:pattern`. See `development-commands.md` for the full surface (pipe awareness, `--inside`/`--not-inside`, multi-node, `~p` sigil, quoted patterns, AST/zipper input).
 
 ### Quality Gates
 

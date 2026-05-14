@@ -25,7 +25,7 @@ task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) →
 
 **Reviewer cost-shape: dual-reviewer at the audit layer only.** The expensive parts of the review (parallel Codex dispatch with full tool-inventory payload, Claude+Codex dialogue resolution on judgment-call items) live exclusively in Phase 6 (`audit-review`). Phase 2 sub-phase (`code-review`) and Phase 4 (`commit-review`) stay fast and single-reviewer. Every merged commit reaches the dual-reviewer pass via Phase 6 either way — spending the dual-reviewer cost once, post-merge, is the right shape.
 
-**Linear is optional.** Projects without Linear use the ROADMAP-fallback flow: Phase 1 writes a ROADMAP row + `.thoughts/plans/<id>.md`; Phase 2–6 carry on identically; Linear-status columns above are skipped. See `linear-workflow.md` § "ROADMAP-Fallback Flow".
+**Linear is optional.** Projects without Linear use the ROADMAP-fallback flow: Phase 1 writes a ROADMAP row + `.thoughts/plans/<id>.md`; Phase 2–6 carry on identically; Linear-status columns above are skipped. See `linear-queue.md` § "ROADMAP-Fallback Flow".
 
 **Language-agnostic by design.** Every phase composes skills from the three already-language-agnostic plugins (`task-driver`, `staged-review`, `cloud-delegation`) plus the `worktree-workflow.md` include. No mix/cargo/npm-specific commands appear in the chain. Elixir-specific gates (`mix test.json`, `mix dialyzer.json`, pre-commit hooks) live in the `elixir` plugin and run alongside but are not part of the lifecycle itself.
 
@@ -51,4 +51,4 @@ task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) →
 | 5 — Merge | `staged-review:commit-review` auto-merge tail OR user manual `gh pr merge` |
 | 6 — Post-merge audit | `staged-review:audit-review` |
 
-Worktree mechanics + git auto-allow scoping: `worktree-workflow.md`. Push-back posting matrix and Linear-status transitions: `linear-workflow.md`. Auto-merge precondition rules: `delegation-rules.md` § "DON'T AUTO-MERGE PRS".
+Worktree mechanics + git auto-allow scoping: `worktree-workflow.md`. Push-back posting matrix: `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Linear-status transitions: `linear-queue.md` § "Status Transitions". Auto-merge precondition rules: `delegation-rules.md` § "DON'T AUTO-MERGE PRS".

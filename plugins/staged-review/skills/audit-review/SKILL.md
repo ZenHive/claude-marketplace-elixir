@@ -156,7 +156,7 @@ Read `ROADMAP.md` (or the project's equivalent task doc) **once at the start of 
 - Which task numbers exist (so `TODO(Task N)` markers in the diff can be cross-referenced)
 - Which tasks are still ⬜ (so a commit that completes one and doesn't flip ROADMAP becomes a Category 6 finding)
 
-If the project has no ROADMAP.md (per `linear-workflow.md` § "ROADMAP-Fallback Flow"), proceed without it — Category 6 still catches CHANGELOG / CLAUDE.md / README drift; only the ROADMAP-status-flip findings are absent.
+If the project has no ROADMAP.md (per `linear-queue.md` § "ROADMAP-Fallback Flow"), proceed without it — Category 6 still catches CHANGELOG / CLAUDE.md / README drift; only the ROADMAP-status-flip findings are absent.
 
 ### Step 5a: Apply Review Categories (Claude)
 
@@ -514,7 +514,7 @@ The skill is auto-invoked from three skill chains; manual `/audit-review` is the
 
 2. **Post-merge cloud PR auto-merge chain** (`commit-review`): after `commit-review` reaches ✅ + green CI + cloud-agent branch and runs `gh pr merge --squash --delete-branch`, it immediately invokes `Skill(audit-review)` against the merge SHA. The audit commit lands on `main` (per the `critical-rules.md` § GIT COMMIT / PUSH exception for `^audit\(` commits).
 
-3. **Post-merge non-auto-merge cloud PR or self-authored merge** (`linear-workflow.md`): immediately after a user-confirmed `gh pr merge`, the reviewer session invokes `Skill(audit-review)` against the merge SHA.
+3. **Post-merge non-auto-merge cloud PR or self-authored merge** (`linear-queue.md` § "Self-Authored Worktree Flow"): immediately after a user-confirmed `gh pr merge`, the reviewer session invokes `Skill(audit-review)` against the merge SHA.
 
 4. **Manual** (`/audit-review`): user runs the slash command for catch-up audits, batch passes after a backfill, or compliance asks. Default range is HEAD..last-audit (exclusive); user can pass any commit or range.
 
@@ -547,6 +547,6 @@ Closely related includes and skills:
 - `~/.claude/includes/critical-rules.md` § GIT COMMIT / PUSH / PR-CREATE — `audit(...)` commits are auto-allowed inside tracked worktrees AND on `main` (post-merge audit lands on `main` by design, scoped to commits matching `^audit\(`)
 - `~/.claude/includes/critical-rules.md` § "🚨 FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH" — pre-commit hook flags during the audit commit get fixed in a new commit, not bypassed
 - `~/.claude/includes/worktree-workflow.md` — auto-trigger path #1 (self-authored worktree)
-- `~/.claude/includes/linear-workflow.md` — auto-trigger paths #2 (post-merge auto-merge chain) and #3 (post-merge user-confirmed merge)
+- `~/.claude/includes/linear-queue.md` § "Self-Authored Worktree Flow" — auto-trigger path #3 (post-merge user-confirmed merge); auto-trigger path #2 (post-merge auto-merge chain) is governed by `~/.claude/includes/delegation-rules.md` § "DON'T AUTO-MERGE PRS"
 - `~/.claude/includes/task-prioritization.md` § "Ceremony Floor" — applied implicitly via the rating scale and the discuss-design dialogue. Bug findings always surface; small cosmetic findings auto-apply or skip; ROADMAP filing is reserved for cross-session coordination cost (which is exactly what discuss-design divergence represents)
 - `feedback_autonomy_first.md` (memory) — the design lens: workflows default to less human-in-the-loop. This skill is the post-commit / post-merge half of the three-tier autonomous review architecture

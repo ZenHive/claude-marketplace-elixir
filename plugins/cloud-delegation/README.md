@@ -2,14 +2,21 @@
 
 Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow.
 
-Two skills, both bodies auto-synced from the canonical includes in `~/.claude/includes/`. Don't edit the SKILL.md bodies directly — they get overwritten by `scripts/sync-skills-from-includes.sh`.
+Seven skills, all bodies auto-synced from the canonical includes in `~/.claude/includes/`. Don't edit the SKILL.md bodies directly — they get overwritten by `scripts/sync-skills-from-includes.sh`.
 
 ## Skills
 
+The Linear-as-queue + cloud-agent delegation workflow is split into four composable skills along a substrate/layer axis, plus a thin hub index. `linear-queue` is standalone — usable without cloud agents at all.
+
 | Skill | Purpose | Canonical source |
 |---|---|---|
-| `linear-workflow` | Reviewer / dispatcher view: Linear MCP setup, workspace shape, per-agent delegation flows (Codex + Cursor), polling for ready-to-review, push-back-vs-fix-locally matrix, comment-fetch from both GitHub PR and Linear issue, cross-repo coordination, issue-body-as-prompt template | `~/.claude/includes/linear-workflow.md` |
+| `linear-queue` | Substrate: Linear MCP setup, workspace shape, issue-body-as-prompt template, status transitions, self-authored worktree flow, cross-repo coordination, ROADMAP-fallback. **Standalone** — usable without cloud agents | `~/.claude/includes/linear-queue.md` |
+| `agent-dispatch` | Dispatch layer: push self-contained tasks to cloud agents (Codex, Cursor) — delegation flows, per-agent eligibility, plan-shaped issue specs, batch sizing, pre-flight conflict detection | `~/.claude/includes/agent-dispatch.md` |
+| `agent-pr-review` | Review layer: review and land cloud-agent PRs — polling, comment-fetch, review tiering, push-back-vs-fix-locally matrix, wake-mention discipline | `~/.claude/includes/agent-pr-review.md` |
+| `flow-review` | Merge-train mode for 2+ open cloud-agent PRs — dependency-sort, rebase cascade, per-PR auto-merge | `~/.claude/includes/flow-review.md` |
+| `linear-workflow` | Hub index — points to the four skills above; use it to find which skill owns a concern | `~/.claude/includes/linear-workflow.md` |
 | `cloud-agent-environments` | Agent's-own-env reference: what each cloud agent's harness can / can't do (hex.pm, mix tasks, Tidewave, external HTTP), runtime gotchas, AGENTS.md generation workflow | `~/.claude/includes/cloud-agent-environments.md` |
+| `sprite-claude-code` | Operational reference for Fly Sprite-hosted Claude Code as a third cloud-delegation target | `~/.claude/includes/sprite-claude-code.md` |
 
 ## When to install this plugin
 
@@ -32,11 +39,11 @@ The skills reference these Linear MCP tools (install the Linear MCP server first
 - `mcp__linear-server__list_users` (look up agent ids by `displayName`)
 - `mcp__linear-server__list_projects` / `save_project`
 
-See `~/.claude/includes/linear-workflow.md` § "MCP Tool Reference" for the full surface.
+See `~/.claude/includes/linear-queue.md` § "MCP Registration" for the full surface.
 
 ## Sync workflow
 
-The two SKILL.md files are kept in sync with the canonical includes via the marketplace's `scripts/sync-skills-from-includes.sh`. After editing either include:
+The SKILL.md files are kept in sync with the canonical includes via the marketplace's `scripts/sync-skills-from-includes.sh`. After editing any include:
 
 ```bash
 ./scripts/sync-skills-from-includes.sh

@@ -118,7 +118,7 @@ plugins/
 └── cloud-delegation/         # Linear-as-queue + cloud-agent (Codex/Cursor) delegation
     ├── .claude-plugin/
     │   └── plugin.json
-    └── skills/               # linear-workflow, cloud-agent-environments
+    └── skills/               # linear-queue, agent-dispatch, agent-pr-review, flow-review, linear-workflow hub, cloud-agent-environments, sprite-claude-code
 ```
 
 ### Key Concepts
@@ -152,7 +152,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (33 total)
+### Skills (38 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance.
 
@@ -204,7 +204,7 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` post-PR-create / post-merge to avoid duplicate dual-reviewer cost (every commit reaches audit-review either way via worktree-workflow auto-invoke). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
 | commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label** then chains audit-review against the merge SHA |
-| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-workflow` (post-merge for non-auto-merge cases) |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-queue` (self-authored worktree flow, post-merge for non-auto-merge cases) |
 
 **Task-driver plugin** (1 skill):
 
@@ -212,12 +212,19 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | task-driver | Roadmap-driven task execution — select by efficiency, implement, update all docs |
 
-**Cloud-delegation plugin** (2 skills):
+**Cloud-delegation plugin** (7 skills):
+
+The Linear-as-queue + cloud-agent delegation workflow is split into four composable skills along a substrate/layer axis, plus a thin hub index. `linear-queue` is standalone — usable without cloud agents at all.
 
 | Skill | Description |
 |-------|-------------|
-| linear-workflow | Linear-as-queue + cloud-agent (Codex, Cursor) delegation — flows, polling, push-back-vs-fix matrix, fetching comments from both GitHub PR and Linear issue, cross-repo coordination |
+| linear-queue | Substrate — Linear MCP setup, workspace shape, issue-body-as-prompt template, status transitions, self-authored worktree flow, cross-repo coordination, ROADMAP-fallback. **Standalone** — usable without cloud agents |
+| agent-dispatch | Dispatch layer — push self-contained tasks to cloud agents (Codex, Cursor): delegation flows, per-agent eligibility, plan-shaped issue specs, batch sizing, pre-flight conflict detection |
+| agent-pr-review | Review layer — review and land cloud-agent PRs: polling, comment-fetch, review tiering, push-back-vs-fix-locally matrix, wake-mention discipline |
+| flow-review | Merge-train mode for 2+ open cloud-agent PRs — dependency-sort, rebase cascade, per-PR auto-merge |
+| linear-workflow | Hub index — points to the four skills above; use it to find which skill owns a concern |
 | cloud-agent-environments | Cloud-agent env reference — what each cloud agent can/can't reach (hex.pm, mix tasks, Tidewave, HTTP), runtime gotchas, AGENTS.md generation workflow |
+| sprite-claude-code | Operational reference for Fly Sprite-hosted Claude Code as a third cloud-delegation target |
 
 **Skill Composition**: Skills are single-purpose and composed by agents/commands. `usage-rules` provides conventions (how to use correctly), `hex-docs-search` provides API docs (what's available). Agents can invoke both for comprehensive guidance.
 

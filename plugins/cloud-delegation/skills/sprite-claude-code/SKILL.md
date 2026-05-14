@@ -1,6 +1,6 @@
 ---
 name: sprite-claude-code
-description: Operational reference for Fly Sprite-hosted Claude Code as a third cloud-delegation target. CLI surface (sprite create / exec / sessions / checkpoint / info / api, the --env / --file / --tty / --http-post flags, the lack of --prompt on create), auth threading (interactive OAuth, CLAUDE_CODE_OAUTH_TOKEN for unattended, ANTHROPIC_API_KEY + claude --bare for pure API billing), reachability profile (full hex.pm, full PATH, Elixir/Erlang/Mix pre-installed at /.sprite/bin without asdf, Tidewave + user's Phoenix app reachable in same VM, public HTTPS URL per sprite), sleep/wake (30s idle, ext4 + JuiceFS + Litestream-backed persistence, filesystem-level conversation state survives, ~0.4s wake-on-exec), cost ceiling (claude --max-budget-usd built-in + checkpoint/restore + sprite destroy), known orchestration gaps (no built-in completion signal, claude --print exit code unreliable, no Linear-poll wrapper yet). Sibling of cloud-agent-environments and linear-workflow.
+description: Operational reference for Fly Sprite-hosted Claude Code as a third cloud-delegation target. CLI surface (sprite create / exec / sessions / checkpoint / info / api, the --env / --file / --tty / --http-post flags, the lack of --prompt on create), auth threading (interactive OAuth, CLAUDE_CODE_OAUTH_TOKEN for unattended, ANTHROPIC_API_KEY + claude --bare for pure API billing), reachability profile (full hex.pm, full PATH, Elixir/Erlang/Mix pre-installed at /.sprite/bin without asdf, Tidewave + user's Phoenix app reachable in same VM, public HTTPS URL per sprite), sleep/wake (30s idle, ext4 + JuiceFS + Litestream-backed persistence, filesystem-level conversation state survives, ~0.4s wake-on-exec), cost ceiling (claude --max-budget-usd built-in + checkpoint/restore + sprite destroy), known orchestration gaps (no built-in completion signal, claude --print exit code unreliable, no Linear-poll wrapper yet). Sibling of `cloud-agent-environments` and the cloud-agent delegation skills (`linear-queue`, `agent-dispatch`, `agent-pr-review`, `flow-review`).
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: Read, Grep, Glob, Bash
 
 ## Sprite-Hosted Claude Code (third cloud-delegation target)
 
-Operational reference for Fly Sprite-hosted Claude Code as a third delegation option alongside Codex Cloud and Cursor Background. Sibling of `cloud-agent-environments.md` (harness-mode reference for Codex/Cursor) and `linear-workflow.md` (dispatcher view).
+Operational reference for Fly Sprite-hosted Claude Code as a third delegation option alongside Codex Cloud and Cursor Background. Sibling of `cloud-agent-environments.md` (harness-mode reference for Codex/Cursor) and `agent-dispatch.md` (dispatcher view).
 
 **Different shape from the existing two targets.** Codex Cloud and Cursor Background are polished **harnesses** — task ingestion → branch → PR loop is built in. Sprite is **substrate**: a raw VM (Ubuntu 25.10 + Fly kernel) with Claude Code 2.1.92 pre-installed in `--dangerously-skip-permissions` mode, full network, ext4 + JuiceFS + Litestream-backed persistence. Tokens billed against the user's existing Anthropic Max plan via OAuth; no extra subscription stack. Cost shape ~$0.46 per 4-hour active session (per Simon Willison) plus per-second VM time. The trade is the orchestration glue — not built in.
 
@@ -147,7 +147,7 @@ Every sprite gets a permanent **public HTTPS URL** at `https://<n>-XXX.sprites.a
 ### Cross-references
 
 - `cloud-agent-environments.md` — sibling, harness-mode reference for Codex/Cursor.
-- `linear-workflow.md` — dispatcher view; Sprite delegation flow not yet written (TODO once `sprite-delegate.sh` exists).
+- `agent-dispatch.md` — dispatcher view; Sprite delegation flow not yet written (TODO once `sprite-delegate.sh` exists).
 - `delegation-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE" — applies inside sprite the same way (the worktree IS the scope authorization).
 - Fly Sprites docs: https://docs.sprites.dev/
 - Fly Sprites design + implementation blog: https://fly.io/blog/design-and-implementation/

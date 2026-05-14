@@ -10,25 +10,17 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Builds PDG/SDG from Elixir, Erlang, Gleam, or compiled BEAM. Backward/forward slicing, taint analysis, independence checks, dead-code detection, OTP state-machine analysis, `mix reach` HTML viz.
 
-**Min version: `{:reach, "~> 2.2"}`** (pin floor `~> 2.0.1` — `2.0.0` is uninstallable from Hex due to `ex_ast` dep-scope bug fixed in 2.0.1; use `~> 2.2` for the latest smell surface).
+**Min version: `{:reach, "~> 2.3"}`.** Requires `ex_ast ~> 0.11.2` at the dep level. Optional `:boxart, "~> 0.3.3"` for terminal `--graph` rendering.
 
-**2.0 (breaking) — Canonical CLI.** Five commands replace the 16 legacy tasks: `mix reach.map`, `reach.inspect TARGET`, `reach.trace`, `reach.check`, `reach.otp`. Legacy task names fail fast with migration hints (no analysis runs). New `.reach.exs` architecture policy file (`layers`, `deps[:forbidden]`, `source[:forbidden_modules]`/`forbidden_files`, `calls[:forbidden]`, `effects[:allowed]`, `boundaries[:public]`/`internal`/`internal_callers`, `risk[:changed]`, `candidates`, `smells`, `tests`) drives `mix reach.check --arch`/`--changed`/`--candidates`. Advisory refactoring candidates: `introduce_boundary`, `isolate_effects`, `extract_pure_region`, `break_cycle` — each with `confidence`, `actionability`, `proof`, and (for cycles) `representative_calls`. Large new smell-check surface: collection/idiom (`Enum.reverse |> hd`, `Enum.reverse ++ tail`, chained `String.replace`, `Map.keys |> Enum.map`, `List.to_tuple |> elem`, redundant `Enum.join("")`, anon-fn `.()` in pipes, …); pipeline waste (`Enum.reverse |> Enum.reverse`, `filter |> count`, `map |> count`, `filter |> filter`, `sort |> take/reverse/at`, `drop |> take`, …); loop antipatterns (`++`/`<>` inside loop O(n²), manual reduce min/max/sum/frequency); idiom mismatch (guard equality where pattern-match suffices, `Map.update` then `Map.get` on same var); repeated map shape detection; behaviour candidates; compile-time vs runtime config (`Application.get_env`/`fetch_env` in module attrs, `compile_env` inside runtime fns); ExAST-backed pattern smell DSL (`use Reach.Smell.PatternCheck`, `smell ~p[...]`, guarded via `from(~p[...]) |> where(...)`). Umbrella source scanning includes `apps/*/lib/**/*.ex`. Optional `:boxart` bumped to `~> 0.3.3` for Unicode-safe syntax highlighting. Taint-tracing dropped from ~130s → ~3s on Plausible (per-source reachability instead of per-pair recomputation). The **programmatic API** (`Reach.file_to_graph!`, `string_to_graph`, `module_to_graph`, `ast_to_graph`, `backward_slice`, `forward_slice`, `chop`, `taint_analysis`, `dead_code`, `Reach.Plugin` behaviour, `Reach.Project`, `Reach.Frontend.JavaScript`, `Reach.Plugins.QuickBEAM`) is **unchanged in 2.x** — only the CLI surface broke.
+**Canonical CLI — five commands:** `mix reach.map` (project view), `reach.inspect TARGET` (target-local), `reach.trace` (taint + slicing), `reach.check` (CI gates), `reach.otp` (process / state-machine analysis). `TARGET` accepts `Module.function/arity` or `file:line`.
 
-**2.0.1 — critical hotfix.** `ex_ast` was declared `only: [:dev, :test]`, which made Reach uninstallable from Hex (pattern smell checks `import ExAST` at compile time). Pin `~> 2.0.0` literally fails. Pin must be `~> 2.0.1`+; recommend `~> 2.2`. Also tightened the smell surface: 63% fewer findings on a 19-package Hex sample, all remaining verified true positives.
+**`.reach.exs`** at project root drives `reach.check --arch`/`--changed`/`--candidates`. Keys: `layers`, `deps[:forbidden]`, `source[:forbidden_modules]`/`forbidden_files`, `calls[:forbidden]`, `effects[:allowed]`, `boundaries[:public]`/`internal`/`internal_callers`, `risk[:changed]`, `candidates`, `smells`, `tests`. See § `.reach.exs` Architecture Policy below.
 
-**2.1 — new smells.** `Enum.at`/`List.delete_at` inside loops (O(n²)); `Enum.count/1` (no predicate) → `length/1` (avoids protocol dispatch); `Map.put` with variable key + boolean value → `MapSet` (membership tracking); `Map.values |> Enum.all?/any?/find/filter/map` → iterate `{key, value}` pairs; `Enum.map → Enum.max/min/sum` (allocates intermediate list); `List.foldl/3` → `Enum.reduce/3`; `String.graphemes |> Enum.reverse |> Enum.join` → `String.reverse/1`; redundant negated guard (`when x != y` immediately after `when x == y`); destructure-then-reconstruct (`[a, b, c]` rebuilt as same list). Frontend crash fixes: `import Mod, only: :macros` (atom values), bare atoms in `with` clause lists, non-list `else`/handler clauses.
+**Advisory refactoring candidates** (`reach.check --candidates`, `reach.inspect TARGET --candidates`): `introduce_boundary`, `isolate_effects`, `extract_pure_region`, `break_cycle` — each carries `confidence`, `actionability`, `proof`, and (for cycles) `representative_calls`. Suggestions, not auto-edits.
 
-**2.2 — polish.** `length(list) == 0`/`0 == length(list)`/`length(list) > 0` → list pattern matching, `== []`, or `!= []`; identity `Enum.uniq_by(coll, fn x -> x end)` → `Enum.uniq/1`; identity `Enum.sort_by(coll, fn x -> x end)` → `Enum.sort/1`; small-literal `length/1` comparisons in guards. Regression coverage for bare literal `with` clauses (e.g. `true`).
+**Programmatic API** (stable, unchanged across 2.x): `Reach.file_to_graph!`, `string_to_graph`, `module_to_graph`, `ast_to_graph`, `compiled_to_graph`, `backward_slice`, `forward_slice`, `chop`, `context_sensitive_slice`, `taint_analysis`, `dead_code`, `independent?`, `Reach.Plugin` behaviour, `Reach.Project`, `Reach.Frontend.JavaScript`, `Reach.Plugins.QuickBEAM`. Umbrella source scanning includes `apps/*/lib/**/*.ex`.
 
-**1.8 — OTP-aware analyzer.** `mix reach.otp` (now `mix reach.otp` in 2.x — name unchanged) gained: gen_statem support (both `:state_functions` and `:handle_event_function` modes, with initial states, transition graph, event types per state); dead GenServer reply detection (`GenServer.call` where the reply is discarded — candidates for `cast`); cross-process coupling (flags `GenServer.call`/`cast` where caller and callee share ETS tables or process-dictionary keys, conflict type `callee_writes` or `callee_reads_caller_write`); supervision tree extraction (resolves `Supervisor.start_link(children, opts)` child references). ~1000× speedup on the OTP analysis. Smell-detection false-positive fixes (cons `|`, string-interp `to_string`, unrelated `Enum.map`/`List.first` pairs).
-
-**1.7 — JavaScript frontend + cross-language plugin.** `Reach.Frontend.JavaScript` parses JS/TS via QuickBEAM bytecode disasm into Reach IR. `Reach.Plugins.QuickBEAM` stitches Elixir ↔ JS through `QuickBEAM.eval`/`QuickBEAM.call` sites with edges `:js_eval`, `{:js_call, name}`, `:beam_call`. New `analyze_embedded/2` plugin callback. File I/O effects split (`File.read`/`stat`/`exists?` → `:read`; `File.write`/`cp`/`rm`/`mkdir` → `:write`). Dead-code false positives near-zero (fixed pre-existing `with do ... end` body translation bug).
-
-**1.6 — unified target format.** `reach.slice`/`impact`/`deps`/`graph` (now `reach.trace`/`reach.inspect --impact`/`--deps`/`--graph` in 2.x) all accept both `Module.function/arity` and `file:line`. 100–500× faster function resolution.
-
-**1.5 — codebase-scope analyses.** Seven project-level commands added (`coupling`, `hotspots`, `depth`, `effects`, `xref`, `boundaries`, `concurrency`) — all subcommands of `mix reach.map` in 2.x.
-
-**Caveat:** `dead_code` false positives are near-zero in 1.7+ but not zero — treat output as hint material, not a worklist.
+**Caveat:** `dead_code` false positives are near-zero but not zero — treat as hint material.
 
 **Does NOT cover:** runtime execution (static only), type inference (→ Dialyzer), dep security audit (→ Sobelow, npm_ex audit).
 
@@ -38,10 +30,10 @@ Both capture dynamic dispatch. Remaining differences:
 
 | | Source (`file_to_graph!`, `string_to_graph`) | BEAM (`module_to_graph`) |
 |---|---|---|
-| Dynamic dispatch (`fn_var.(args)`, `state.handler.(args)`) | Captured as `kind: :dynamic` (since 1.3) | Captured as `kind: :dynamic` |
+| Dynamic dispatch (`fn_var.(args)`, `state.handler.(args)`) | Captured as `kind: :dynamic` | Captured as `kind: :dynamic` |
 | Macro-expanded code | Invisible | Visible |
 | `use GenServer` generated callbacks | Invisible | Visible |
-| Source spans | Always available | Always available (normalized in 1.3) |
+| Source spans | Always available | Always available |
 | `Reach.Project` cross-module SDG | **Supported** | **Not supported** — `Reach.Project` is source-only |
 | Scope | Single file or project glob | Single module |
 
@@ -61,7 +53,7 @@ graph = Reach.file_to_graph!("lib/my_module.ex")
 project = Reach.Project.from_mix_project()
 project = Reach.Project.from_glob("lib/**/*.ex")
 
-# 1.7+: JavaScript — returns IR nodes (NOT a graph), consumed by Reach.Plugins.QuickBEAM
+# JavaScript — returns IR nodes (NOT a graph), consumed by Reach.Plugins.QuickBEAM
 {:ok, js_nodes} = Reach.Frontend.JavaScript.parse("function f(x) { return x + 1 }")
 {:ok, js_nodes} = Reach.Frontend.JavaScript.parse_file("priv/handler.js")
 ```
@@ -132,11 +124,11 @@ Reach.Effects.effectful?(node, kind)
 Reach.Effects.conflicting?(a, b)
 ```
 
-Built-in classification covers Enum, Map, String, Process, :ets, :code, Node, System, 30+ more. **1.5** reclassifies many stdlib calls correctly (`Enum.each` → `:io`, `Application.get_env` → `:read`, `:atomics`/`:counters`/`:persistent_term` → `:read`/`:write`), adds Access/Calendar/Date/Time as pure, and infers effects of local functions via fixed-point iteration. On Elixir 1.19+ it reads the `ExCk` BEAM chunk for compiler-inferred type signatures (gracefully disabled on older Elixir).
+Built-in classification covers Enum, Map, String, Process, :ets, :code, Node, System, Access, Calendar, Date, Time, `:atomics`/`:counters`/`:persistent_term`, and 30+ more. `Enum.each` → `:io`, `Application.get_env` → `:read`, term-store ops → `:read`/`:write`. Effects of local functions are inferred via fixed-point iteration. On Elixir 1.19+ the classifier reads the `ExCk` BEAM chunk for compiler-inferred type signatures (gracefully disabled on older Elixir).
 
-**Plugin `classify_effect/1` callback (1.5):** plugins teach the classifier about framework calls. All 8 built-ins implement it — Phoenix assigns/route helpers → `:pure`, Ecto queries → `:pure`, Repo reads → `:read`, writes → `:write`, Oban `insert` → `:write`, GenStage/Jido signal dispatch → `:send`, OpenTelemetry spans → `:io`, Jason → `:pure`.
+**Plugin `classify_effect/1` callback.** Plugins teach the classifier about framework calls. All built-ins implement it — Phoenix assigns/route helpers → `:pure`, Ecto queries → `:pure`, Repo reads → `:read`, writes → `:write`, Oban `insert` → `:write`, GenStage/Jido signal dispatch → `:send`, OpenTelemetry spans → `:io`, Jason → `:pure`.
 
-**Alias/import/field access (1.5):** `alias Plausible.Ingestion.Event; Event.build()` now resolves correctly (incl. `:as`, multi-alias `{}`). `import Ecto.Query` then bare `from(...)` resolves to `Ecto.Query.from` (honours `:only`/`:except`). `socket.assigns`, `conn.params`, `state.count` are tagged `kind: :field_access` (pure) instead of fake remote calls. Compile-time noise (`@doc`, `use`, `::`, `__aliases__`) is classified `:pure` instead of `:unknown`.
+**Alias/import/field access.** `alias Plausible.Ingestion.Event; Event.build()` resolves correctly (incl. `:as`, multi-alias `{}`). `import Ecto.Query` then bare `from(...)` resolves to `Ecto.Query.from` (honours `:only`/`:except`). `socket.assigns`, `conn.params`, `state.count` are tagged `kind: :field_access` (pure), not fake remote calls. Compile-time noise (`@doc`, `use`, `::`, `__aliases__`) is classified `:pure`.
 
 ### Dead Code
 
@@ -146,9 +138,9 @@ for node <- Reach.dead_code(graph) do
 end
 ```
 
-1.3 cut false positives ~91% on real codebases (Phoenix 628→58) via fixed-point alive expansion, branch-tail return tracing, guard exclusion, comprehension generator/filter exclusion, impure-module blocklist (Process, :code, :ets, Node, System, …), typespec exclusion, impure-call descendant marking. Still a hint source — verify before deleting.
+False positives are kept low via fixed-point alive expansion, branch-tail return tracing, guard exclusion, comprehension generator/filter exclusion, an impure-module blocklist (Process, :code, :ets, Node, System, …), typespec exclusion, and impure-call descendant marking. Still a hint source — verify before deleting.
 
-### Canonical CLI (`mix reach.*`, 2.0+)
+### Canonical CLI (`mix reach.*`)
 
 Five commands replace the 16 legacy tasks. `--format text` (default, colored), `json`, or `oneline`. ANSI auto-disables when piped. Analysis commands accept a positional path filter where applicable (e.g. `mix reach.map lib/my_app/`).
 
@@ -221,29 +213,7 @@ mix reach.otp --graph                                       # GenServer state di
 
 Without boxart, `--graph` exits cleanly with a message asking you to add it. 0.3.3 is required for Unicode-safe syntax highlighting.
 
-### Migration from 1.x
-
-Legacy tasks fail fast in 2.x with the migration hint — they don't run analysis.
-
-| 1.x                              | 2.x                                       |
-|----------------------------------|-------------------------------------------|
-| `mix reach.modules`              | `mix reach.map --modules`                 |
-| `mix reach.coupling`             | `mix reach.map --coupling`                |
-| `mix reach.hotspots`             | `mix reach.map --hotspots`                |
-| `mix reach.depth`                | `mix reach.map --depth`                   |
-| `mix reach.effects`              | `mix reach.map --effects`                 |
-| `mix reach.boundaries`           | `mix reach.map --boundaries`              |
-| `mix reach.xref`                 | `mix reach.map --data`                    |
-| `mix reach.deps TARGET`          | `mix reach.inspect TARGET --deps`         |
-| `mix reach.impact TARGET`        | `mix reach.inspect TARGET --impact`       |
-| `mix reach.slice TARGET`         | `mix reach.trace TARGET`                  |
-| `mix reach.flow ...`             | `mix reach.trace ...`                     |
-| `mix reach.dead_code`            | `mix reach.check --dead-code`             |
-| `mix reach.smell`                | `mix reach.check --smells`                |
-| `mix reach.graph TARGET`         | `mix reach.inspect TARGET --graph`        |
-| `mix reach.concurrency`          | `mix reach.otp --concurrency`             |
-
-### `.reach.exs` Architecture Policy (2.0+)
+### `.reach.exs` Architecture Policy
 
 Drives `mix reach.check --arch`/`--changed`/`--candidates`/`--smells`. The file evaluates to a keyword list. Patterns are module-name strings with `*` wildcards.
 
@@ -297,23 +267,28 @@ Drives `mix reach.check --arch`/`--changed`/`--candidates`/`--smells`. The file 
 
 Start from `examples/reach.exs` in the Reach repo. Reach itself ships a root `.reach.exs` and gates CI on `mix reach.check --arch`.
 
-### Smell Checks (cumulative through 2.2)
+### Smell Checks
 
 `mix reach.check --smells` covers (non-exhaustive):
 
-- **Loop antipatterns** — `Enum.at`/`List.delete_at` in loops (O(n²)); `++`/`<>` inside loops; manual `Enum.reduce` min/max/sum/frequency
-- **Pipeline waste** — `Enum.reverse |> Enum.reverse`, `filter |> count`, `map |> count`, `filter |> filter`, `sort |> take`/`reverse`/`at`, `drop |> take`, `take_while |> count`/`length`, `map |> Enum.join`
-- **Collection idioms** — `Enum.reverse |> hd`, `Enum.reverse ++ tail`, `inspect |> String.starts_with?`, chained `String.replace`, `Map.keys |> Enum.map`, `List.to_tuple |> elem`, redundant `Enum.join("")`, negative `Enum.take`, `String.graphemes |> length`, `String.length == 1`, `Integer.to_string |> String.to_charlist`, anon-fn `.()` in pipes
+- **Loop antipatterns** — `Enum.at`/`List.delete_at` in loops (O(n²)); `++`/`<>` inside loops; manual `Enum.reduce` min/max/sum/frequency; append in recursion (`++ [item]` in recursive tail call) → prepend + `Enum.reverse/1`; repeated traversal (same variable traversed by 2+ different `Enum` fns) → one `Enum.reduce/3`; nested enum (`Enum.member?` inside another `Enum` of the same var) → precompute `MapSet`; 3+ `Enum.at` calls on same var with literal indices → pattern match
+- **Pipeline waste** — `Enum.reverse |> Enum.reverse`, `filter |> count`, `map |> count`, `filter |> filter`, `sort |> take`/`reverse`/`at`, `drop |> take`, `take_while |> count`/`length`, `map |> Enum.join`, `List.foldr/3`, `Enum.min_by`/`max_by`/`dedup_by` w/ identity fn, `Enum.map |> Enum.flat_map`/`List.flatten`, `Enum.sort/2 |> Enum.reverse`, `Enum.with_index |> Enum.reduce`, redundant `Enum.map_join("")`; sort then negative take (`Enum.sort |> Enum.take(-n)`) → `Enum.sort(:desc) |> Enum.take(n)`; split then head (`String.split |> hd/List.first`) → `parts: 2`; filter then first (`Enum.filter |> List.first/hd`) → `Enum.find/2`
+- **Collection idioms** — `Enum.reverse |> hd`, `Enum.reverse ++ tail`, `inspect |> String.starts_with?`, chained `String.replace`, `Map.keys |> Enum.map`, `List.to_tuple |> elem`, redundant `Enum.join("")`, negative `Enum.take`, `String.graphemes |> length`, `String.length == 1`, `Integer.to_string |> String.to_charlist`, anon-fn `.()` in pipes; `Map.keys`/`Map.values` patterns (`|> Enum.join`, `|> Enum.uniq`, `|> Enum.count`/`length` → `map_size/1`, `Map.keys |> Enum.member?` → `Map.has_key?/2`, `Map.values |> Enum.sum`/`max`/`min`/`join`); `Integer.to_string |> String.graphemes` → `Integer.digits`; `length(String.split) - 1` (Python count idiom); `Enum.at(list, -1)` → `List.last/1`; `Map.new`/`MapSet.new` patterns (`Enum.map |> Enum.into(%{})`, `Enum.into(_, %{})`, `Enum.into(_, MapSet.new())`, `Enum.map |> Enum.concat`); piped `Regex.replace` where the pipe injects the string as regex arg → `String.replace/3` (via ExAST `piped()` predicate)
 - **Idiom mismatch** — `Enum.count/1` (no predicate) → `length/1`; `Map.values |> Enum.all?/any?/find/filter/map` → iterate `{k, v}`; `Enum.map → Enum.max/min/sum`; `List.foldl/3` → `Enum.reduce/3`; `String.graphemes |> Enum.reverse |> Enum.join` → `String.reverse/1`; guard equality where pattern match suffices; `Map.update` then `Map.get/fetch` on same var; `Map.put` w/ variable boolean key → `MapSet`
-- **Length comparisons (2.2)** — `length(list) == 0`/`0 == length(list)`/`length(list) > 0` → pattern match or `== []`/`!= []`; small-literal `length/1` comparisons in guards
-- **Identity callbacks (2.2)** — `Enum.uniq_by(coll, fn x -> x end)` → `Enum.uniq/1`; `Enum.sort_by(coll, fn x -> x end)` → `Enum.sort/1`
+- **Boolean / conditional idiom** — case-on-boolean (`case expr do true -> ...; false -> ... end` when subject is comparison/boolean op) → `if/else`; case→`match?/2` (`case _ do pat -> true; _ -> false end`); needless bool (`if cond, do: true, else: false` and inverse); manual max/min (`if a > b, do: a, else: b`) → `Kernel.max/2`/`Kernel.min/2`; cond two-clause (`cond do ... true -> ... end` w/ exactly two) → `if/else`; `unless/else` → `if` positive case first; redundant assignment (`result = expr; result`); redundant nil default (`Keyword.get`/`Map.get(_, _, nil)`); `@doc false` on `defp`
+- **Length comparisons** — `length(list) == 0`/`0 == length(list)`/`length(list) > 0` → pattern match or `== []`/`!= []`; small-literal `length/1` comparisons in guards
+- **Identity callbacks** — `Enum.uniq_by(coll, fn x -> x end)` → `Enum.uniq/1`; `Enum.sort_by(coll, fn x -> x end)` → `Enum.sort/1`
 - **Map contracts** — same-variable atom/string fallback (`metadata["id"] || metadata[:id]`); repeated atom-key map literals with same shape (struct/contract candidate); fixed-shape map detection
 - **Structural drift (clone-backed)** — return-contract drift, side-effect ordering drift, validation drift across similar code
 - **Other** — redundant negated guards (`when x != y` after `when x == y`); destructure-then-reconstruct (`[a, b, c]` rebuilt as same list); behaviour-candidate detection (modules exposing the same public callback set); compile-time vs runtime config (`Application.get_env`/`fetch_env` in module attrs, `compile_env` inside runtime fns)
 
-Custom pattern checks via the ExAST-backed DSL: `use Reach.Smell.PatternCheck`, `smell ~p[<source pattern>]`. Guarded patterns: `from(~p[...]) |> where(...)`. Pipes, operators, function calls, and module attributes all work with the `~p` sigil; pattern checks share a zipper cache across modules.
+**False-positive scope.** `++`-in-reduce checks verify an operand references the reduce accumulator before flagging. IR-based checks (repeated traversal, multiple `Enum.at`) scope per-clause to avoid multi-clause-function FPs. `Code.string_to_quoted` calls pass `emit_warnings: false` so reparsing dep source emits no tokenizer noise. Corpus-tested against the top 200 Hex packages: 0 crashes, 0 false positives.
 
-### Advisory Refactoring Candidates (2.0+)
+**Credo overlap.** The Reach README documents which smells overlap Credo and which don't — useful when deciding whether to run both or gate CI on `mix reach.check --smells` alone. Reach's own CI runs `mix reach.check --arch --smells`.
+
+Custom pattern checks via the ExAST-backed DSL: `use Reach.Smell.PatternCheck`, `smell ~p[<source pattern>]`. Guarded patterns: `from(~p[...]) |> where(...)`. Pipes, operators, function calls, and module attributes all work with the `~p` sigil; pattern checks share a zipper cache across modules. The `piped()` selector predicate distinguishes form — `where(piped())` matches only `|>` calls, `where(not piped())` matches only direct calls. Useful when a pattern means different things in pipe vs direct form (e.g. `Regex.replace` where the piped subject is the regex argument vs the source string).
+
+### Advisory Refactoring Candidates
 
 `mix reach.check --candidates` and `mix reach.inspect TARGET --candidates` surface graph-backed suggestions:
 
@@ -372,11 +347,11 @@ Reach.nodes(graph, type: :function_def) |> length()
 
 For many related queries in one IEx session, build once and persist via process dictionary or an Agent.
 
-### Plugins (1.4+)
+### Plugins
 
 `Reach.Plugin` adds domain-specific edges (framework dispatch, message routing, pipeline topology) not visible to language-level analysis.
 
-Built-ins auto-detect via `Code.ensure_loaded?/1`: `Reach.Plugins.Phoenix`, `Ecto`, `Oban`, `GenStage`, `Jido`, `OpenTelemetry`, and **`QuickBEAM`** (1.7+). They run when the host package is in the dep tree.
+Built-ins auto-detect via `Code.ensure_loaded?/1`: `Reach.Plugins.Phoenix`, `Ecto`, `Oban`, `GenStage`, `Jido`, `OpenTelemetry`, `QuickBEAM`. They run when the host package is in the dep tree.
 
 ```elixir
 Reach.string_to_graph!(source, plugins: [Reach.Plugins.Phoenix])
@@ -393,20 +368,20 @@ defmodule MyPlugin do
   @impl true
   def analyze_project(_modules_map, _all_nodes, _opts), do: []   # optional, cross-module
 
-  # 1.7+: for plugins that splice additional nodes (e.g. embedded JS) into the host graph.
+  # For plugins that splice additional nodes (e.g. embedded JS) into the host graph.
   # Return {new_nodes, new_edges} — nodes get merged into the IR before analysis queries.
   @impl true
   def analyze_embedded(_all_nodes, _opts), do: {[], []}
 
-  # 1.5+: teach the effect classifier about framework calls
+  # Teach the effect classifier about framework calls.
   @impl true
   def classify_effect(_node), do: nil                    # :pure | :read | :write | :io | :send | nil
 end
 ```
 
-### Reach.Plugins.QuickBEAM — Cross-Language Analysis (1.7+)
+### Reach.Plugins.QuickBEAM — Cross-Language Analysis
 
-Stitches Elixir and JavaScript into one graph. Scans for `QuickBEAM.eval/2,3` and `QuickBEAM.call/3,4` callsites where the JS source is a **string literal**, parses it via `Reach.Frontend.JavaScript`, and adds cross-language edges:
+Stitches Elixir and JavaScript into one graph. Scans for `QuickBEAM.eval/2,3` and `QuickBEAM.call/3,4` callsites where the JS source is a **string literal**, parses it via `Reach.Frontend.JavaScript`, and adds cross-language edges. Auto-enabled when QuickBEAM is in the dep tree.
 
 | Edge label | From | To | Meaning |
 |---|---|---|---|
@@ -424,7 +399,7 @@ Reach.nodes(graph) |> Enum.filter(&(&1.meta[:language] == :javascript))
 
 Limitation: cross-language edges only form when the JS source is a **literal** at the callsite. Runtime-computed JS (e.g. sourced from a variable or `File.read!/1`) won't be stitched, since the plugin works by peeking at the literal AST node.
 
-### Other 1.4 Public API
+### Other Public API
 
 - `Reach.compiled_to_graph/2` — graph from `:beam_lib` chunks (alt to `module_to_graph/2`)
 - `Reach.call_graph/1`, `function_graph/2` — derive subgraphs
@@ -438,10 +413,8 @@ Limitation: cross-language edges only form when the JS source is a **literal** a
 ### Dependencies
 
 ```elixir
-{:reach, "~> 2.2", only: [:dev, :test], runtime: false},
-{:boxart, "~> 0.3.3", only: [:dev, :test], runtime: false}   # terminal --graph (2.0+ requires 0.3.3 for Unicode-safe rendering)
+{:reach, "~> 2.3", only: [:dev, :test], runtime: false},
+{:boxart, "~> 0.3.3", only: [:dev, :test], runtime: false}   # terminal --graph rendering
 ```
 
-**Pin floor:** `~> 2.0.1`. Reach `2.0.0` is uninstallable from Hex (`ex_ast` was declared `only: [:dev, :test]` but pattern smell checks `import ExAST` at compile time — fixed in 2.0.1). Pin `~> 2.2` for the latest smell surface.
-
-Pulls in `libgraph`. Optional: `jason`, `makeup`, `makeup_elixir`, `makeup_js` (HTML viz), `boxart` (terminal). For the JS frontend + cross-language plugin (1.7+), add `{:quickbeam, "~> 0.10.4"}` — the plugin activates automatically when QuickBEAM is in the dep tree.
+Requires `ex_ast ~> 0.11.2` at the dep level. Pulls in `libgraph`. Optional companion deps: `jason`, `makeup`, `makeup_elixir`, `makeup_js` (HTML viz), `boxart` (terminal). For the JS frontend + cross-language plugin, add `{:quickbeam, "~> 0.10.11"}` — the plugin activates automatically when QuickBEAM is in the dep tree.

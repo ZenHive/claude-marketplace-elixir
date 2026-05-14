@@ -10,7 +10,7 @@ allowed-tools: Bash, Read
 
 Run multiple Claude Code sessions in parallel without files landing on the wrong branch. The mechanic: every new branch gets its own worktree under a centralized location, named after a tracking ID, cleaned up when the work merges.
 
-**Scope:** local laptop only — Claude Code on `~/_DATA/code/<repo>/`. Cloud-delegation worktrees (Codex `codex/...`, Cursor `cursor/...`) are governed separately by `delegation-rules.md` and `linear-workflow.md`.
+**Scope:** local laptop only — Claude Code on `~/_DATA/code/<repo>/`. Cloud-delegation worktrees (Codex `codex/...`, Cursor `cursor/...`) are governed separately by `delegation-rules.md`, `agent-dispatch.md`, and `agent-pr-review.md`.
 
 ## When to Create a Worktree
 
@@ -122,7 +122,7 @@ The act of creating a worktree under `~/_DATA/worktrees/<repo>/<id>/` is itself 
 
 ## What NOT to Do in a Worktree
 
-- **Don't open IEx / Tidewave from a worktree.** Use the host project (`~/_DATA/code/<repo>/`) for runtime exploration. IEx in the worktree creates a parallel `_build` and recompile churn that races with the host session. Mirrors the existing `linear-workflow.md` § "Tidewave-in-worktree" constraint.
+- **Don't open IEx / Tidewave from a worktree.** Use the host project (`~/_DATA/code/<repo>/`) for runtime exploration. IEx in the worktree creates a parallel `_build` and recompile churn that races with the host session. Mirrors the `agent-pr-review.md` § "Tidewave is verification, not necessarily fix" constraint.
 - **Don't create a worktree for read-only exploration.** Read files in-place from the main checkout. Worktrees are for branch-worthy work that will produce commits.
 - **Don't commit from a non-worktree path** (the main checkout) when the work belongs to a feature branch. If you find yourself about to `git checkout -b` from the main checkout, stop and create a worktree.
 

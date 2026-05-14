@@ -92,7 +92,7 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns — setup and Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Workflow-command generator for other Elixir projects |
 
-## Available Skills (33)
+## Available Skills (38)
 
 **Elixir plugin** (24 skills):
 
@@ -142,7 +142,7 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 |-------|-------------|
 | code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply, escalates `discuss-design` to user (defer-to-audit option available) |
 | commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex) — narrow Cat 1 + Cat 6 slice, CI-as-gate, asymmetric push-back (PR=line-level / Linear=scope), auto-merges on ✅ + green CI + 5 preconditions, chains audit-review |
-| audit-review | Post-commit / post-merge audit on committed code — full 5+1, mandatory parallel Codex, Claude+Codex dialogue on `discuss-design`, auto-applies hygiene fixes, writes `.audit/<sha>.md` + `audit(...)` commit. **Fully autonomous.** Auto-invoked by worktree-workflow, commit-review, linear-workflow |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1, mandatory parallel Codex, Claude+Codex dialogue on `discuss-design`, auto-applies hygiene fixes, writes `.audit/<sha>.md` + `audit(...)` commit. **Fully autonomous.** Auto-invoked by worktree-workflow, commit-review, linear-queue |
 
 **Task-driver plugin** (1 skill):
 
@@ -150,12 +150,19 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 |-------|-------------|
 | task-driver | Roadmap-driven task execution — select by efficiency, implement, update all docs |
 
-**Cloud-delegation plugin** (2 skills):
+**Cloud-delegation plugin** (7 skills):
+
+The Linear-as-queue + cloud-agent delegation workflow is split into four composable skills along a substrate/layer axis, plus a thin hub index. `linear-queue` is standalone — usable without cloud agents at all.
 
 | Skill | Description |
 |-------|-------------|
-| linear-workflow | Linear-as-queue + cloud-agent (Codex, Cursor) delegation — flows, polling, push-back-vs-fix matrix, comment fetch (PR + Linear), cross-repo coordination |
+| linear-queue | Substrate — Linear MCP setup, workspace shape, issue-body-as-prompt template, status transitions, self-authored worktree flow, cross-repo coordination, ROADMAP-fallback. **Standalone** — usable without cloud agents |
+| agent-dispatch | Dispatch layer — push self-contained tasks to cloud agents (Codex, Cursor): delegation flows, per-agent eligibility, plan-shaped issue specs, batch sizing, pre-flight conflict detection |
+| agent-pr-review | Review layer — review and land cloud-agent PRs: polling, comment-fetch, review tiering, push-back-vs-fix-locally matrix, wake-mention discipline |
+| flow-review | Merge-train mode for 2+ open cloud-agent PRs — dependency-sort, rebase cascade, per-PR auto-merge |
+| linear-workflow | Hub index — points to the four skills above; use it to find which skill owns a concern |
 | cloud-agent-environments | Cloud-agent env reference — what each can/can't reach (hex.pm, mix, Tidewave, HTTP), runtime gotchas, AGENTS.md generation workflow |
+| sprite-claude-code | Operational reference for Fly Sprite-hosted Claude Code as a third cloud-delegation target |
 
 ## License
 
