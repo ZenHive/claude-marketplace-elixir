@@ -1,26 +1,16 @@
 # Marketplace Personalization Roadmap
 
-Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELOG.md](CHANGELOG.md) for completed work.
+Remaining tasks to personalize the Claude Code plugin marketplace. **This file is rendered** — `roadmap/tasks.toml` is the canonical source; `rmap render` rewrites only the bytes between the marker pairs below. Author tasks with `rmap new --from-stdin`, change status with `rmap status <id> <state>`. See [CHANGELOG.md](CHANGELOG.md) for shipped work.
 
-## Progress Summary
+## Current Focus
 
-| Phase | Status | Remaining |
-|-------|--------|-----------|
-| 0. Foundation | 8/8 ✅ | - |
-| 1. Ownership | 2/2 ✅ | - |
-| 2. New Plugins | 5/5 ✅ | - |
-| 3. Pre-commit | 2/2 ✅ | - |
-| 4. Workflows | 1/1 ✅ | - |
-| 5. Documentation | 3/3 ✅ | - |
-| 6. New Skills | 1/1 ✅ | - |
-| 7. Skill Quality | 5/5 ✅ | - |
-| 8. Hook Scripts | 0/4 | 4 |
-| 9. Codex Delegation | 5/5 ✅ | - |
-| 10. Audit-Review Follow-Ups | 2/10 | 8 |
+<!-- FOCUS:BEGIN -->
+**Focus phase:** 8 — Hook Scripts (0 of 4 done · 0 in progress)
 
-**Total: 35/47 complete (74%)**
+**Last shipped:** no recent shipments
 
----
+**Up next:** Task 32 — Warn on shell-eval Elixir, prefer Tidewave [D:2/B:7/U:7 → Eff:3.5] 🎯
+<!-- FOCUS:END -->
 
 ## Official Documentation References
 
@@ -35,299 +25,74 @@ Remaining tasks to personalize the Claude Code plugin marketplace. See [CHANGELO
 
 ---
 
-## Remaining Tasks by Priority
+## Phase 5 — Documentation (done)
 
-### High Priority (🎯 Priority > 3.0)
+<!-- TASKS:BEGIN phase=5 -->
+> 2 tasks. See [CHANGELOG.md](CHANGELOG.md#phase-5-documentation).
+<!-- TASKS:END -->
 
-#### Task 12: Update Project CLAUDE.md ✅ [D:2/B:7/U:5 → Eff:3.0]
-
-Updated CLAUDE.md skills section to document all 21 skills organized by plugin (elixir: 14, phoenix: 6, elixir-workflows: 1). See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-#### Task 13: Update README.md ✅ [D:2/B:6/U:5 → Eff:2.75]
-
-Added "Available Skills (21)" section to README.md with complete skill inventory. Updated plugin table descriptions. See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-### Phase 7: Skill Quality
+## Phase 7 — Skill Quality (done)
 
 > **Methodology:** Informed by Anthropic's `document-skills:skill-creator` patterns — progressive disclosure, pushy descriptions, AI-coder-docs scope boundaries.
 
-#### Task 23: Progressive Disclosure for Oversized Skills ✅ [D:4/B:7/U:6 → Eff:1.63]
+<!-- TASKS:BEGIN phase=7 -->
+> 6 tasks. See [CHANGELOG.md](CHANGELOG.md#phase-7-skill-quality).
+<!-- TASKS:END -->
 
-Refactored 4 oversized skills with progressive disclosure pattern. Evaluated 3 borderline skills and kept as-is. See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-#### Task 24: Skill Description Optimization ✅ [D:2/B:8/U:7 → Eff:3.75]
-
-All 17 skill YAML descriptions rewritten with pushy trigger language. See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-#### Task 25: AI-Coder-Docs Patterns for Skills ✅ [D:3/B:6/U:5 → Eff:1.83]
-
-Added Does/Does Not scope sections to 8 skills plus phoenix-setup cross-reference. See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-#### Task 26: Update Tasks 12-13 for Current State [D:1/B:4/U:5 → Eff:4.50]
-
-**Goal:** Refresh the documentation tasks (12, 13) to reflect current marketplace state — they reference stale plugin names and incomplete skill lists.
-
-See updated Tasks 12 and 13 above (already updated in this roadmap revision).
-
-**Status:** ✅ Complete (updated inline)
-
----
-
-#### Task 27: Sync Skills with Updated Includes ✅ [D:3/B:8/U:8 → Eff:2.67]
-
-Skills synced with canonical includes. See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-#### Task 28: Backport Skill Knowledge to Canonical Includes ✅ [D:5/B:9/U:9 → Eff:1.8]
-
-Rewrote 4 include files (zen-websocket, meta-development, api-integration, phoenix-js) with condensed knowledge from skills + references, grounded in ccxt_ex/ccxt_client. Created sync script for 15 skill-include pairs. Fixed stale `core:` → `elixir:` namespace references across 9 files. See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-### Phase 8: Hook Scripts
+## Phase 8 — Hook Scripts
 
 > **Methodology:** New scripts in `plugins/elixir/scripts/`, wired into `plugins/elixir/hooks/hooks.json`. Use `prefer-test-json.sh` / `prefer-dialyzer-json.sh` as the `PreToolUse:Bash` template (warn vs. deny JSON shapes); use `post-edit-check.sh`'s hidden-failures section as the `PostToolUse:Edit|Write|MultiEdit` template. Canonical rules live in `~/.claude/includes/critical-rules.md`, `development-commands.md`, `development-philosophy.md` — link to those, don't duplicate the prose.
 
-#### Task 29: Block destructive Bash patterns [D:3/B:8/U:7 → Eff:2.50] 🎯
+<!-- TASKS:BEGIN phase=8 -->
+| Task | Status | Notes |
+|------|--------|-------|
+| Task 29 | ⬜ | 🎁 **hook_scripts** · Block destructive Bash patterns [D:3/B:8/U:7 → Eff:2.5] 🎯 |
+| Task 30 | ⬜ | 🎁 **hook_scripts** · Warn on tooling-flag omissions [D:2/B:6/U:6 → Eff:3.0] 🎯 |
+| Task 31 | ⬜ | 🎁 **hook_scripts** · Warn on doctest IO and untagged temporary code [D:4/B:6/U:4 → Eff:1.25] 📋 |
+| Task 32 | ⬜ | 🎁 **hook_scripts** · Warn on shell-eval Elixir, prefer Tidewave [D:2/B:7/U:7 → Eff:3.5] 🎯 |
+<!-- TASKS:END -->
 
-Add `PreToolUse:Bash` hooks that **block** three command shapes Claude is explicitly told never to run:
+## Phase 9 — Codex Delegation Workflow (done)
 
-- `mix phx.server` — server is always already running (`critical-rules.md` § "NEVER START THE PHOENIX SERVER")
-- Destructive deps/build commands: `mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps` (`critical-rules.md` § "NEVER RUN DESTRUCTIVE DEPENDENCY COMMANDS"). Must allow `mix deps.unlock --check-unused` (used by `pre-commit-unified.sh`).
-- Bare `rm` outside of `git rm` (`critical-rules.md` § "Shell Safety"). Must allow `git rm`.
+> **Methodology:** Linear MCP as shared task tracker; Codex (registered Linear user) executes `[CX]` tasks; Claude Code reviews PR via `staged-review:commit-review` after Linear status flips to `In Review`.
 
-Each script outputs the deny-JSON shape with a `permissionDecisionReason` pointing to the safe alternative. Tests in `test/` exercise both the block patterns and each documented exception (no false positives on the allowed forms).
+<!-- TASKS:BEGIN phase=9 -->
+> 5 tasks. See [CHANGELOG.md](CHANGELOG.md#phase-9-codex-delegation-workflow).
+<!-- TASKS:END -->
 
----
-
-#### Task 30: Warn on tooling-flag omissions [D:2/B:6/U:6 → Eff:3.00] 🎯
-
-Add `PreToolUse:Bash` hooks that **warn** (no block) when project-standard flags are missing:
-
-- `mix credo` invoked without `--strict --format json` (`development-commands.md`)
-- `mix compile` invoked without a `time` prefix (`development-commands.md`)
-
-False-positive guard: don't fire on `post-edit-check.sh` / `pre-commit-unified.sh`'s own internal `mix credo` / `mix compile` invocations (those run inside hook scripts, not via Claude's Bash tool — verify this is actually true before adding complex matching).
-
----
-
-#### Task 31: Warn on doctest IO and untagged temporary code [D:4/B:6/U:4 → Eff:1.25] 📋
-
-Extend `post-edit-check.sh` (or add a sibling `PostToolUse:Edit|Write|MultiEdit` script) with two warn-only checks credo can't see:
-
-- `IO.puts` / `IO.inspect` inside `@doc` heredoc blocks (`development-philosophy.md` § "No IO in @doc examples")
-- `#` comments starting with "For now,", "Currently,", "Temporarily,", "In production,", or "This is a workaround," NOT preceded by `TODO:` (`development-philosophy.md` § "TODO Comment Requirements")
-
-False-positive guards: never trigger when patterns appear inside string literals or `~s`/`~S` sigils. Tune for low noise — these will fire less often than hidden-failures but each fire should be a real catch.
-
----
-
-#### Task 32: Warn on shell-eval Elixir, prefer Tidewave [D:2/B:7/U:7 → Eff:3.50] 🎯
-
-Add a `PreToolUse:Bash` hook that **warns** (no block) when Claude is about to run Elixir code through the shell — the cases that have a direct `mcp__tidewave__project_eval` / `get_logs` equivalent:
-
-- `mix run -e "<code>"`
-- `elixir -e "<code>"`
-- `iex -e "<code>"`
-- `mix run <path>.exs` (legitimate `priv/repo/seeds.exs` shares the shape — accepted false positive, called out in the warning)
-
-**Why:** Tidewave attaches to the same BEAM as the running dev server, so `project_eval` sees current state, GenServers, ETS, application env — and skips the 3–10s fresh-VM startup that `mix run` incurs. Returns structured Elixir terms instead of stringified stdout. The `tidewave-guide` skill exists but Claude regularly forgets it under shell-muscle-memory; this hook is the user's #1 unprompted-reminder frustration.
-
-**Reference implementation:** working version already in `hieroglyph/.claude/hookify.prefer-tidewave-over-shell-eval.local.md` (12-case regex test included in that session's transcript). Port the regex and warning text — the warning includes a replacement table, the `recompile()` workaround for stale bytecode, and a "legitimate exceptions" footer (seeds, one-shot CI scripts).
-
-**Success criteria:**
-- New script in `plugins/elixir/scripts/`, registered in `plugins/elixir/hooks/hooks.json` under `PreToolUse:Bash`
-- Warn-only (must NOT block — seeds and CI scripts share the shape)
-- Test cases: 4 trigger patterns fire, none of `mix test`/`iex -S mix`/`iex -S mix tidewave`/`mix phx.server`/`mix compile` fire
-- Warning message points to `mcp__tidewave__project_eval` and `mcp__tidewave__get_logs` by their MCP tool names so Claude can call them directly
-
----
-
-### Phase 9: Codex Delegation Workflow
-
-> **Methodology:** Linear MCP as shared task tracker; Codex (registered Linear user) executes `[CX]` tasks; Claude Code reviews PR via `staged-review:commit-review` after Linear status flips to `In Review`. Canonical rules live in `~/.claude/includes/critical-rules.md` and `task-prioritization.md`.
-
-#### Task 33: Add `[CX]` marker to task-prioritization include ✅ [D:1/B:7/U:7 → Eff:7.0]
-
-Add `### Codex Delegation (\`[CX]\`)` subsection to `~/.claude/includes/task-prioritization.md` defining the marker, criteria, and workflow. Default: tasks meeting criteria are `[CX]` unless justified otherwise. Auto-syncs to `roadmap-planning/SKILL.md`.
-
----
-
-#### Task 34: Add `[CX]` discipline rules to critical-rules.md ✅ [D:1/B:8/U:6 → Eff:7.0]
-
-Add two `##` sections to `~/.claude/includes/critical-rules.md`: "DON'T STEAL `[CX]` TASKS" (no local execution of `[CX]`-marked rows) and "DON'T AUTO-MERGE PRS" (`commit-review` surfaces verdict, user merges). Marketplace inherits via existing `@~/.claude/includes/critical-rules.md` import.
-
----
-
-#### Task 35: AGENTS.md sync script ✅ [D:3/B:7/U:7 → Eff:2.33]
-
-`scripts/sync-agents-md.sh` — runs from inside a target repo, parses `./CLAUDE.md`, inlines all `@`-imports (resolving `~/`), writes `./AGENTS.md` with auto-sync banner. `--dry-run` flag, exit-1 on missing/unreadable imports. Mirrors `sync-skills-from-includes.sh` skeleton.
-
----
-
-#### Task 36: SessionStart branch-behind hook ✅ [D:3/B:6/U:7 → Eff:2.17]
-
-`plugins/elixir/scripts/check-branch-behind-origin.sh` — `git fetch origin main`, warn if behind. Register in `plugins/elixir/hooks/hooks.json` as new top-level `SessionStart` key. Pair with `task-driver` SKILL.md "pre-task rebase" step.
-
----
-
-#### Task 37: commit-review skill in staged-review plugin ✅ [D:5/B:9/U:8 → Eff:1.70]
-
-`plugins/staged-review/skills/commit-review/SKILL.md` — sibling of `code-review`. Polls Linear for `In Review` issues delegated to Codex, runs `gh pr checkout`, executes full local harness (format/compile/credo/dialyzer.json/test.json --cover/doctor/sobelow), fixes harness drift, runs same 5-category audit + mandatory Codex second-opinion as `code-review`, presents verdict (no merge). Updates `task-driver` SKILL.md to route `[CX]` rows.
-
----
-
-### Phase 10: Audit-Review Follow-Ups
+## Phase 10 — Audit-Review Follow-Ups
 
 > **Methodology:** Quality-of-life and edge-case extensions to the `audit-review` workflow shipped in v1.16 of `staged-review`. v1 covers the load-bearing chain (worktree → audit, commit-review → auto-merge → audit). These follow-ups extend coverage and observability without blocking the core flow.
 
-#### Task 38: SessionStart hook for audit detection ✅ [D:3/B:5/U:6 → Eff:1.83]
-
-`plugins/staged-review/scripts/check-unaudited-commits.sh` registered in new `plugins/staged-review/hooks/hooks.json` under `SessionStart`. Detects unaudited tail via `git log --grep '^audit('` ancestor walk, fires when ≥3 commits sit past the anchor. Shares `unaudited-commits.sh` helper with Task 39. See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-#### Task 39: `/audit-status` roll-up command ✅ [D:2/B:4/U:5 → Eff:2.25]
-
-`/staged-review:audit-status` (with optional `--all` flag) — read-only per-branch / portfolio-wide drift snapshot. Shares `unaudited-commits.sh` helper with Task 38. See [CHANGELOG.md](CHANGELOG.md).
-
----
-
-#### Task 40: Cross-repo audit corpus aggregation [D:7/B:6/U:3 → Eff:0.64] ⚠️
-
-Portfolio-level dashboard of audit findings across all repos with `.audit/` directories. Strategic, not tactical — answers "what categories of finding recur across my repos?" so the canonical includes can be tightened to prevent future occurrences. Expected output: aggregate frequency table (Category × repo), discuss-design divergence themes, ROADMAP-candidate findings that span repos.
-
-**Success criteria:**
-- Script in `~/.claude/scripts/audit-corpus.sh` (user-scope, not plugin) walks `~/_DATA/code/*/.audit/*.md`
-- Parses frontmatter + Findings tables, aggregates by category and resolution
-- Output: markdown report with cross-repo trends, candidate include changes
-- Defer until ≥3 repos have ≥10 audit reports each (otherwise no signal)
+<!-- TASKS:BEGIN phase=10 -->
+| Task | Status | Notes |
+|------|--------|-------|
+| Task 38 | ✅ | 🎁 **audit_followups** · SessionStart hook for audit detection [D:3/B:5/U:6 → Eff:1.83] 🚀 |
+| Task 39 | ✅ | 🎁 **audit_followups** · /audit-status roll-up command [D:2/B:4/U:5 → Eff:2.25] 🎯 |
+| Task 40 | ⬜ | 🎁 **audit_followups** · Cross-repo audit corpus aggregation [D:7/B:6/U:3 → Eff:0.64] ⚠️ |
+| Task 41 | ⬜ | 🎁 **audit_followups** · Auto-merge for self-authored worktree PRs [D:4/B:6/U:5 → Eff:1.38] 📋 |
+| Task 42 | ⬜ | 🎁 **audit_followups** · Audit re-run on amend / rebase [D:5/B:3/U:3 → Eff:0.6] ⚠️ |
+| Task 43 | ⬜ | 🎁 **audit_followups** · Codex code-mutation re-enablement check [D:2/B:3/U:4 → Eff:1.75] 🚀 |
+| Task 44 | ⬜ | 🎁 **audit_followups** · Replace zsh-incompatible classification script in audit-review SKILL.md [D:2/B:5/U:6 → Eff:2.75] 🎯 |
+| Task 45 | ⬜ | 🎁 **audit_followups** · Worktree + clean-tree preconditions in audit-review [D:3/B:6/U:7 → Eff:2.17] 🎯 |
+| Task 46 | ⬜ | 🎁 **audit_followups** · Audit-corpus-only mode (report without apply) [D:3/B:5/U:5 → Eff:1.67] 🚀 |
+| Task 47 | ⬜ | 🎁 **audit_followups** · Per-commit Codex output capture in .audit/ [D:2/B:4/U:4 → Eff:2.0] 🎯 |
+<!-- TASKS:END -->
 
 ---
 
-#### Task 41: Auto-merge for self-authored worktree PRs [D:4/B:6/U:5 → Eff:1.38] 📋
+## Completed Phases (0-4, 6)
 
-Extend the cloud-agent auto-merge (added in v1.16, scoped to `cursor/*` / `codex/*`) to self-authored PRs from worktrees. Needs separate analysis — self-authored work has different blast-radius than reviewed cloud-agent work: no upstream reviewer signal, no agent-PR template, fewer evaluator-separation layers. Likely requires stricter preconditions (e.g. mandatory `staged-review:code-review` ✅ before commit, mandatory `audit-review` ✅ on the PR head, `[BLOCK-MERGE]` label still honored).
+Phases 0-4 and 6 of the original personalization roadmap completed before this repo migrated to `rmap`. Their per-task detail was never enumerated in `ROADMAP.md` (only aggregate counts), so they were not carried into `roadmap/tasks.toml` as individual tasks — the record lives in git history and `CHANGELOG.md`.
 
-**Success criteria:**
-- Decision document: which preconditions apply to self-authored vs cloud-agent
-- Loosen `delegation-rules.md` § "DON'T AUTO-MERGE PRS" to cover self-authored if preconditions hold
-- Update `worktree-workflow.md` to document the new auto-merge tail (PR-merge → cleanup)
-- Test: open a self-authored worktree PR, run audit, verify auto-merge fires only when all preconditions hold
-
----
-
-#### Task 42: Audit re-run on amend / rebase [D:5/B:3/U:3 → Eff:0.60] ⚠️
-
-Detect orphaned `.audit/<old-sha>.md` files when a commit is amended (`git commit --amend`) or rebased (interactive or otherwise). The audit is keyed on commit SHA; rewriting history orphans the report. Offer to re-audit the new SHA and remove the stale file. Edge case: not blocking the v1 flow because amend/rebase post-`audit(...)` commit is rare in practice (the audit IS the post-merge commit; further history rewrites are uncommon).
-
-**Success criteria:**
-- Detection logic: walk `.audit/*.md`, check if each `sha:` frontmatter still exists in `git log`
-- On orphan detection, prompt to re-audit OR mark the old report as `superseded-by: <new-sha>`
-- Hook into `audit-review` skill startup so it runs before the next audit pass
-- Tests cover amend (single-commit rewrite), rebase (multi-commit rewrite), squash-merge (range collapse)
-
----
-
-#### Task 43: Codex code-mutation re-enablement check [D:2/B:3/U:4 → Eff:1.75] 🚀
-
-The auto-merge precondition added in v1.16 mentions `codex/*` branches but Codex code-mutation is currently suspended per `agent-dispatch.md`. Track when/if to re-enable so the auto-merge precondition becomes live for Codex too. Periodic check (quarterly?) on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.
-
-**Success criteria:**
-- Decision document: criteria for re-enabling Codex code-mutation
-- Verify auto-merge precondition #3 (`cursor/*` or `codex/*`) becomes live for Codex
-- Update `agent-dispatch.md` and `cloud-agent-environments.md` to lift the suspension
-- Run end-to-end Codex delegation test (Linear issue → `[CX]` → PR → `commit-review` → auto-merge → `audit-review`) before declaring re-enabled
-
----
-
-#### Task 44: Replace zsh-incompatible classification script in SKILL.md [D:2/B:5/U:6 → Eff:2.75] 🚀
-
-**Surfaced by:** First run of `audit-review` on `onchain` repo (2026-05-09) — 20-commit initial-backfill pass.
-
-The classification step in `audit-review/SKILL.md` shells out a one-liner using `paste -sd+ | bc` for LOC summing. On zsh (default macOS shell), this cascades into "command not found" errors and produces empty output. Worked around in the audit run by writing a `#!/bin/bash` script to `/tmp/`, but the SKILL prescription itself should be portable.
-
-**Success criteria:**
-- Replace inline shell pipeline with a portable bash function (or a small `scripts/classify.sh` shipped with the skill)
-- Test on both bash and zsh (default macOS)
-- Update SKILL.md to call the script with the worktree path arg
-
----
-
-#### Task 45: Worktree + clean-tree preconditions in audit-review [D:3/B:6/U:7 → Eff:2.17] 🚀
-
-**Surfaced by:** First run on `onchain` (2026-05-09). Started in main checkout with 12 dirty `M` files; user had to interrupt with "wait, why nbot in a worktree?" and redirect.
-
-The skill should:
-1. **Refuse to run in the main checkout** when `worktree-workflow.md` is loaded (i.e., user has the worktree workflow active). Direct the agent to create a worktree first.
-2. **Refuse to run with a dirty working tree** (uncommitted changes). The audit corpus is a single atomic commit; dirty tree pollutes scope.
-3. Optionally accept `--allow-dirty` / `--allow-main-checkout` overrides for repos that opt out of worktree workflow.
-
-**Success criteria:**
-- Skill checks `git rev-parse --show-toplevel` against `~/_DATA/worktrees/<repo>/` pattern; warns/refuses if running in main checkout
-- Skill checks `git status --porcelain` empty; refuses if dirty
-- Both checks documented at top of SKILL.md as preconditions
-- Tests cover both refusal paths and `--allow-*` overrides
-
----
-
-#### Task 46: Audit-corpus-only mode (report without apply) [D:3/B:5/U:5 → Eff:1.67] 📋
-
-**Surfaced by:** First run on `onchain` (2026-05-09). User pivoted scope mid-run: "no need to do the whole reviews, because we did codex-reviews for every commit already in a different workflow." Wanted reports written but no auto-apply of fixes. Auto-mode classifier denied the doc-edit attempts ("outside read-only audit scope") — correct behavior, but the skill itself should have a flag for this.
-
-The current skill auto-applies rated-3-10 + actionable + discuss-trivial findings. For backfill / pre-existing audit corpora, users may want **report-only**: write reports, surface findings, but do not modify project files. Distinct from `--no-codex`: this gates the *application* step, not the dispatch step.
-
-**Success criteria:**
-- New flag `--report-only` in `/audit-review` invocation
-- When set: dispatch Codex, write `.audit/<sha>.md` reports, but skip all auto-apply steps
-- Findings flagged in reports as "Suggested fixes (NOT auto-applied)" rather than applied
-- Final commit is just `.audit/` directory; no production-code mutations
-- SKILL.md documents this as the recommended mode for first-run / backfill audits where prior review coverage exists
-
----
-
-#### Task 47: Per-commit Codex output capture in `.audit/` [D:2/B:4/U:4 → Eff:2.00] 📋
-
-**Surfaced by:** First run on `onchain` (2026-05-09). Codex agent outputs landed in `/private/tmp/claude-501/.../tasks/*.output` — durable for the session but lost after compaction. Findings tracker `/tmp/audit_findings.md` was an ad-hoc human aggregation. The audit reports cite Codex but don't include the raw Codex transcript.
-
-For traceability and re-audit, the raw Codex output should land alongside the `.md` report — either inline or as a sibling file (`.audit/<sha>-codex.md`).
-
-**Success criteria:**
-- Skill writes per-commit Codex output to `.audit/<sha>-codex.md` (or appends as a fenced block in the main report)
-- `.audit/<sha>.md` cross-references the raw codex output file
-- Format consistent enough for cross-repo aggregation (Task 40)
-
----
-
-### Completed (Phase 0-4, 6)
-
-#### Task 9: Rename Meta Plugin & Update Templates ✅
-
-Plugin renamed from `meta` to `elixir-workflows`. All references updated. Workflow commands evaluated. Templates aligned with CLAUDE.md patterns.
-
----
-
-## Execution Order by ROI
-
-| Order | Tasks | Rationale |
-|-------|-------|-----------|
-| 1 | ~~Task 26~~ ✅ | Updated tasks 12-13 inline |
-| ~~2a~~ | ~~Task 23 (progressive disclosure)~~ ✅ | Complete |
-| ~~2b~~ | ~~Task 24 (descriptions)~~ ✅ | Complete |
-| 2c | Task 27 (sync with includes) `[P]` | Independent — fix stale content + create new skills |
-| ~~3~~ | ~~Task 25 (AI-coder-docs)~~ ✅ | Complete |
-| ~~4~~ | ~~Tasks 12, 13 (documentation)~~ ✅ | Complete |
+| Phase | Scope |
+|-------|-------|
+| 0. Foundation | Marketplace + plugin scaffolding |
+| 1. Ownership | Namespace, author, attribution |
+| 2. New Plugins | Plugin set buildout (incl. meta → elixir-workflows rename) |
+| 3. Pre-commit | Consolidated pre-commit hooks |
+| 4. Workflows | Workflow-command generator |
+| 6. New Skills | First skill additions |
 
 ---
 

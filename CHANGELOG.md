@@ -6,6 +6,18 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**Make `rmap` the standard roadmap substrate — task-driver v1.2.1 → v1.3.0, elixir v1.28.0 → v1.28.1**
+
+`rmap` is a single-binary CLI that manages `roadmap/tasks.toml` as a typed source and renders `ROADMAP.md` + `roadmap/data.json` from it. It already shares our efficiency formula, tier thresholds, and D/B/U scale — but the includes and skills still described a manual markdown-editing process (hand-formatting `[D:X/B:Y/U:Z]`, manually flipping status glyphs, hand-archiving completed tasks into `CHANGELOG.md`). This restructures the task-writing/roadmap surface so `rmap` is the standard: `roadmap/tasks.toml` is canonical, `ROADMAP.md` is rendered output, and hand-edited roadmaps are a legacy state with a documented migration path.
+
+- **New canonical include `~/.claude/includes/rmap.md`** → new synced skill `task-driver:rmap` — the roadmap substrate: command surface by intent, D/B/U → `scores` mapping, status/marker vocabulary, the migration procedure for hand-edited `ROADMAP.md`, and a pointer to rmap's own CI-gated `SKILLS.md` so the include can't rot.
+- **`task-prioritization.md` rewritten** — `[D:X/B:Y/U:Z → Eff:W]` is now documented as *rendered* notation sourced from `scores = {d,b,u}` in `tasks.toml`; the `⬜ 🔄 🔶 ✅` hand-marking section replaced with rmap's status vocabulary (status changes go through `rmap status`); `[P]` becomes the `parallel` marker; the manual ROADMAP/CHANGELOG edit ritual replaced with `rmap status <id> done`. **CHANGELOG.md narrows to curated human release notes** — `tasks.toml` owns per-task history; the "move full detail to CHANGELOG / strikethrough / one-line reference" archiving ritual is dropped.
+- **`task-writing.md` updated** — the task-as-prompt template maps onto rmap's task schema fields (`title`, `body`, `acceptance_criteria`, `out_of_scope`, …); tasks are authored via `rmap new --from-stdin`; `rmap delegate <id> --to <agent>` renders a task as a cloud-agent prompt.
+- **`task-driver` skill rewritten (hand-authored)** — manual-markdown mechanics replaced with rmap commands (`rmap list` / `next` / `show` for reading state, `rmap status` for status flips, `rmap new --from-stdin` for discovered/filed tasks). Two-mode structure, Phase Awareness, and plan-mode discipline unchanged.
+- **`roadmap-planning` skill body regenerated** via the sync script from the rewritten `task-prioritization.md` (elixir plugin patch bump).
+- **Periphery cross-ref touch-ups** — `agent-dispatch.md`, `linear-queue.md`, `dev-lifecycle.md`, and the three `staged-review` skills (`code-review`, `commit-review`, `audit-review`) gained rmap-first bridging notes; hand-edit-ROADMAP / hand-write-ROADMAP-row instructions surgically replaced with `rmap status` / `rmap new --from-stdin`. `audit-review`'s "ROADMAP Candidate Filing" section retitled "rmap Task Filing".
+- **Sync wiring** — `scripts/sync-skills-from-includes.sh` gains a 30th `MAPPINGS` entry for `rmap`. `marketplace.json` does NOT bump (adding a skill to an existing plugin is not a catalog-structure change).
+
 **Add `SKILLS.md` — agent-facing skill catalog — and slim the README skill section**
 
 The README carried six per-plugin skill tables (~70 lines) duplicating descriptions that also live in `CLAUDE.md`, and its count was stale (38, missing the `dev-lifecycle` and `portfolio-strategy` plugin skills — actual total is 40).

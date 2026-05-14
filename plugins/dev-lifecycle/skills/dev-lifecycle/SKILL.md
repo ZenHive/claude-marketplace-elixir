@@ -25,13 +25,13 @@ task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) →
 
 **Reviewer cost-shape: dual-reviewer at the audit layer only.** The expensive parts of the review (parallel Codex dispatch with full tool-inventory payload, Claude+Codex dialogue resolution on judgment-call items) live exclusively in Phase 6 (`audit-review`). Phase 2 sub-phase (`code-review`) and Phase 4 (`commit-review`) stay fast and single-reviewer. Every merged commit reaches the dual-reviewer pass via Phase 6 either way — spending the dual-reviewer cost once, post-merge, is the right shape.
 
-**Linear is optional.** Projects without Linear use the ROADMAP-fallback flow: Phase 1 writes a ROADMAP row + `.thoughts/plans/<id>.md`; Phase 2–6 carry on identically; Linear-status columns above are skipped. See `linear-queue.md` § "ROADMAP-Fallback Flow".
+**Linear is optional.** Projects without Linear use the ROADMAP-fallback flow: Phase 1 files an `rmap` task (`rmap new --from-stdin` into `roadmap/tasks.toml`) + `.thoughts/plans/<id>.md`; Phase 2–6 carry on identically; Linear-status columns above are skipped. The roadmap is rmap-backed in both modes — `roadmap/tasks.toml` canonical, `ROADMAP.md` rendered (see `rmap.md`). See `linear-queue.md` § "ROADMAP-Fallback Flow".
 
 **Language-agnostic by design.** Every phase composes skills from the three already-language-agnostic plugins (`task-driver`, `staged-review`, `cloud-delegation`) plus the `worktree-workflow.md` include. No mix/cargo/npm-specific commands appear in the chain. Elixir-specific gates (`mix test.json`, `mix dialyzer.json`, pre-commit hooks) live in the `elixir` plugin and run alongside but are not part of the lifecycle itself.
 
 ## End-to-end flow for a typical feature task
 
-1. **Phase 1** — User asks to plan something. `task-driver` enters Plan-and-File mode: research → draft plan → `EnterPlanMode` → on `ExitPlanMode` approval, `save_issue(status: Todo)` (or ROADMAP row write if no Linear). Returns issue URL / row #. **Stops.**
+1. **Phase 1** — User asks to plan something. `task-driver` enters Plan-and-File mode: research → draft plan → `EnterPlanMode` → on `ExitPlanMode` approval, `save_issue(status: Todo)` (or `rmap new` task if no Linear). Returns issue URL / rmap task id. **Stops.**
 2. **Phase 2** — Fresh implementer session picks up the issue. Creates worktree under `~/_DATA/worktrees/<repo>/<id>/`. Implements. Stages with `git add`. **Pre-commit triage** (sub-phase): `code-review` reviews `git diff --staged` against all 5+1 categories — single-reviewer triage. On approval, commits. Pushes. Opens PR with `gh pr create`. (All git ops auto-allowed inside the tracked worktree per `worktree-workflow.md`.)
 3. **Phase 3** — Bots (CodeRabbit, Copilot, Codex's GitHub bot) run async on PR open. No skill action; their findings are read by Phase 4.
 4. **Phase 4** — `commit-review` runs the pre-merge correctness gate. Narrow scope (Cat 1 bugs + `@doc`/`@spec` drift). Two pickup modes: Linear-aware when MCP available, gh-only otherwise. Cite-and-skips bot findings. Auto-posts asymmetric push-back if blockers (line-level → PR; scope/intent → Linear).

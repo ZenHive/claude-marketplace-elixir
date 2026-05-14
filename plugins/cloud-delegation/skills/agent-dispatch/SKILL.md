@@ -12,6 +12,8 @@ The **dispatch layer** of the Linear-as-queue workflow — pushing self-containe
 
 It builds on `linear-queue.md` (the substrate: MCP setup, workspace shape, issue-body template, status transitions). Read that first if Linear-as-queue isn't set up yet. The return path — reviewing the PRs cloud agents open — is `agent-pr-review.md`; multi-PR merge orchestration is `flow-review.md`.
 
+> **rmap note.** The `[CX]` / `[CSR]` delegation markers and `⬜` / `🔄` statuses throughout this file are *rendered* `ROADMAP.md` notation — the source is the `cx` / `csr` markers and `pending` / `in_progress` status on `[[task]]` entries in `roadmap/tasks.toml`. Pick delegation candidates with `rmap next` / `rmap list --marker csr`, and `rmap delegate <id> --to codex|cursor` renders a task as a paste-ready cloud-agent prompt. See `rmap.md`.
+
 ### Repo selector for multi-repo workspaces
 
 When one Linear workspace serves multiple cloud-agent-targeted repos, Cursor needs an explicit signal which on-disk repo to clone. Cursor's documented selector priority (cursor.com/docs/integrations/linear):
@@ -225,3 +227,4 @@ Same shape as `critical-rules.md` § "NO EVASION — SIT WITH THE HARD THING": w
 - `task-writing.md` — body-as-prompt; plan-shape vs roadmap-shape distinction
 - `task-prioritization.md` § "Ceremony Floor" — review-time cost-benefit gate; § "Pre-Flight Conflict Detection" here is the delegation-time analogue
 - `critical-rules.md` § "NO EVASION — SIT WITH THE HARD THING" — the discipline Honest-Gap mirrors
+- `rmap.md` — the roadmap substrate; delegation markers and statuses in this file are rendered `roadmap/tasks.toml` notation, and `rmap delegate` formats a task as a cloud-agent prompt

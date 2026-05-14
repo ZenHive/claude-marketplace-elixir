@@ -10,6 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @~/.claude/includes/task-writing.md
 
+@~/.claude/includes/rmap.md
+
 @~/.claude/includes/workflow-philosophy.md
 
 @~/.claude/includes/web-command.md
@@ -39,7 +41,7 @@ This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem devel
 **`~/.claude/includes/*.md` files are canonical.** Skill SKILL.md files are auto-synced from includes — never edit skill bodies directly. After editing an include, run:
 
 ```bash
-./scripts/sync-skills-from-includes.sh          # sync all 15 mapped skills
+./scripts/sync-skills-from-includes.sh          # sync all 30 mapped skills
 ./scripts/sync-skills-from-includes.sh --dry-run # preview changes
 ```
 
@@ -114,7 +116,7 @@ plugins/
 ├── task-driver/              # Roadmap-driven task execution
 │   ├── .claude-plugin/
 │   │   └── plugin.json
-│   └── skills/               # task-driver skill
+│   └── skills/               # task-driver, rmap (roadmap substrate)
 └── cloud-delegation/         # Linear-as-queue + cloud-agent (Codex/Cursor) delegation
     ├── .claude-plugin/
     │   └── plugin.json
@@ -152,7 +154,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (40 total)
+### Skills (41 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance. The agent-facing catalog (what each does, when to invoke) lives in `SKILLS.md` at the repo root — keep it in sync when adding or removing skills.
 
@@ -206,11 +208,12 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 | commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label** then chains audit-review against the merge SHA |
 | audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-queue` (self-authored worktree flow, post-merge for non-auto-merge cases) |
 
-**Task-driver plugin** (1 skill):
+**Task-driver plugin** (2 skills):
 
 | Skill | Description |
 |-------|-------------|
 | task-driver | Roadmap-driven task execution — select by efficiency, implement, update all docs |
+| rmap | The `rmap` roadmap substrate — `roadmap/tasks.toml` is canonical, `ROADMAP.md` is rendered output; command surface by intent, D/B/U mapping, status/marker vocabulary, migration procedure for hand-edited roadmaps |
 
 **Cloud-delegation plugin** (7 skills):
 

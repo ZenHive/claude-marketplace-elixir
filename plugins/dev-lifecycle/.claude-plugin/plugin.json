@@ -1,6 +1,6 @@
 {
   "name": "dev-lifecycle",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Canonical marketplace-discoverable reference for the six-phase development lifecycle: task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6). Composes the already-language-agnostic task-driver, staged-review, and cloud-delegation plugins (plus the worktree-workflow include) into one named chain. Pure documentation/orchestration — no new behavior, no Elixir coupling, standalone-extractable.",
   "author": {
     "name": "DeltaHedge",

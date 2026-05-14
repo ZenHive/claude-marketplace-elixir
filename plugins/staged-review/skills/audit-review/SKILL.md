@@ -315,7 +315,7 @@ Applies in this order, deterministic across runs:
 
 Skip priority 1-2 cosmetic findings unless the fix is a single-line trivial edit (typo in a doc string, wrong word in an error message). Cosmetic noise dilutes the audit corpus.
 
-When applying ROADMAP status flips, preserve any `[CX]` / `[CSR]` markers from cloud-agent delegation history (e.g. `Task 12 [CSR]` → `Task 12 [CSR] ✅`). Don't strip them — they're part of the audit trail.
+ROADMAP status flips go through `rmap status <id> done` (rmap re-renders `ROADMAP.md` + `roadmap/data.json`) — never a hand-edit to `ROADMAP.md`. Delegation markers (`cx` / `csr`) live on the `[[task]]` entry in `roadmap/tasks.toml` and persist across the status change automatically; the rendered `[CX]` / `[CSR]` notation is preserved by construction. See `rmap.md`.
 
 ### Step 10: Auto-Resolve `discuss-design` via Claude+Codex Dialogue
 
@@ -479,18 +479,19 @@ Closing line — pick one:
 
 Don't silently drop the Codex outcome — mark it.
 
-## ROADMAP Candidate Filing
+## rmap Task Filing
 
-When `discuss-design` divergence drops a finding, file it as a ROADMAP row inside the audit commit (so the row lands with the rest of the audit batch):
+When `discuss-design` divergence drops a finding, file it as an `rmap` task inside the audit commit (so it lands with the rest of the audit batch). Use `rmap new --from-stdin` with a `[[task]]` block — see `task-writing.md` for the schema:
 
-```markdown
-- [ ] Audit-surfaced: <one-line title> [D:?/B:?/U:?]
-      <Both positions in 2-3 sentences. The first is Claude's resolution: ___. The second is Codex's resolution: ___. Trade-off: ___. Filed by audit-review on <YYYY-MM-DD> against commit <short-sha>; see `.audit/<short-sha>-<slug>.md` for full context.>
-```
+- `title`: `Audit-surfaced: <one-line title>`
+- `body`: both positions in 2-3 sentences — Claude's resolution, Codex's resolution, the trade-off — plus `Filed by audit-review on <YYYY-MM-DD> against commit <short-sha>; see .audit/<short-sha>-<slug>.md for full context.`
+- `status = "pending"`; leave scoring for the user's next prioritization pass — the audit can't speculate on user-side cost/value.
 
-Use a single dedicated section so audit-surfaced follow-ups are easy to triage later — append under `## Audit-Surfaced Follow-Ups` (create the section in ROADMAP.md on first use). Leave D/B/U as `?` placeholders; the user scores them on the next prioritization pass since the audit can't speculate on user-side cost/value.
+`rmap new` re-renders `ROADMAP.md` + `roadmap/data.json`; stage all three (`roadmap/tasks.toml`, `ROADMAP.md`, `roadmap/data.json`) into the audit commit alongside the `.audit/` reports.
 
-**Don't open new ROADMAP rows for findings the audit auto-applied.** Filing should only happen on `discuss-design` divergence — the case where neither reasoner won and the decision genuinely belongs to the user. Auto-applied findings are already represented in the audit commit and `.audit/<sha>.md`.
+**Don't open new `rmap` tasks for findings the audit auto-applied.** Filing should only happen on `discuss-design` divergence — the case where neither reasoner won and the decision genuinely belongs to the user. Auto-applied findings are already represented in the audit commit and `.audit/<sha>.md`.
+
+For projects still on a hand-edited `ROADMAP.md` (pre-rmap migration), fall back to appending a row under a `## Audit-Surfaced Follow-Ups` section.
 
 ## Tiny-Commit Fast Path
 
@@ -532,7 +533,7 @@ In all four cases, the workflow body above is identical. The difference is who p
 | Skipping Codex dispatch on tiny-fast-path commits "to save tokens" | Tiny-path commits already skip Codex by design (LOC + scope criteria). Don't extend the skip to non-tiny commits |
 | Running `git push` after the audit commit | Skill never pushes. User pushes when ready. Same posture as `code-review` Step 8 (reviewer leaves edits unstaged for the committer) |
 | Bypassing pre-commit hooks with `--no-verify` | Per `critical-rules.md` § "🚨 FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH". Fix the issue, recommit (NEW commit, not `--amend`) |
-| Filing auto-applied findings as ROADMAP rows | Only `discuss-design` divergences become ROADMAP rows. Auto-applied findings already live in the audit commit + `.audit/<sha>.md` |
+| Filing auto-applied findings as `rmap` tasks | Only `discuss-design` divergences become `rmap` tasks (`rmap new --from-stdin`). Auto-applied findings already live in the audit commit + `.audit/<sha>.md` |
 | Using `git add -A` to stage audit files | Always stage explicitly: `git add .audit/` + named touched files. Same shape as `commit-review` Step 15 |
 | Inventing `.audit/` entries when the commit doesn't actually need them | Every commit in the range gets a `.audit/<sha>.md` (full or fast-path stub). Don't skip "boring" commits to keep the corpus clean — completeness is the corpus's value |
 | Forgetting the closing line on Codex unreachability | Always close with `dual-reviewer pass` or `Codex unreachable — single-reviewer pass [for N of M commits]`. Silent dropping looks like success |
@@ -548,5 +549,6 @@ Closely related includes and skills:
 - `~/.claude/includes/critical-rules.md` § "🚨 FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH" — pre-commit hook flags during the audit commit get fixed in a new commit, not bypassed
 - `~/.claude/includes/worktree-workflow.md` — auto-trigger path #1 (self-authored worktree)
 - `~/.claude/includes/linear-queue.md` § "Self-Authored Worktree Flow" — auto-trigger path #3 (post-merge user-confirmed merge); auto-trigger path #2 (post-merge auto-merge chain) is governed by `~/.claude/includes/delegation-rules.md` § "DON'T AUTO-MERGE PRS"
-- `~/.claude/includes/task-prioritization.md` § "Ceremony Floor" — applied implicitly via the rating scale and the discuss-design dialogue. Bug findings always surface; small cosmetic findings auto-apply or skip; ROADMAP filing is reserved for cross-session coordination cost (which is exactly what discuss-design divergence represents)
+- `~/.claude/includes/task-prioritization.md` § "Ceremony Floor" — applied implicitly via the rating scale and the discuss-design dialogue. Bug findings always surface; small cosmetic findings auto-apply or skip; `rmap` task filing is reserved for cross-session coordination cost (which is exactly what discuss-design divergence represents)
+- `~/.claude/includes/rmap.md` — the roadmap substrate; status flips go through `rmap status` and divergence-dropped findings are filed via `rmap new --from-stdin` (both re-render `ROADMAP.md`, never hand-edited)
 - `feedback_autonomy_first.md` (memory) — the design lens: workflows default to less human-in-the-loop. This skill is the post-commit / post-merge half of the three-tier autonomous review architecture

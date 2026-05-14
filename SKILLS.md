@@ -4,7 +4,7 @@
 > Humans setting up the marketplace: see [README.md](README.md).
 
 This is the agent-facing catalog of every skill: **what it gives you** and **when to invoke it**.
-40 skills across 8 plugins.
+41 skills across 8 plugins.
 
 ## How skills work
 
@@ -27,6 +27,7 @@ This is the agent-facing catalog of every skill: **what it gives you** and **whe
 | Looking up a mix command or quality-check flag | `development-commands` |
 | Adding CI to a repo that's a cloud-agent delegation target | `elixir-ci-harness` |
 | Planning a multi-task backlog | `roadmap-planning` |
+| Working with the roadmap substrate — picking work, scoring, status changes, rendering `ROADMAP.md`, migrating a hand-edited roadmap | `rmap` |
 | Picking up + implementing a roadmap task | `task-driver` |
 | Orienting around the dev lifecycle ("which phase am I in?") | `dev-lifecycle` |
 | Reviewing staged changes before commit | `code-review` |
@@ -69,8 +70,9 @@ This is the agent-facing catalog of every skill: **what it gives you** and **whe
 
 | Skill | What it gives you | Invoke when |
 |---|---|---|
-| [`roadmap-planning`](plugins/elixir/skills/roadmap-planning/SKILL.md) | D/B (Difficulty/Benefit) scoring, ROI-based ordering, phase organization, status markers | Planning features, organizing refactors, structuring multi-task work |
-| [`task-driver`](plugins/task-driver/skills/task-driver/SKILL.md) | Reads ROADMAP.md, selects by efficiency, implements with TodoWrite tracking, updates all project docs. Two modes: Pickup and Plan-and-File | Starting a work session, picking/implementing roadmap items |
+| [`roadmap-planning`](plugins/elixir/skills/roadmap-planning/SKILL.md) | D/B/U (Difficulty/Benefit/Usefulness) scoring, ROI-based ordering, phase organization, status/marker vocabulary — the framework `rmap` executes | Planning features, organizing refactors, structuring multi-task work |
+| [`rmap`](plugins/task-driver/skills/rmap/SKILL.md) | The roadmap substrate — `roadmap/tasks.toml` is canonical, `ROADMAP.md` + `roadmap/data.json` are rendered. Command surface by intent, D/B/U → `scores` mapping, status/marker vocabulary, migration procedure for hand-edited roadmaps | Picking work (`rmap next`), scoring, changing status/markers, creating tasks (`rmap new`), rendering, or migrating a legacy `ROADMAP.md` |
+| [`task-driver`](plugins/task-driver/skills/task-driver/SKILL.md) | Reads roadmap state via `rmap` (`list` / `next` / `show`), selects by efficiency, implements with TodoWrite tracking, updates all project docs. Two modes: Pickup and Plan-and-File | Starting a work session, picking/implementing roadmap items |
 | [`dev-lifecycle`](plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md) | Canonical six-phase chain reference (task-driver → worktree → bots → commit-review → merge → audit-review) — answers "which phase?", "which skill owns this?" | Orienting around the lifecycle, explaining phase handoffs |
 | [`portfolio-strategy`](plugins/portfolio-strategy/skills/portfolio-strategy/SKILL.md) | Power-law portfolio rule for **cross-repo** decisions — start/continue/kill a project, where to spend attention | Evaluating portfolio health, deciding the next bet. NOT for within-project prioritization (use `roadmap-planning`) |
 | [`workflow-generator`](plugins/elixir-workflows/skills/workflow-generator/SKILL.md) | Generates customized workflow slash commands (research, plan, implement, qa) for an Elixir project | Setting up a new project's development workflow |
@@ -163,6 +165,6 @@ A few skills also have slash-command entry points (Claude Code only):
 /plugin install elixir@deltahedge          # 24 skills + hooks
 /plugin install cloud-delegation@deltahedge # 7 delegation skills
 /plugin install staged-review@deltahedge   # 3-skill review chain
-/plugin install task-driver@deltahedge     # task-driver skill
+/plugin install task-driver@deltahedge     # task-driver + rmap skills
 # …see README.md for the full plugin list
 ```

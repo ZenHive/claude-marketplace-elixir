@@ -92,9 +92,9 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns — setup and Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Workflow-command generator for other Elixir projects |
 
-## Skills (40)
+## Skills (41)
 
-40 skills across 8 plugins. For the full **agent-facing catalog** — what each skill does and when to invoke it — see **[SKILLS.md](SKILLS.md)**.
+41 skills across 8 plugins. For the full **agent-facing catalog** — what each skill does and when to invoke it — see **[SKILLS.md](SKILLS.md)**.
 
 | Plugin | Skills | Focus |
 |--------|--------|-------|
@@ -102,7 +102,7 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 | [cloud-delegation](./plugins/cloud-delegation/README.md) | 7 | Linear-as-queue + cloud-agent (Codex/Cursor) delegation chain |
 | [staged-review](./plugins/staged-review/README.md) | 3 | Pre-commit → pre-merge → post-merge review chain |
 | [phoenix](./plugins/phoenix/README.md) | 2 | Phoenix setup + Nexus admin template |
-| [task-driver](./plugins/task-driver/README.md) | 1 | Roadmap-driven task execution |
+| [task-driver](./plugins/task-driver/README.md) | 2 | Roadmap-driven task execution + the `rmap` roadmap substrate |
 | [dev-lifecycle](./plugins/dev-lifecycle/README.md) | 1 | Six-phase development lifecycle reference |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | 1 | Workflow-command generator |
 | [portfolio-strategy](./plugins/portfolio-strategy) | 1 | Cross-repo power-law portfolio rule |

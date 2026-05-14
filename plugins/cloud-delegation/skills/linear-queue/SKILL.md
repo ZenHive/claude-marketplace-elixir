@@ -86,7 +86,7 @@ What this issue explicitly does NOT do.
 Anchor file:line references — reviewer's starting points.
 
 ## Scoring
-[D:X/B:Y/U:Z → Eff:W] (matches ROADMAP scoring)
+[D:X/B:Y/U:Z → Eff:W] — copy the rendered bracket from the task's ROADMAP row (source: `scores = { d, b, u }` in `roadmap/tasks.toml`; `rmap` computes Eff)
 
 ## Reviewer note
 Anything the local-review session needs — known gotchas, prior context, env caveats.
@@ -154,7 +154,7 @@ If cross-repo coordination becomes regular (3+ linked issues per month), promote
 
 ### ROADMAP-Fallback Flow (projects without Linear)
 
-**ROADMAP.md is source of truth in all delegation flows; Linear is a queue *view* on top.** Projects that don't use Linear — or temporarily can't reach the Linear MCP — still run the same delegation pattern via `[CX]` / `[CSR]` markers in ROADMAP.md rows directly.
+**The roadmap is source of truth in all delegation flows; Linear is a queue *view* on top.** With `rmap` the roadmap is `roadmap/tasks.toml` (rendered to `ROADMAP.md`); projects that don't use Linear — or temporarily can't reach the Linear MCP — still run the same delegation pattern via the `cx` / `csr` markers on `[[task]]` entries. New fallback tasks are filed with `rmap new --from-stdin`; the `[CX]` / `[CSR]` / `⬜` / `🔄` row notation below is rmap-rendered, not hand-typed. See `rmap.md`.
 
 **Pickup signal without Linear:** cloud agents poll ROADMAP.md for rows with `[CX]` / `[CSR]` markers and `⬜` status (or matching their delegate field). Reviewer discovers PRs via `gh pr list --state open` filtered to cloud-agent branch prefixes (`codex/`, `cursor/`). Status updates land in the post-merge `audit(<sha>): ...` commit on the repo's default branch: `🔄` → `✅` plus marker preserved.
 
@@ -179,6 +179,7 @@ Team key, project list, repo↔project mapping, project IDs, worked examples are
 - `agent-pr-review.md` — reviewing the PRs cloud agents open
 - `flow-review.md` — merge-train mode for 2+ open cloud-agent PRs
 - `task-writing.md` — body-as-prompt principle; plan-shape vs roadmap-shape distinction
+- `rmap.md` — the roadmap substrate; `roadmap/tasks.toml` is canonical and `ROADMAP.md` is rendered. Fallback-flow task filing uses `rmap new --from-stdin`
 - `worktree-workflow.md` — the worktree mechanics the Self-Authored Worktree Flow rides on
 - `workflow-philosophy.md` § "Implementer / Reviewer Handoff" — the handoff shape Linear+worktree implements
 - `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — comment-posting permission for the self-authored flow

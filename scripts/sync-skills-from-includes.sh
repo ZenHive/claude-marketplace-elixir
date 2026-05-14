@@ -49,6 +49,7 @@ MAPPINGS=(
   "plugins/cloud-delegation/skills/sprite-claude-code/SKILL.md:sprite-claude-code.md"
   "plugins/elixir/skills/git-worktrees/SKILL.md:worktree-workflow.md"
   "plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md:dev-lifecycle.md"
+  "plugins/task-driver/skills/rmap/SKILL.md:rmap.md"
 )
 
 synced=0

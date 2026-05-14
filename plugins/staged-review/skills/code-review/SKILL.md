@@ -89,6 +89,8 @@ Read `ROADMAP.md` (or the project's equivalent task doc) before reviewing. You n
 - Which task numbers exist (so you can reference them in `TODO(Task N)` markers)
 - Whether the staged diff appears to complete a tracked task (flag as a finding if it does but ROADMAP still shows ⬜ — don't flip the status yourself)
 
+**rmap note.** When the project uses `rmap`, `ROADMAP.md` is rendered from `roadmap/tasks.toml` — read it for context, but never hand-edit it. A Category 6 "task complete, status not flipped" finding applies as `rmap status <id> done` (not a hand-edit), and a ceremony-floor "ROADMAP candidate" is filed via `rmap new --from-stdin`. See `rmap.md`.
+
 ### Step 3: Apply Review Categories
 
 Review all staged changes against the 5+1 categories below. Language shows up in *examples*, not in workflow — the categories themselves are language-agnostic.

@@ -1,0 +1,673 @@
+{
+  "schema_version": 1,
+  "project": "claude-marketplace-elixir",
+  "default_branch": "main",
+  "focus": {
+    "phase": 8
+  },
+  "phases": {
+    "10": {
+      "name": "Audit-Review Follow-Ups",
+      "order": 10,
+      "status": "pending"
+    },
+    "11": {
+      "name": "rmap Integration & Propagation",
+      "order": 11,
+      "status": "pending"
+    },
+    "5": {
+      "name": "Documentation",
+      "order": 5,
+      "status": "done"
+    },
+    "7": {
+      "name": "Skill Quality",
+      "order": 7,
+      "status": "done"
+    },
+    "8": {
+      "name": "Hook Scripts",
+      "order": 8,
+      "status": "pending"
+    },
+    "9": {
+      "name": "Codex Delegation Workflow",
+      "order": 9,
+      "status": "done"
+    }
+  },
+  "bundles": {
+    "audit_followups": {
+      "phase": 10,
+      "order": 1,
+      "description": "Quality-of-life and edge-case extensions to the audit-review workflow"
+    },
+    "codex_delegation": {
+      "phase": 9,
+      "order": 1,
+      "description": "Linear-as-queue + Codex delegation workflow — markers, discipline rules, AGENTS.md sync, commit-review skill"
+    },
+    "documentation": {
+      "phase": 5,
+      "order": 1,
+      "description": "Refresh project-level docs (CLAUDE.md, README.md) to current marketplace state"
+    },
+    "hook_scripts": {
+      "phase": 8,
+      "order": 1,
+      "description": "New PreToolUse/PostToolUse hook scripts in plugins/elixir — block destructive Bash, warn on tooling-flag omissions, doctest IO, shell-eval Elixir"
+    },
+    "rmap_integration": {
+      "phase": 11,
+      "order": 1,
+      "description": "Deeper rmap integration into delegation/review workflows + propagating the rmap mandate across repos"
+    },
+    "skill_quality": {
+      "phase": 7,
+      "order": 1,
+      "description": "Skill-quality pass — progressive disclosure, description optimization, AI-coder-docs scope, includes sync"
+    }
+  },
+  "task": [
+    {
+      "id": 12,
+      "phase": 5,
+      "bundle": "documentation",
+      "status": "done",
+      "title": "Update project CLAUDE.md",
+      "scores": {
+        "d": 2,
+        "b": 7,
+        "u": 5
+      },
+      "eff": 3.0,
+      "markers": [],
+      "depends_on": [],
+      "body": "Update CLAUDE.md skills section to document all skills organized by plugin.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 13,
+      "phase": 5,
+      "bundle": "documentation",
+      "status": "done",
+      "title": "Update README.md",
+      "scores": {
+        "d": 2,
+        "b": 6,
+        "u": 5
+      },
+      "eff": 2.75,
+      "markers": [],
+      "depends_on": [],
+      "body": "Add a complete skill inventory section to README.md; refresh the plugin table descriptions.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 23,
+      "phase": 7,
+      "bundle": "skill_quality",
+      "status": "done",
+      "title": "Progressive disclosure for oversized skills",
+      "scores": {
+        "d": 4,
+        "b": 7,
+        "u": 6
+      },
+      "eff": 1.63,
+      "markers": [],
+      "depends_on": [],
+      "body": "Refactor oversized skills with the progressive-disclosure pattern; evaluate borderline skills and keep where appropriate.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 24,
+      "phase": 7,
+      "bundle": "skill_quality",
+      "status": "done",
+      "title": "Skill description optimization",
+      "scores": {
+        "d": 2,
+        "b": 8,
+        "u": 7
+      },
+      "eff": 3.75,
+      "markers": [],
+      "depends_on": [],
+      "body": "Rewrite all skill YAML descriptions with pushy trigger language.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 25,
+      "phase": 7,
+      "bundle": "skill_quality",
+      "status": "done",
+      "title": "AI-coder-docs patterns for skills",
+      "scores": {
+        "d": 3,
+        "b": 6,
+        "u": 5
+      },
+      "eff": 1.83,
+      "markers": [],
+      "depends_on": [],
+      "body": "Add Does / Does Not scope sections to skills; add a phoenix-setup cross-reference.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 26,
+      "phase": 7,
+      "bundle": "skill_quality",
+      "status": "done",
+      "title": "Update Tasks 12-13 for current state",
+      "scores": {
+        "d": 1,
+        "b": 4,
+        "u": 5
+      },
+      "eff": 4.5,
+      "markers": [],
+      "depends_on": [],
+      "body": "Refresh the documentation tasks (12, 13) to reflect current marketplace state — they referenced stale plugin names and incomplete skill lists.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 27,
+      "phase": 7,
+      "bundle": "skill_quality",
+      "status": "done",
+      "title": "Sync skills with updated includes",
+      "scores": {
+        "d": 3,
+        "b": 8,
+        "u": 8
+      },
+      "eff": 2.67,
+      "markers": [],
+      "depends_on": [],
+      "body": "Sync skills with the canonical includes — fix stale content, create new skills.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 28,
+      "phase": 7,
+      "bundle": "skill_quality",
+      "status": "done",
+      "title": "Backport skill knowledge to canonical includes",
+      "scores": {
+        "d": 5,
+        "b": 9,
+        "u": 9
+      },
+      "eff": 1.8,
+      "markers": [],
+      "depends_on": [],
+      "body": "Rewrite include files with condensed knowledge from skills + references; create the include→skill sync script; fix stale namespace references.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 29,
+      "phase": 8,
+      "bundle": "hook_scripts",
+      "status": "pending",
+      "title": "Block destructive Bash patterns",
+      "scores": {
+        "d": 3,
+        "b": 8,
+        "u": 7
+      },
+      "eff": 2.5,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Each blocked shape returns deny-JSON with a permissionDecisionReason naming the safe alternative",
+        "Tests exercise the block patterns and each documented exception — no false positives on `mix deps.unlock --check-unused` or `git rm`"
+      ],
+      "body": "Add PreToolUse:Bash hooks that block three command shapes Claude is explicitly told never to run:\n\n- `mix phx.server` — the server is always already running (critical-rules.md § \"NEVER START THE PHOENIX SERVER\").\n- Destructive deps/build commands: `mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps` (critical-rules.md § \"NEVER RUN DESTRUCTIVE DEPENDENCY COMMANDS\"). Must still allow `mix deps.unlock --check-unused` (used by pre-commit-unified.sh).\n- Bare `rm` outside of `git rm` (critical-rules.md § \"Shell Safety\"). Must still allow `git rm`.\n\nEach script outputs the deny-JSON shape with a permissionDecisionReason pointing to the safe alternative.\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 30,
+      "phase": 8,
+      "bundle": "hook_scripts",
+      "status": "pending",
+      "title": "Warn on tooling-flag omissions",
+      "scores": {
+        "d": 2,
+        "b": 6,
+        "u": 6
+      },
+      "eff": 3.0,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Warn-only output (never blocks) for missing `--strict --format json` on credo and missing `time` prefix on compile",
+        "No false positives on hook scripts' own internal mix invocations"
+      ],
+      "body": "Add PreToolUse:Bash hooks that warn (no block) when project-standard flags are missing:\n\n- `mix credo` invoked without `--strict --format json` (development-commands.md).\n- `mix compile` invoked without a `time` prefix (development-commands.md).\n\nFalse-positive guard: don't fire on post-edit-check.sh / pre-commit-unified.sh's own internal `mix credo` / `mix compile` invocations — verify those actually run inside hook scripts rather than via Claude's Bash tool before adding complex matching.\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 31,
+      "phase": 8,
+      "bundle": "hook_scripts",
+      "status": "pending",
+      "title": "Warn on doctest IO and untagged temporary code",
+      "scores": {
+        "d": 4,
+        "b": 6,
+        "u": 4
+      },
+      "eff": 1.25,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Warns on IO calls inside @doc heredocs",
+        "Warns on deferred-work comment phrases not prefixed with TODO:",
+        "No false positives inside string literals or ~s/~S sigils"
+      ],
+      "body": "Extend post-edit-check.sh (or add a sibling PostToolUse:Edit|Write|MultiEdit script) with two warn-only checks credo can't see:\n\n- `IO.puts` / `IO.inspect` inside `@doc` heredoc blocks (development-philosophy.md § \"No IO in @doc examples\").\n- `#` comments starting with \"For now,\", \"Currently,\", \"Temporarily,\", \"In production,\", or \"This is a workaround,\" NOT preceded by `TODO:` (development-philosophy.md § \"TODO Comment Requirements\").\n\nFalse-positive guards: never trigger when the patterns appear inside string literals or ~s/~S sigils. Tune for low noise.\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 32,
+      "phase": 8,
+      "bundle": "hook_scripts",
+      "status": "pending",
+      "title": "Warn on shell-eval Elixir, prefer Tidewave",
+      "scores": {
+        "d": 2,
+        "b": 7,
+        "u": 7
+      },
+      "eff": 3.5,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "New script in plugins/elixir/scripts/, registered in plugins/elixir/hooks/hooks.json under PreToolUse:Bash",
+        "Warn-only — must NOT block (seeds and CI scripts share the shape)",
+        "4 trigger patterns fire; none of `mix test` / `iex -S mix` / `iex -S mix tidewave` / `mix phx.server` / `mix compile` fire",
+        "Warning message names mcp__tidewave__project_eval and mcp__tidewave__get_logs so Claude can call them directly"
+      ],
+      "body": "Add a PreToolUse:Bash hook that warns (no block) when Claude is about to run Elixir code through the shell — the cases with a direct mcp__tidewave__project_eval / get_logs equivalent: `mix run -e \"<code>\"`, `elixir -e \"<code>\"`, `iex -e \"<code>\"`, `mix run <path>.exs` (legitimate priv/repo/seeds.exs shares the shape — accepted false positive, called out in the warning).\n\nWhy: Tidewave attaches to the same BEAM as the running dev server, so project_eval sees current state and skips the fresh-VM startup `mix run` incurs. The tidewave-guide skill exists but Claude regularly forgets it under shell-muscle-memory.\n\nReference implementation: a working version exists in hieroglyph/.claude/hookify.prefer-tidewave-over-shell-eval.local.md (12-case regex test included). Port the regex and warning text — the warning includes a replacement table, the recompile() workaround for stale bytecode, and a \"legitimate exceptions\" footer (seeds, one-shot CI scripts).\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 33,
+      "phase": 9,
+      "bundle": "codex_delegation",
+      "status": "done",
+      "title": "Add [CX] marker to task-prioritization include",
+      "scores": {
+        "d": 1,
+        "b": 7,
+        "u": 7
+      },
+      "eff": 7.0,
+      "markers": [],
+      "depends_on": [],
+      "body": "Add a Codex-delegation marker subsection to task-prioritization.md defining the marker, criteria, and workflow. Auto-syncs to roadmap-planning/SKILL.md.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 34,
+      "phase": 9,
+      "bundle": "codex_delegation",
+      "status": "done",
+      "title": "Add [CX] discipline rules to critical-rules.md",
+      "scores": {
+        "d": 1,
+        "b": 8,
+        "u": 6
+      },
+      "eff": 7.0,
+      "markers": [],
+      "depends_on": [],
+      "body": "Add 'DON'T STEAL [CX] TASKS' and 'DON'T AUTO-MERGE PRS' sections to critical-rules.md.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 35,
+      "phase": 9,
+      "bundle": "codex_delegation",
+      "status": "done",
+      "title": "AGENTS.md sync script",
+      "scores": {
+        "d": 3,
+        "b": 7,
+        "u": 7
+      },
+      "eff": 2.33,
+      "markers": [],
+      "depends_on": [],
+      "body": "scripts/sync-agents-md.sh — parses ./CLAUDE.md, inlines all @-imports, writes ./AGENTS.md with an auto-sync banner. --dry-run flag, exit-1 on missing imports.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 36,
+      "phase": 9,
+      "bundle": "codex_delegation",
+      "status": "done",
+      "title": "SessionStart branch-behind hook",
+      "scores": {
+        "d": 3,
+        "b": 6,
+        "u": 7
+      },
+      "eff": 2.17,
+      "markers": [],
+      "depends_on": [],
+      "body": "plugins/elixir/scripts/check-branch-behind-origin.sh — git fetch origin main, warn if behind. Registered as a SessionStart hook.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 37,
+      "phase": 9,
+      "bundle": "codex_delegation",
+      "status": "done",
+      "title": "commit-review skill in staged-review plugin",
+      "scores": {
+        "d": 5,
+        "b": 9,
+        "u": 8
+      },
+      "eff": 1.7,
+      "markers": [],
+      "depends_on": [],
+      "body": "plugins/staged-review/skills/commit-review/SKILL.md — sibling of code-review. Polls Linear for In Review issues, runs the local harness, audits, presents a verdict.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 38,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "done",
+      "title": "SessionStart hook for audit detection",
+      "scores": {
+        "d": 3,
+        "b": 5,
+        "u": 6
+      },
+      "eff": 1.83,
+      "markers": [],
+      "depends_on": [],
+      "body": "plugins/staged-review/scripts/check-unaudited-commits.sh — detects an unaudited tail via a git log --grep '^audit(' ancestor walk; fires when ≥3 commits sit past the anchor.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 39,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "done",
+      "title": "/audit-status roll-up command",
+      "scores": {
+        "d": 2,
+        "b": 4,
+        "u": 5
+      },
+      "eff": 2.25,
+      "markers": [],
+      "depends_on": [],
+      "body": "/staged-review:audit-status (with optional --all flag) — read-only per-branch / portfolio-wide audit-drift snapshot.",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 40,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Cross-repo audit corpus aggregation",
+      "scores": {
+        "d": 7,
+        "b": 6,
+        "u": 3
+      },
+      "eff": 0.64,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Script in ~/.claude/scripts/audit-corpus.sh (user-scope, not plugin) walks ~/_DATA/code/*/.audit/*.md",
+        "Parses frontmatter + Findings tables, aggregates by category and resolution",
+        "Output: markdown report with cross-repo trends and candidate include changes"
+      ],
+      "body": "Portfolio-level dashboard of audit findings across all repos with .audit/ directories. Strategic, not tactical — answers \"what categories of finding recur across my repos?\" so the canonical includes can be tightened to prevent future occurrences. Expected output: aggregate frequency table (Category × repo), discuss-design divergence themes, ROADMAP-candidate findings that span repos.\n\nDefer until ≥3 repos have ≥10 audit reports each — otherwise no signal.\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 41,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Auto-merge for self-authored worktree PRs",
+      "scores": {
+        "d": 4,
+        "b": 6,
+        "u": 5
+      },
+      "eff": 1.38,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Decision document: which preconditions apply to self-authored vs cloud-agent",
+        "Loosen delegation-rules.md § 'DON'T AUTO-MERGE PRS' to cover self-authored if preconditions hold",
+        "Update worktree-workflow.md to document the new auto-merge tail (PR-merge → cleanup)",
+        "Test: open a self-authored worktree PR, run audit, verify auto-merge fires only when all preconditions hold"
+      ],
+      "body": "Extend the cloud-agent auto-merge (scoped to cursor/* / codex/*) to self-authored PRs from worktrees. Needs separate analysis — self-authored work has different blast-radius than reviewed cloud-agent work: no upstream reviewer signal, no agent-PR template, fewer evaluator-separation layers. Likely requires stricter preconditions (mandatory code-review ✅ before commit, mandatory audit-review ✅ on the PR head, [BLOCK-MERGE] label still honored).\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 42,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Audit re-run on amend / rebase",
+      "scores": {
+        "d": 5,
+        "b": 3,
+        "u": 3
+      },
+      "eff": 0.6,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Detection logic walks .audit/*.md, checks if each sha: frontmatter still exists in git log",
+        "On orphan detection, prompt to re-audit OR mark the old report as superseded-by: <new-sha>",
+        "Hook into audit-review skill startup so it runs before the next audit pass",
+        "Tests cover amend, rebase, and squash-merge"
+      ],
+      "body": "Detect orphaned .audit/<old-sha>.md files when a commit is amended or rebased. The audit is keyed on commit SHA; rewriting history orphans the report. Offer to re-audit the new SHA and remove the stale file.\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 43,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Codex code-mutation re-enablement check",
+      "scores": {
+        "d": 2,
+        "b": 3,
+        "u": 4
+      },
+      "eff": 1.75,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Decision document: criteria for re-enabling Codex code-mutation",
+        "Verify auto-merge precondition #3 (cursor/* or codex/*) becomes live for Codex",
+        "Update agent-dispatch.md and cloud-agent-environments.md to lift the suspension",
+        "Run an end-to-end Codex delegation test before declaring re-enabled"
+      ],
+      "body": "Codex code-mutation is currently suspended per agent-dispatch.md. Track when/if to re-enable so the auto-merge precondition becomes live for Codex too. Periodic check on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 44,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Replace zsh-incompatible classification script in audit-review SKILL.md",
+      "scores": {
+        "d": 2,
+        "b": 5,
+        "u": 6
+      },
+      "eff": 2.75,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Replace the inline shell pipeline with a portable bash function (or a small scripts/classify.sh shipped with the skill)",
+        "Test on both bash and zsh (default macOS)",
+        "Update SKILL.md to call the script with the worktree path arg"
+      ],
+      "body": "The classification step in audit-review/SKILL.md shells out a one-liner using `paste -sd+ | bc` for LOC summing. On zsh (default macOS shell) this cascades into \"command not found\" errors and produces empty output. The SKILL prescription itself should be portable.\n\nSurfaced by: first run of audit-review on the onchain repo (2026-05-09).\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 45,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Worktree + clean-tree preconditions in audit-review",
+      "scores": {
+        "d": 3,
+        "b": 6,
+        "u": 7
+      },
+      "eff": 2.17,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Skill checks git rev-parse --show-toplevel against the ~/_DATA/worktrees/<repo>/ pattern; warns/refuses if running in main checkout",
+        "Skill checks git status --porcelain empty; refuses if dirty",
+        "Both checks documented at the top of SKILL.md as preconditions",
+        "Tests cover both refusal paths and the --allow-* overrides"
+      ],
+      "body": "audit-review should refuse to run in the main checkout when worktree-workflow.md is loaded (direct the agent to create a worktree first), and refuse to run with a dirty working tree (the audit corpus is a single atomic commit; a dirty tree pollutes scope). Optionally accept --allow-dirty / --allow-main-checkout overrides for repos that opt out of the worktree workflow.\n\nSurfaced by: first run on onchain (2026-05-09) — started in the main checkout with 12 dirty files; user had to interrupt and redirect.\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 46,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Audit-corpus-only mode (report without apply)",
+      "scores": {
+        "d": 3,
+        "b": 5,
+        "u": 5
+      },
+      "eff": 1.67,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "New flag --report-only in the /audit-review invocation",
+        "When set: dispatch Codex, write .audit/<sha>.md reports, but skip all auto-apply steps",
+        "Findings flagged in reports as 'Suggested fixes (NOT auto-applied)' rather than applied",
+        "Final commit is just the .audit/ directory; no production-code mutations",
+        "SKILL.md documents this as the recommended mode for first-run / backfill audits"
+      ],
+      "body": "The current skill auto-applies rated-3-10 + actionable + discuss-trivial findings. For backfill / pre-existing audit corpora, users may want report-only: write reports, surface findings, but do not modify project files. Distinct from --no-codex: this gates the application step, not the dispatch step.\n\nSurfaced by: first run on onchain (2026-05-09) — user wanted reports written but no auto-apply because Codex reviews already covered every commit.\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 47,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Per-commit Codex output capture in .audit/",
+      "scores": {
+        "d": 2,
+        "b": 4,
+        "u": 4
+      },
+      "eff": 2.0,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Skill writes per-commit Codex output to .audit/<sha>-codex.md (or appends it as a fenced block in the main report)",
+        ".audit/<sha>.md cross-references the raw codex output file",
+        "Format consistent enough for cross-repo aggregation (Task 40)"
+      ],
+      "body": "Codex agent outputs land in a session-scoped tmp dir — durable for the session but lost after compaction. For traceability and re-audit, the raw Codex output should land alongside the .md report — either inline or as a sibling file (.audit/<sha>-codex.md).\n\nSurfaced by: first run on onchain (2026-05-09).\n",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 48,
+      "phase": 11,
+      "bundle": "rmap_integration",
+      "status": "pending",
+      "title": "Deeper rmap integration into delegation + review workflows",
+      "scores": {
+        "d": 5,
+        "b": 7,
+        "u": 7
+      },
+      "eff": 1.4,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "agent-dispatch.md routes task-to-prompt rendering through `rmap delegate`",
+        "linear-queue.md ROADMAP-fallback flow uses `rmap new` / `rmap next` / `rmap list`",
+        "staged-review skills file ceremony-floor candidates via `rmap new --from-stdin` and mutate roadmap state via `rmap status`",
+        "sync-skills-from-includes.sh re-run; no drift"
+      ],
+      "body": "Stage D of the rmap-mandate migration only did light cross-ref touch-ups on the periphery includes/skills. This task does the deeper integration deferred from that stage:\n\n- `agent-dispatch.md` — wire `rmap delegate <id> --to codex|cursor` into the delegation flow as the canonical way to render a task into a cloud-agent prompt, replacing the hand-built plan-shaped issue spec where the task already lives in `tasks.toml`.\n- `linear-queue.md` — make `rmap` the full ROADMAP-fallback substrate: the ROADMAP-fallback flow files via `rmap new --from-stdin` and reads queue state via `rmap next` / `rmap list`, not hand-edited markdown rows.\n- `staged-review` skills (`code-review`, `commit-review`, `audit-review`) — ceremony-floor \"ROADMAP candidate\" findings are filed via `rmap new --from-stdin`; `audit-review`'s doc-update step calls `rmap status` / `rmap render` instead of hand-editing `ROADMAP.md`.\n\nEach touched include is canonical (`~/.claude/includes/`) — re-sync skills after editing. The `staged-review` skills are hand-authored — edit directly. Out of scope: changing the rmap CLI itself (tracked in rmap's own roadmap).\n",
+      "created_at": "2026-05-14",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    },
+    {
+      "id": 49,
+      "phase": 11,
+      "bundle": "rmap_integration",
+      "status": "pending",
+      "title": "Propagate the rmap mandate across repos",
+      "scores": {
+        "d": 4,
+        "b": 8,
+        "u": 8
+      },
+      "eff": 2.0,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "rmap mandate stated in global ~/.claude/CLAUDE.md or a widely-imported include",
+        "Active repos audited; each is either migrated to rmap or explicitly noted as exempt"
+      ],
+      "body": "The rmap-first posture currently lives in the marketplace's includes (`rmap.md`, `task-prioritization.md`, `task-writing.md`). Propagate \"every project uses rmap — `roadmap/tasks.toml` canonical, `ROADMAP.md` rendered\" so it actually reaches every repo:\n\n- Roll the mandate into the global `~/.claude/CLAUDE.md` (or a widely-imported include) so new repos inherit it.\n- Audit other active repos' `CLAUDE.md` files and roadmaps; migrate hand-edited `ROADMAP.md` files to `roadmap/tasks.toml` per the migration procedure in `rmap.md`, or note which repos are intentionally exempt.\n\nThis is the \"make it actually standard, not just documented\" follow-through.\n",
+      "created_at": "2026-05-14",
+      "scored_at": "2026-05-14",
+      "cross_repo": []
+    }
+  ]
+}

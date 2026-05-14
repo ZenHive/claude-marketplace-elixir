@@ -664,10 +664,10 @@ Apply the **correctness × size** floor from `~/.claude/includes/task-prioritiza
 - **≤ 5 LOC, bug or correctness gap:** push back inline. **NEVER drop, NEVER silently track.**
 - **> 5 LOC, cosmetic:** push back if cheap, else drop with rationale. ROADMAP only if cross-session coordination cost is genuine.
 - **Bugs at any size:** always surface, always push back. Never drop.
-- **Cross-session coordination cost (any size):** legitimate ROADMAP candidate — surface as one offer to the user.
+- **Cross-session coordination cost (any size):** legitimate `rmap new` task candidate — surface as one offer to the user.
 - **Scope-affecting / breaks acceptance criteria:** surface as `💬 discuss-design` per Step 9.
 
-The forbidden phrasing is "File a new ROADMAP task for <small inline finding> (scored [D:N/B:N/U:N])?" for findings that fit the current PR. If the finding fits the PR, it goes back to the implementing agent — not into ROADMAP queue overhead.
+The forbidden phrasing is "File a new `rmap` task for <small inline finding> (scored [D:N/B:N/U:N])?" for findings that fit the current PR. If the finding fits the PR, it goes back to the implementing agent — not into `rmap` queue overhead.
 
 #### Full machinery — three top-level shapes
 
