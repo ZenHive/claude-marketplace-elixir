@@ -198,19 +198,44 @@ Dispatch `codex:codex-rescue` **in parallel** with Step 5a for each non-tiny com
 
 **The dispatch prompt MUST include the project's tool inventory** — see "Dispatch Payload" below.
 
-**Wait for substantive Codex output. Do not background the dispatch.** Two layers can each silently background the call and both must be pinned:
+**Dispatch model: deliberate `--background` + poll via direct Bash.** Codex investigations on non-trivial diffs regularly take 5–30+ minutes. Observed pattern (see `.audit/80cb242-task-76-parsetrade.md` "Codex review hang"): codex does evidence-grade investigation in ~5 min, then the reasoning step can stall 30+ min before emitting findings. The Bash tool's 10-minute hard cap means foreground dispatch will be killed mid-investigation — silently losing exactly the bug-catching Codex is dispatched for. Background dispatch uses the codex plugin's persistent broker (`scripts/app-server-broker.mjs` spawns a detached codex app-server per repo; jobs persist across Claude turns AND sessions in `$CLAUDE_PLUGIN_DATA/state/<repo-slug>-*/jobs/`) and lets the audit-agent poll deliberately.
 
-1. **Agent tool** — invoke `codex:codex-rescue` with `run_in_background: false` (the default; do NOT set `true`). A backgrounded Agent call returns immediately with a queued-task acknowledgment, not findings.
-2. **Rescue agent's own routing** — the `codex-rescue` agent picks `--background` vs `--wait` based on task shape and defaults to `--background` for anything that "looks complicated, open-ended, multi-step, or likely to keep Codex running for a long time." A per-commit audit qualifies. **Include `--wait` explicitly in the dispatch prompt** so the rescue agent forwards it to `codex-companion task --wait` and returns Codex's stdout (the actual findings table) synchronously.
+**Pin background on both layers:**
 
-A backgrounded dispatch returns an ack, which Step 6 has nothing to merge — it's functionally equivalent to "Codex unreachable" and silently degrades the run to single-reviewer. The closing summary line (`dual-reviewer pass` vs `Codex unreachable`) will lie, because the dispatch succeeded but the findings never arrived.
+1. **Agent tool** — invoke `codex:codex-rescue` with `run_in_background: false` so the audit-agent receives the rescue agent's stdout in this tool round (the stdout contains the jobId; backgrounding the *Agent call* loses it).
+2. **Rescue agent's forwarding** — include `--background` explicitly in the dispatch prompt so the rescue agent forwards `codex-companion task --background …`. The rescue agent's stdout will be: `<title> started in the background as <jobId>. Check /codex:status <jobId> for progress.` Parse the jobId from that line.
 
-**Batched dispatch optimization.** When the range has ≤5 non-tiny commits, dispatch them concurrently — one Agent call per commit, all in a single message, each with `--wait`. When the range is wider, batch into groups of 5 to control concurrency; sequential batches keep total Codex usage bounded. The reuse of context across commits (the same project tool inventory ships every dispatch) makes per-commit dispatches cheap relative to single-shot review. Concurrent ≠ backgrounded: multiple synchronous-`--wait` dispatches run in parallel within one tool-call round and all return findings before the round closes.
+**Poll for completion via direct Bash, not via rescue or slash command.** The rescue agent is locked to `task` only (no status/result/cancel — by design, per evaluator separation). `/codex:status` and `/codex:result` have `disable-model-invocation: true` — Claude can't call them. Invoke codex-companion directly:
+
+```bash
+COMPANION="$HOME/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs"
+node "$COMPANION" status --wait --timeout-ms 600000 --json <jobId>   # blocks up to 10 min
+```
+
+If the returned JSON has `job.status == "completed"`, fetch findings:
+```bash
+node "$COMPANION" result <jobId>
+```
+
+If `waitTimedOut: true`, re-poll up to 2 more times (30 min total per commit) before declaring the job stalled. Concurrent batched dispatch: kick off all rescue Agent calls in one tool round, then issue all status polls in one Bash round — both fan out in parallel.
+
+**Why background over foreground here:** the user's stance — "Codex is able to find bugs that Opus 4.7 did not see" — makes dropping the second-opinion an unacceptable degradation. Forced foreground hits the Bash 10-min cap on long codex investigations and silently degrades to single-reviewer. Background + explicit polling preserves the dual-reviewer guarantee at the cost of wall-time/possibly-multi-session orchestration. That trade is correct.
 
 **Failure modes:**
-- Codex unreachable / agent errors → continue with single-reviewer pass for that commit. Mark the closing summary `Codex unreachable — single-reviewer pass` for affected commits.
-- Codex returns garbage / refuses → same as unreachable; don't fall back to "trust Codex" or "drop this commit" — single-reviewer the commit and surface the failure in the summary.
-- Dispatch returned a queued-task ack instead of findings → you backgrounded it. Re-dispatch with `--wait` and `run_in_background: false` before Step 6. Do NOT treat the ack as "Codex unreachable" — that hides the real failure (skill instruction not followed) under a normal-looking summary line.
+- **Codex unreachable** (binary missing, broker dead, dispatch errors) → continue with single-reviewer pass for that commit. Mark closing summary `Codex unreachable — single-reviewer pass`.
+- **Codex returns garbage / refuses** → same as unreachable; don't fall back to "trust Codex" — single-reviewer the commit and surface the failure.
+- **Codex job stalled** (3+ polls timed out, ~30 min wall-time, job still `running`) → write `.audit/_in_progress_<range>.md` checkpoint with the pending jobIds + Claude's findings captured so far + harness state, then STOP the audit. Do NOT silently degrade to single-reviewer. Multi-session resume per Step 5c is the correct path — losing a Codex finding on a long-running job is not an acceptable trade.
+
+### Step 5c: Resuming from `_in_progress_<range>.md` Checkpoint
+
+If `.audit/_in_progress_*.md` exists at audit start, the previous session stalled on background Codex jobs. Resume:
+
+1. Read the checkpoint — note jobIds, commit range, Claude findings already captured.
+2. For each pending jobId, quick-check status (no `--wait`): `node "$COMPANION" status --json <jobId>`.
+3. If `status: "completed"` → fetch via `node "$COMPANION" result <jobId>`, merge into Step 6 for that commit.
+4. If still `running` → one round of `node "$COMPANION" status --wait --timeout-ms 600000 <jobId>`.
+5. If still running after this round → re-write the checkpoint with updated state and stop again. Codex genuinely hung; the user may need to `/codex:cancel <jobId>` and rerun, or wait.
+6. After all jobIds resolve → continue Steps 6-13 normally. **Delete `.audit/_in_progress_<range>.md` as part of the final commit** (along with the per-commit `.audit/<sha>.md` reports).
 
 #### Dispatch Payload (What to Send Codex on Every Dispatch)
 
@@ -300,7 +325,7 @@ Otherwise, for each `discuss-design` finding:
 
 1. **Claude position.** Write a short paragraph: proposed resolution + reasoning, factoring in the roadmap (already read in Step 4), codebase conventions, and the specific trade-off. Keep it ~3 sentences.
 
-2. **Codex position.** Dispatch `codex:codex-rescue` with the four-section payload (Task = "resolve this `discuss-design` finding"; Context = the finding + Claude's position + ROADMAP excerpts; Tool inventory = same as Step 5b; Verification instruction = "verify before asserting"). Ask for an independent resolution and reasoning. **Same wait semantics as Step 5b: `run_in_background: false` on the Agent call AND `--wait` in the dispatch prompt.** Step 3 (compare and decide) needs Codex's actual resolution, not a queued-task ack. A backgrounded dialogue dispatch returns an ack the comparison can't reason about, and the finding will incorrectly fall through to the "Codex unreachable" branch (drop + file as ROADMAP candidate) even though Codex would have converged on apply.
+2. **Codex position.** Dispatch `codex:codex-rescue` with the four-section payload (Task = "resolve this `discuss-design` finding"; Context = the finding + Claude's position + ROADMAP excerpts; Tool inventory = same as Step 5b; Verification instruction = "verify before asserting"). Ask for an independent resolution and reasoning. **Same dispatch model as Step 5b: `run_in_background: false` on the Agent call + `--background` in the dispatch prompt, then poll `codex-companion status --wait --timeout-ms 600000 <jobId>` via direct Bash and fetch `result <jobId>` when complete.** A dialogue dispatch should not be foregrounded — it hits the Bash 10-min cap on the same reasoning-step hang as the per-commit second opinion. If the dialogue job stalls 30+ min, append the jobId to the checkpoint and stop; resume per Step 5c. Do NOT treat a stalled dialogue as "Codex unreachable" and drop the finding to ROADMAP — that loses Codex's resolution to a timing artifact.
 
 3. **Compare and decide:**
    - **Convergence** — same resolution, or resolutions that differ only in minor wording → **apply the fix.** Record both reasoners' justifications in `.audit/<sha>.md`.
