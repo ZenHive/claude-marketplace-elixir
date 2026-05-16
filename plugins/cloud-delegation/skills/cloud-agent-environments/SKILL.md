@@ -28,7 +28,7 @@ Public ask filed with Symphony team: [openai/symphony#70](https://github.com/ope
 
 **What's still permitted (no runtime needed):** review-only delegations — see § "Review-only tasks" below. Codex reads PR diffs from the issue body and posts a verdict comment; no `mix` invocation, no compile, no test runner involved. The Codex-Reviews-Cursor pattern (see `agent-dispatch.md` § "Codex Delegation (`[CX]`)") remains usable while the code-mutation suspension is in force, but treat as exception-not-default until the broader env is verified healthy.
 
-#### Constraints (configurable network, no Elixir runtime)
+#### Constraints (configurable network, no usable mix toolchain)
 
 Even setting aside the suspended-delegation policy above, Codex Cloud's env has structural gaps that scope what it can do at all:
 
@@ -131,7 +131,7 @@ Cursor's Background Agent has Linear-displayName `cursor` (id: `b8668f6b-992f-41
 
 ### CI as the Shared Harness
 
-When the target repo has a `harness.yml` (see `elixir-ci-harness` skill in `claude-marketplace-elixir`), every PR push runs the full Elixir harness as a GitHub check — visible to user, agent, and PR review tooling. CI doesn't close the Codex hex.pm + no-runtime gap (a PR with no harness-validated commits is one CI green away from the same uncertainty either way — one reason `[CX]` code-mutation delegation is suspended). For Cursor PRs, CI is the authoritative harness signal regardless of whether the agent ran the harness pre-PR.
+When the target repo has a `harness.yml` (see `elixir-ci-harness` skill in `claude-marketplace-elixir`), every PR push runs the full Elixir harness as a GitHub check — visible to user, agent, and PR review tooling. CI doesn't close the Codex hex.pm + PATH gap (a PR with no harness-validated commits is one CI green away from the same uncertainty either way — one reason `[CX]` code-mutation delegation is suspended). For Cursor PRs, CI is the authoritative harness signal regardless of whether the agent ran the harness pre-PR.
 
 The shift this enables:
 

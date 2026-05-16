@@ -227,7 +227,7 @@ end
 
 **When our hooks flag issues on files you touched, just fix them — including pre-existing flags unrelated to your change.** Don't plan around it, don't ask permission, don't burn tokens discussing whether to. Hook fires → fix → re-run → stage.
 
-Applies to every hook-driven check (credo, format, dialyzer, doctor, sobelow, ex_dna, etc.). Scope is **only the files your change touched** — not the whole project. User pre-approves the broader scope so each fix doesn't need a clarifying question.
+Applies to every hook-driven check (credo, format, dialyzer, doctor, sobelow, ex_dna, etc.). Scope is **only the files your change touched** — not the whole project. User pre-approves the broader scope so each fix doesn't need a clarifying question; debt accumulates across sessions otherwise, and a touched file ending dirtier than baseline makes the next session noisier.
 
 **How to apply:**
 - Pre-existing flags in your touched file count too: alias ordering, unused vars, refactor opportunities, `TODO:` formatting.
@@ -620,7 +620,7 @@ gh pr merge <n> --squash --delete-branch    # no follow-up — audit-review is d
 - **Auto-merge on a different PR after a per-PR approval** — approval is scope-bound to the one PR; preconditions re-run for each.
 - **PRs targeting the default branch from the default branch** — out of scope by definition (and gh wouldn't accept anyway).
 
-The six-phase chain (pre-commit `code-review` + bots + pre-merge `commit-review` + deferred post-merge `audit-review`) covers what a manual merge gate previously caught; the five preconditions plus `[BLOCK-MERGE]` are the safety net. Self-authored worktree PRs and cloud-agent PRs follow the same rule.
+The six-phase chain (pre-commit `code-review` + bots + pre-merge `commit-review` + deferred post-merge `audit-review`) covers what a manual merge gate previously caught; the five preconditions plus `[BLOCK-MERGE]` are the safety net. Self-authored worktree PRs and cloud-agent PRs follow the same rule — the cloud-agent-vs-self-authored axis is no longer load-bearing under autonomy-first; `.audit/<sha>.md` reports plus `audit(...)` commits are the durable post-merge inspection surface.
 
 ### How to apply
 

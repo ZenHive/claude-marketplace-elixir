@@ -18,7 +18,7 @@ Operational reference for Fly Sprite-hosted Claude Code as a third delegation op
 |---|---|
 | `sprite create [name] [--skip-console] [--label <l>] [--org <o>]` | **No `--prompt` / `--task` / `--exec`** — create is provisioning only. `--skip-console` for headless. `--label` repeatable. |
 | `sprite exec -s <n> [--env "K=V,K2=V2"] [--file local:remote] [--dir <p>] [--tty] [--http-post] -- <cmd>` | `--env` is comma-separated. `--file` uploads before exec (repeatable). `--http-post` is a transport toggle (HTTP/1.1 instead of WebSockets, non-TTY only); **NOT** an external orchestration entry point. Always use `--` to terminate sprite flags. |
-| `sprite sessions list / attach <id> / kill <id>` | First-class in rc43 — closes the Sept 2025 community-feedback "no detached background mode" gap. Non-TTY sessions suspend on detach (preserves output); TTY sessions keep running. **Active sessions block auto-sleep.** |
+| `sprite sessions list / attach <id> / kill <id>` | First-class in rc43 — closes the long-standing "no detached background mode" gap. Non-TTY sessions suspend on detach (preserves output); TTY sessions keep running. **Active sessions block auto-sleep.** |
 | `sprite attach <command-or-id>` | Smart-match by command name OR session ID. |
 | `sprite checkpoint create [--comment] / list / info <id> / delete <id> / restore <id>` | Copy-on-write filesystem snapshots; last 5 at `/.sprite/checkpoints/`. `create` returns in seconds. |
 | `sprite info` | Replaces deprecated `sprite url`. Shows public URL, auth setting, labels. |

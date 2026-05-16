@@ -51,7 +51,7 @@ Apply these filters **in order** when picking ROADMAP tasks to delegate. The fir
 
 ### Codex Delegation (`[CX]`)
 
-> **🚨 Suspended (Elixir projects).** Codex Cloud has no Elixir runtime; tier-2 review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
+> **🚨 Suspended (Elixir projects).** Codex Cloud can't run `mix` tasks — Erlang/Elixir are pre-installed but off-PATH and `hex.pm` returns 403 through the proxy, so no harness evidence is possible. Tier-2 review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
 
 **When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Local Claude invokes `staged-review:commit-review`; auto-merge fires when 5 preconditions hold (see `delegation-rules.md` § "DON'T AUTO-MERGE PRS"); `audit-review` runs deferred (SessionStart hook flags it).
 
@@ -124,7 +124,9 @@ Before submitting a batch of N≥2 plan-shaped issues, run § "Pre-Flight Confli
 
 ### Code-Only PRs + Required Acceptance Criteria
 
-**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` and updated in a single `audit(...)` commit on the repo's default branch in the deferred audit pass (next session, off the SessionStart-hook signal). Centralizing doc updates in one reviewer-owned commit eliminates the `CONFLICTING DIRTY` rebase round PRs would otherwise hit on shared-doc edits.
+**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` and updated in a single `audit(...)` commit on the repo's default branch in the deferred audit pass (next session, off the SessionStart-hook signal).
+
+**Why centralize.** Shared-doc edits across parallel PRs hit merge conflicts (`mergeable: CONFLICTING`, `mergeStateStatus: DIRTY`) against earlier merges — every PR adds a rebase round just to resolve doc conflicts. One reviewer-owned commit per audit pass eliminates the conflict class.
 
 **How to apply.** In the issue body's `## Out of scope`, list the files explicitly:
 
