@@ -18,7 +18,7 @@ Three sibling skills covering the pre-commit / pre-merge / post-merge axis:
 
 Same 5+1 category catalog across all three. Categories shift between layers: pre-commit is single-reviewer triage with auto-apply; pre-merge is correctness-only (hygiene moves post-merge); post-merge is the dual-reviewer audit pass with mandatory Codex second-opinion + dialogue.
 
-**Why the dual-reviewer pass lives in `audit-review`, not `code-review`:** `audit-review` auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge — every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-PR-create is redundant work on the same code; the post-PR-create pass has the committed view, ROADMAP scope, and all hygiene categories, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
+**Why the dual-reviewer pass lives in `audit-review`, not `code-review`:** `audit-review` runs deferred — the SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) surfaces every merge for an eventual batched audit, so every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-merge is redundant work on the same code; the post-merge pass has the committed view, ROADMAP scope, and all hygiene categories, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
 
 ## `code-review` — Staged Files (Single-Reviewer Pre-Commit Triage)
 
@@ -30,7 +30,7 @@ Reviews `git diff --staged` against 5 categories:
 4. **Abstraction Opportunities** — 3+ similar patterns that could be unified
 5. **Actionable TODOs** — TODOs resolvable now, fixed directly
 
-Plus **Category 6: Documentation Gaps** (ROADMAP, CHANGELOG, CLAUDE.md, README, in-code `@doc`/`@spec` drift). Single-reviewer pass — no Codex dispatch at this layer (the dual-reviewer pass runs in `audit-review` post-PR-create / post-merge).
+Plus **Category 6: Documentation Gaps** (ROADMAP, CHANGELOG, CLAUDE.md, README, in-code `@doc`/`@spec` drift). Single-reviewer pass — no Codex dispatch at this layer (the dual-reviewer pass runs in `audit-review` deferred post-merge).
 
 Each finding is rated 1-10 priority. Actionable items are fixed directly, not just flagged. `discuss-design` items escalate to the user, who can also defer them to `audit-review`'s Claude+Codex dialogue.
 
@@ -54,7 +54,7 @@ Auto-merge preconditions: ✅ verdict, green CI, feature branch (not the repo's 
 Fully autonomous post-commit pass. Deferred — runs on user invocation, not chained off any merge or PR-create:
 
 1. **SessionStart hook** (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tails next session via `additionalContext` recommending `/staged-review:audit-status` or `Skill(audit-review) <range>`
-2. **Manual** via `/audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks
+2. **Manual** via `/staged-review:audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks
 
 Workflow:
 
@@ -82,7 +82,7 @@ Prints a table: branch / unaudited-count / last-audit-sha / last-audit-date / ra
 
 ## SessionStart Hook — Unaudited-Tail Detection
 
-A `SessionStart` hook (`scripts/check-unaudited-commits.sh`) fires when ≥3 commits sit past the last `audit(...)` ancestor on the current branch. Emits a one-line `additionalContext` recommendation pointing at `/staged-review:audit-status` (for the snapshot) or `Skill(audit-review)` (to actually audit). Silent below the threshold, silent outside a git repo. Catches the gap-cases the auto-invoke chain misses — interrupted sessions, manual `git commit` outside any flow, branch switches.
+A `SessionStart` hook (`scripts/check-unaudited-commits.sh`) fires when ≥3 commits sit past the last `audit(...)` ancestor on the current branch. Emits a one-line `additionalContext` recommendation pointing at `/staged-review:audit-status` (for the snapshot) or `Skill(audit-review)` (to actually audit). Silent below the threshold, silent outside a git repo. This is the primary trigger for the deferred audit model — covers interrupted sessions, manual `git commit` outside any flow, branch switches, and the steady-state merge tail.
 
 ## Usage
 

@@ -135,7 +135,7 @@ PROD_FILES=$(git show --name-only --format='' "$SHA" | grep -cE '^(lib|src)/')
 - No Codex dispatch.
 - The commit still contributes to the batched `audit(...)` commit (Step 12), but with no fixes.
 
-**Override:** the user can force full audit on a tiny commit via `/audit-review --full HEAD~1..HEAD` (treat the `--full` flag as a directive to skip the fast-path classification). Default is fast-path; full is opt-in.
+**Override:** the user can force full audit on a tiny commit via `/staged-review:audit-review --full HEAD~1..HEAD` (treat the `--full` flag as a directive to skip the fast-path classification). Default is fast-path; full is opt-in.
 
 **Why `lib/`:** changes to docs, configs, tests, READMEs don't ship code to runtime. The 5+1 categories deliver value on production-code paths (control flow, abstractions, TODO discipline, doc drift). Skipping audit on non-production paths = skipping an audit that wouldn't have found anything. Mirrors `commit-review` Step 5.5's identical heuristic.
 

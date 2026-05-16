@@ -79,11 +79,11 @@ Skill(audit-review) <range>        # batched audit over the accumulated range
 
 `<range>` is typically `<last-audit-sha>..<default-branch-HEAD>` — one batched pass covers all merge SHAs since the last audit.
 
-**Manual override:** `/audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks.
+**Manual override:** `/staged-review:audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks.
 
 **Tiny-commit fast path.** For commits ≤100 LOC AND no `lib/` (or language equivalent) touched, the skill skips Codex dispatch and writes a `verdict: clean — fast-path` report. No separate skip flag needed; if every commit in the range is fast-path-eligible, the audit is cosmetic and ends in seconds.
 
-**Why deferred, not chained.** Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge, so auditing pre-bot risks re-auditing. The audit commit lands on the default branch where it's durable. Batching N merges into one pass is strictly cheaper than N synchronous passes, and `.audit/<sha>.md` artifacts indexed off merge SHAs in `main` history remain the canonical inspection surface.
+**Why deferred, not chained.** Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge, so auditing pre-bot risks re-auditing. The audit commit lands on the default branch where it's durable. Batching N merges into one pass is strictly cheaper than N synchronous passes, and `.audit/<sha>.md` artifacts indexed off merge SHAs in default-branch history remain the canonical inspection surface.
 
 ## Lifecycle — Cleanup Is Part of Completion
 

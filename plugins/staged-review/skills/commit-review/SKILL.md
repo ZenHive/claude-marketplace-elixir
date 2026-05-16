@@ -751,7 +751,7 @@ The Step 10b fire path runs its own narrower cleanup before STOP — it intentio
 
 ### Step 13: Auto-Merge Precondition Check
 
-**Only fires on a `✅ Ready to merge` verdict.** On `⚠️ Blockers` or `💬 Discussion`, surface "auto-merge skipped — verdict not ✅" and skip Steps 14-15. Step 15 still fires if the user later merges manually and wants Linear close-out.
+**Only fires on a `✅ Ready to merge` verdict.** On `⚠️ Blockers` or `💬 Discussion`, surface "auto-merge skipped — verdict not ✅" and skip Step 14. Step 15 still fires if the user later merges manually and wants Linear close-out.
 
 The auto-merge gate is **scoped to feature-branch PRs** — any branch that isn't the repo's default. Worktree branches, `cursor/*`, `codex/*` all qualify; only PRs whose head IS the default branch are out of scope (and gh wouldn't accept those anyway). v1.18 widened this from cloud-agent-only — see `delegation-rules.md` § "Why this loosens" for the autonomy-first rationale.
 
