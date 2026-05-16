@@ -14,17 +14,17 @@ For the **reviewer / dispatcher** view (push-back-vs-fix calculus, eligibility m
 
 ### Codex Cloud
 
-#### 🚨 Code-mutation delegation SUSPENDED (Elixir projects, 2026-05-05)
+#### 🚨 Code-mutation delegation SUSPENDED (Elixir projects)
 
-**Codex Cloud's Elixir path is broken at the proxy layer, not the runtime layer.** Verified 2026-05-13 with a Symphony Elixir dispatch (sharper than the 2026-05-05 cartouche finding that recorded this as "no runtime"):
+**Codex Cloud's Elixir path is broken at the proxy layer, not the runtime layer.**
 
-- `mise` is present in the image, with **Erlang 27.1.2** and **Elixir 1.18.3-otp-27** pre-installed at `/root/.local/share/mise/installs/{erlang,elixir}/...`. Binaries exist but aren't on default PATH — naive `mix ...` fails `command not found`, which is what produced the original "no runtime" misread.
+- `mise` is present in the image, with **Erlang 27.1.2** and **Elixir 1.18.3-otp-27** pre-installed at `/root/.local/share/mise/installs/{erlang,elixir}/...`. Binaries exist but aren't on default PATH — naive `mix ...` fails `command not found`.
 - Even when you point at the pre-installed binary directly with explicit PATH + `MIX_HOME`, **`mix local.hex` and `mix deps.get` return `hex.pm` 403 Forbidden through the agent-phase proxy**. The Codex Cloud "Common dependencies" allowlist preset covers crates.io / npmjs.com / pypi.org but not hex.pm.
-- Repos that pin a newer toolchain via `mise.toml` (e.g. Symphony's Erlang 28 / Elixir 1.19.5-otp-28) hit a second wall: `mise install` can't reach the toolchain assets through the proxy either.
+- Repos that pin a newer toolchain via `mise.toml` (e.g. Erlang 28 / Elixir 1.19.5-otp-28) hit a second wall: `mise install` can't reach the toolchain assets through the proxy either.
 
-Net effect is the same — Codex can't run any `mix` task, ships zero harness evidence — but the load-bearing fix is hex.pm allowlisting (and ideally putting the mise-installed Elixir on default PATH), not "install Elixir." Until that lands, **`[CX]` code-mutation delegation is suspended** for any Elixir repo. See `agent-dispatch.md` § "Codex Delegation (`[CX]`)" for the policy lock; route everything to `[CSR]` (Cursor) in the meantime — Cursor's harness has Elixir/OTP on PATH, hex.pm reachable, and runs the full mix toolchain.
+Net effect: Codex can't run any `mix` task, ships zero harness evidence. The load-bearing fix is hex.pm allowlisting (and ideally putting the mise-installed Elixir on default PATH), not "install Elixir." Until that lands, **`[CX]` code-mutation delegation is suspended** for any Elixir repo. See `agent-dispatch.md` § "Codex Delegation (`[CX]`)" for the policy lock; route everything to `[CSR]` (Cursor) in the meantime — Cursor's harness has Elixir/OTP on PATH, hex.pm reachable, and runs the full mix toolchain.
 
-Public ask filed with Symphony team: [openai/symphony#70](https://github.com/openai/symphony/discussions/70) (Q&A discussion, 2026-05-13).
+Public ask filed with Symphony team: [openai/symphony#70](https://github.com/openai/symphony/discussions/70).
 
 **What's still permitted (no runtime needed):** review-only delegations — see § "Review-only tasks" below. Codex reads PR diffs from the issue body and posts a verdict comment; no `mix` invocation, no compile, no test runner involved. The Codex-Reviews-Cursor pattern (see `agent-dispatch.md` § "Codex Delegation (`[CX]`)") remains usable while the code-mutation suspension is in force, but treat as exception-not-default until the broader env is verified healthy.
 
@@ -32,7 +32,7 @@ Public ask filed with Symphony team: [openai/symphony#70](https://github.com/ope
 
 Even setting aside the suspended-delegation policy above, Codex Cloud's env has structural gaps that scope what it can do at all:
 
-- **Elixir runtime present but unreachable.** `mise` ships with Erlang 27.1.2 + Elixir 1.18.3-otp-27 installed at `/root/.local/share/mise/installs/{erlang,elixir}/...`, but not on default PATH (so naive `mix` fails `command not found`). Even with explicit PATH/`MIX_HOME` pointing at the pre-installed binary, **`hex.pm` returns 403 through the proxy** — `mix local.hex` and `mix deps.get` both fail at the registry layer. Repos pinning a newer toolchain via `mise.toml` also can't fetch toolchain assets via `mise install`. Verified 2026-05-05 (initial finding, recorded as "no runtime") and 2026-05-13 (sharpened with Symphony Elixir dispatch transcript). This is the load-bearing reason for the Elixir suspension above; the fix is hex.pm allowlisting, not runtime install.
+- **Elixir runtime present but unreachable.** `mise` ships with Erlang 27.1.2 + Elixir 1.18.3-otp-27 installed at `/root/.local/share/mise/installs/{erlang,elixir}/...`, but not on default PATH (so naive `mix` fails `command not found`). Even with explicit PATH/`MIX_HOME` pointing at the pre-installed binary, **`hex.pm` returns 403 through the proxy** — `mix local.hex` and `mix deps.get` both fail at the registry layer. Repos pinning a newer toolchain via `mise.toml` also can't fetch toolchain assets via `mise install`. This is the load-bearing reason for the Elixir suspension above; the fix is hex.pm allowlisting, not runtime install.
 - **Network access is environment-configurable, not categorically absent.** Per [OpenAI's Codex Cloud docs](https://developers.openai.com/codex/cloud/internet-access), the agent phase defaults to offline, but operators may enable per-environment allowlists. The "Common dependencies" preset reaches **crates.io, npmjs.com, pypi.org, and ~70 dev domains** (source control, vendor docs for the common ecosystems, etc.). **hex.pm is NOT in the common preset** — even with the preset enabled, `mix deps.get` would still fail, which is why this whole section reads "no internet" from the Elixir perspective. For Rust / Python / Node delegations: assume reach to the canonical registry is plausible-but-unverified; try before trusting, and fall back to in-prompt context when blocked. Don't assume RFCs / EIPs / arbitrary vendor docs are reachable unless explicitly allowlisted.
 - **No Tidewave.** `mcp__tidewave__project_eval` is not available. Tasks needing live-data diagnosis or runtime-state inspection should not be in scope.
 - **HTTP-method restriction (when network IS enabled).** Operators can lock allowlisted domains to `GET` / `HEAD` / `OPTIONS` only; state-changing methods (`POST`, `PUT`, `PATCH`, `DELETE`) are then blocked. Treat any allowlisted endpoint as read-only unless verified otherwise.
@@ -43,7 +43,7 @@ When the runtime gap is fixed and `[CX]` code-mutation delegation resumes, Codex
 
 - **List acceptance criteria you addressed** in the PR description (one bullet per criterion).
 - **Flag uncertainty explicitly** — "I'm assuming `assert_receive/3` here based on training-data recall; please verify against ExUnit's hex docs."
-- **Don't fabricate test counts or runtime claims** you can't verify. Past failure mode (2026-05-05): Codex PRs claimed harness runs that the env couldn't actually execute. CI is the only honest signal until the env is verified — see `agent-pr-review.md` § "CI as the Shared Harness".
+- **Don't fabricate test counts or runtime claims** you can't verify — Codex's env can't execute `mix` tasks. CI is the only honest harness signal; see `agent-pr-review.md` § "CI as the Shared Harness".
 
 #### Review-only tasks (review delegation)
 
@@ -55,7 +55,7 @@ When you (Codex Cloud) are assigned an issue whose body opens with `REVIEW-ONLY 
 4. Transition the issue to Done.
 5. Do **not** open a pull request. Do **not** commit code. Do **not** edit any file. Do **not** post review comments on the GitHub PR — verdict goes on the Linear issue only.
 
-**Pilot status (2026-05):** the "no PR" instruction's reliability is unverified. If your harness pushes you toward opening a PR for a review-only issue, **stop and post a Linear comment instead**. Stray review-PRs are a known v1 risk.
+**Pilot status:** the "no PR" instruction's reliability is unverified. If your harness pushes you toward opening a PR for a review-only issue, **stop and post a Linear comment instead**. Stray review-PRs are a known v1 risk.
 
 ### Cursor Cloud
 
@@ -74,12 +74,12 @@ The Cursor Background Agent Linux env ships with Erlang and Elixir at non-asdf p
 
 #### Capabilities
 
-Cursor cloud has internet + can run mix tasks (verified in round-trip testing):
+Cursor cloud has internet + can run mix tasks:
 
 - **hex.pm reachable** — third-party hex-package API signatures can be verified directly. The `assert_received` vs `assert_receive` class of bug should not recur on Cursor PRs.
 - **Mix tasks runnable** — `mix deps.get`, `mix compile`, `mix test` (and `mix test.json` if `ex_unit_json` is in deps), `mix credo --strict`, `mix format --check-formatted`, `mix dialyzer` (provided the PLT cache builds — first-run cost on a fresh env).
 - **General HTTP likely available** — not yet stress-tested against arbitrary external APIs / RFCs / EIPs. Treat as broadly available pending counter-evidence.
-- **Tidewave reachable (with setup)** — verified 2026-05-07. The Cursor Background Agent VM can run Tidewave on `localhost:<port>/tidewave/mcp`; agents reach it two ways:
+- **Tidewave reachable (with setup).** The Cursor Background Agent VM can run Tidewave on `localhost:<port>/tidewave/mcp`; agents reach it two ways:
   - **Always works:** raw `curl` to the MCP endpoint with a `tools/call` JSON body. No session-start dependency — usable mid-session even if Tidewave wasn't running at startup.
   - **Native via `CallMcpTool`:** requires Tidewave to be **running before the agent session begins**. Cursor's MCP client caches the initial connection result, so a server started mid-session won't be picked up natively — the agent has to fall back to `curl` for that session. `.cursor/mcp.json` configures the client to point at the MCP URL.
 
@@ -127,11 +127,11 @@ mix dialyzer                     # MUST be clean — first-run PLT cost is on Cu
 
 #### Linear handle
 
-Cursor's Background Agent has Linear-displayName `cursor` (verified id: `b8668f6b-992f-4152-9e59-13b6fe1f599b`). Reviewers push back via Linear comments with `@cursor` mention; Cursor picks up the mention within ~5 min and amends the PR with a fresh commit, posting confirmation comments back on the issue. **Verified end-to-end** in early Cursor round-trip testing (2026-05): a verbatim code-suggestion push-back was applied surgically, no scope creep. Linear @-mention preferred over GitHub PR comment — keeps the conversation thread on the issue.
+Cursor's Background Agent has Linear-displayName `cursor` (id: `b8668f6b-992f-4152-9e59-13b6fe1f599b`). Reviewers push back via Linear comments with `@cursor` mention; Cursor picks up the mention within ~5 min and amends the PR with a fresh commit, posting confirmation comments back on the issue. Linear @-mention preferred over GitHub PR comment — keeps the conversation thread on the issue.
 
 ### CI as the Shared Harness
 
-When the target repo has a `harness.yml` (see `elixir-ci-harness` skill in `claude-marketplace-elixir`), every PR push runs the full Elixir harness as a GitHub check — visible to user, agent, and PR review tooling. CI was originally pitched as the canonical fix for Codex's hex.pm gap (the harness could verify what Codex's env couldn't), but the 2026-05-05 finding that Codex's env has no Elixir runtime *at all* makes CI a fix-only-on-paper for Codex code-mutation delegation: a PR with no harness-validated commits is one CI green away from the same uncertainty either way. This is one of the reasons code-mutation `[CX]` delegation is currently suspended (§ "Codex Cloud → Code-mutation delegation SUSPENDED"). Cursor's env can run mix tasks but doesn't *guarantee* it pre-PR; CI still enforces the gate uniformly for Cursor PRs and remains the authoritative harness signal.
+When the target repo has a `harness.yml` (see `elixir-ci-harness` skill in `claude-marketplace-elixir`), every PR push runs the full Elixir harness as a GitHub check — visible to user, agent, and PR review tooling. CI doesn't close the Codex hex.pm + no-runtime gap (a PR with no harness-validated commits is one CI green away from the same uncertainty either way — one reason `[CX]` code-mutation delegation is suspended). For Cursor PRs, CI is the authoritative harness signal regardless of whether the agent ran the harness pre-PR.
 
 The shift this enables:
 
@@ -165,7 +165,7 @@ The script reads `./CLAUDE.md`, resolves `@`-imports (including `~/`), inlines c
 
 #### When Cursor auto-generates an AGENTS.md PR
 
-Cursor's setup task can autonomously open a PR scaffolding an `AGENTS.md` for its env (observed in round-trip testing). When this happens in a repo that already uses the `sync-agents-md.sh` workflow:
+Cursor's setup task can autonomously open a PR scaffolding an `AGENTS.md` for its env. When this happens in a repo that already uses the `sync-agents-md.sh` workflow:
 
 - **Close the auto-generated PR.** The canonical generator is the source of truth.
 - **Extract any genuinely useful env-specific bits** (paths, gotchas, runtime quirks) and add them here in this include — so they auto-flow to every repo's AGENTS.md via the standard `@`-import chain.

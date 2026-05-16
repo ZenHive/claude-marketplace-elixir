@@ -19,6 +19,12 @@ Plugin version bumped `1.28.2` → `1.29.0` (4 new hooks = minor). Marketplace v
 
 ### Changed
 
+**Tighten includes + skills to factual + terse — drop history references**
+
+New writing-style convention in `CLAUDE.md` ("Writing Style: Factual + Terse"): includes and skill bodies state the rule, drop standalone `**Why:**` blocks, strip dated provenance and past-incident anecdotes from prose. Good/bad example blocks may keep historical context. Hedging filler ("essentially", "fundamentally", "the reality is") goes unless load-bearing.
+
+Sweep applied to 10 canonical includes — `cloud-agent-environments.md`, `delegation-rules.md`, `agent-dispatch.md`, `critical-rules.md`, `sprite-claude-code.md`, `response-conventions.md`, `onchain-stack-workspace.md`, `development-philosophy.md`, `task-prioritization.md`, `phoenix-setup.md`. Synced to 5 mapped skill bodies (`cloud-agent-environments`, `sprite-claude-code`, `agent-dispatch`, `roadmap-planning`, `phoenix-setup`). 11 `**Why:**` headers removed, all dated breadcrumbs (`Stated 2026-05-05`, `Verified 2026-05-13`, `as of 2026-05`, `verified 2026-05-07`) stripped from prose. AGENTS.md regenerated.
+
 **Decouple `audit-review` from `commit-review` — staged-review skills + 7 canonical includes**
 
 `audit-review` no longer chains synchronously off any merge or PR-create. It runs deferred — surfaced by the `staged-review` SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) and invoked manually via `/staged-review:audit-status` (snapshot) or `Skill(audit-review) <range>` (batched audit). Batching N merges into one pass replaces N synchronous per-merge audits.

@@ -51,6 +51,15 @@ This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem devel
 
 The script preserves SKILL.md frontmatter (name, description, allowed-tools) and replaces the body with include content. See `scripts/sync-skills-from-includes.sh` for the full mapping.
 
+### Writing Style: Factual + Terse
+
+Includes (`~/.claude/includes/*.md`) and skill bodies are reference material — every line costs context.
+
+- State the rule. Drop standalone `**Why:**` / `**Why this matters:**` blocks; fold load-bearing rationale into the rule as one parenthetical.
+- No dated provenance, past-incident anecdotes, or verification breadcrumbs in prose. Current state only.
+- Good/bad example blocks may keep historical context — they teach by showing.
+- Drop hedging filler ("essentially", "fundamentally", "the reality is") unless load-bearing.
+
 ### Setup Guide Sync Check
 
 Verify `~/.claude/setup-guide.md` is in sync with actual includes on disk:

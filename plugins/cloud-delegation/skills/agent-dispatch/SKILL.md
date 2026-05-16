@@ -38,7 +38,7 @@ When one Linear workspace serves multiple cloud-agent-targeted repos, Cursor nee
 
 ### Cloud Agent Environments
 
-For agent envs (hex.pm, mix tasks, Tidewave, external HTTP availability per agent), see `cloud-agent-environments.md`. Eligibility recap: `[CX]` is code-mutation suspended; `[CSR]` covers hex.pm verification, mix-task validation, third-party API correctness, AND Tidewave / live-runtime tasks (Tidewave reachable on Cursor via `curl localhost:<port>/tidewave/mcp` — verified 2026-05-07; native `CallMcpTool` requires pre-session start).
+For agent envs (hex.pm, mix tasks, Tidewave, external HTTP availability per agent), see `cloud-agent-environments.md`. Eligibility recap: `[CX]` is code-mutation suspended; `[CSR]` covers hex.pm verification, mix-task validation, third-party API correctness, AND Tidewave / live-runtime tasks (Tidewave reachable on Cursor via `curl localhost:<port>/tidewave/mcp`; native `CallMcpTool` requires pre-session start).
 
 ### Delegation Eligibility Filter Order
 
@@ -51,7 +51,7 @@ Apply these filters **in order** when picking ROADMAP tasks to delegate. The fir
 
 ### Codex Delegation (`[CX]`)
 
-> **🚨 Suspended (Elixir projects, 2026-05-05).** Codex Cloud has no Elixir runtime; tier-2 review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
+> **🚨 Suspended (Elixir projects).** Codex Cloud has no Elixir runtime; tier-2 review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
 
 **When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Local Claude invokes `staged-review:commit-review`; auto-merge fires when 5 preconditions hold (see `delegation-rules.md` § "DON'T AUTO-MERGE PRS"); `audit-review` runs deferred (SessionStart hook flags it).
 
@@ -81,7 +81,7 @@ Same shape as the Codex flow with **broader eligibility** — Cursor's cloud env
 
    `assignee` and `delegate` are independent fields — an issue can have a human assignee AND a cloud-agent delegate simultaneously. Cursor and Codex watch `delegate`; pickup does not require the agent to also be assignee.
 
-2. **Cursor picks it up.** Background Agent transitions `Todo` → `In Progress`, opens a non-draft PR, transitions to `In Review`. *Observed:* status often stays at `In Progress` — partial-transition failure mode. Don't rely on `In Review` as the readiness signal; PR attachment is authoritative (`agent-pr-review.md` § "Polling for 'Ready for Review'"). **Canonical fix:** `linear-queue.md` § "Status Transitions". **Required:** Cursor's `gh pr create` should NOT use `--draft` — the AI-Guidance "PR opened non-draft → In Review" rule (`linear-queue.md` § "Status Transitions") only fires for non-draft PRs. State this in the issue body's `## Reviewer note`.
+2. **Cursor picks it up.** Background Agent transitions `Todo` → `In Progress`, opens a non-draft PR, transitions to `In Review`. Status often stays at `In Progress` (partial-transition failure mode) — don't rely on `In Review` as the readiness signal; PR attachment is authoritative (`agent-pr-review.md` § "Polling for 'Ready for Review'"). **Canonical fix:** `linear-queue.md` § "Status Transitions". **Required:** Cursor's `gh pr create` should NOT use `--draft` — the AI-Guidance "PR opened non-draft → In Review" rule (`linear-queue.md` § "Status Transitions") only fires for non-draft PRs. State this in the issue body's `## Reviewer note`.
 
 3. **Cursor self-validates** — `mix test.json --quiet`, `mix credo --strict`, `mix format --check-formatted`, targeted `mix test test/...`. PRs ship harness-green from Cursor's side. Local `commit-review`'s job is the 5-category audit + acceptance-criteria cross-reference, not "did the harness pass."
 
@@ -124,9 +124,7 @@ Before submitting a batch of N≥2 plan-shaped issues, run § "Pre-Flight Confli
 
 ### Code-Only PRs + Required Acceptance Criteria
 
-**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` and updated in a single `audit(...)` commit on the repo's default branch in the deferred audit pass (next session, off the SessionStart-hook signal).
-
-**Why:** PRs that touch shared docs hit `mergeable: CONFLICTING DIRTY` against earlier merges of the same files — every PR adds a rebase round just to resolve doc conflicts. Centralizing doc updates in one reviewer-owned commit per PR eliminates the conflict class.
+**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` and updated in a single `audit(...)` commit on the repo's default branch in the deferred audit pass (next session, off the SessionStart-hook signal). Centralizing doc updates in one reviewer-owned commit eliminates the `CONFLICTING DIRTY` rebase round PRs would otherwise hit on shared-doc edits.
 
 **How to apply.** In the issue body's `## Out of scope`, list the files explicitly:
 

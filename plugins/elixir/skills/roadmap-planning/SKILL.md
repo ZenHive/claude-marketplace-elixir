@@ -96,9 +96,7 @@ Findings during code review or PR review have a ceremony floor below which they 
 
 When new information arrives about work that's already on the roadmap (clearer requirements, refined acceptance criteria, additional edge cases, a discovered constraint), **update the existing pending task** — do not open a new one. `rmap new` is for **new scope**, not for **spec refinement** of pending work.
 
-**Required check before every `rmap new`:** scan pending tasks in the same bundle/topic (`rmap list --status pending`, or grep `roadmap/tasks.toml`). If one covers the same surface area, edit its `body` / `acceptance_criteria` / `out_of_scope` / `scores` in place. New task ONLY when the work could ship as an independent PR alongside the existing one.
-
-**Why this matters:** opening a duplicate fragments context across two rows, leaves the original stale, inflates roadmap noise, and breaks the "queue, not log" invariant that makes `rmap next` trustworthy.
+**Required check before every `rmap new`:** scan pending tasks in the same bundle/topic (`rmap list --status pending`, or grep `roadmap/tasks.toml`). If one covers the same surface area, edit its `body` / `acceptance_criteria` / `out_of_scope` / `scores` in place. New task ONLY when the work could ship as an independent PR alongside the existing one. Duplicates fragment context, leave the original stale, and break the "queue, not log" invariant that makes `rmap next` trustworthy.
 
 **Heuristic — refinement vs new scope:**
 
