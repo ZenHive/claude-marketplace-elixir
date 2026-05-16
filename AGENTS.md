@@ -495,26 +495,24 @@ git worktree prune
 
 To start working in a new worktree, open a fresh Claude Code session in that directory: `claude` from `~/_DATA/worktrees/<repo>/<id>/`.
 
-## After PR Merge — Run `audit-review`
+## After PR Merge — `audit-review` Is Deferred
 
-After the PR merges to the default branch, `staged-review:audit-review` runs against the merge SHA. Catches hygiene drift (extractions, doc gaps, missing TODO markers, ROADMAP/CHANGELOG drift) that pre-commit `code-review` may have skipped under time pressure. The skill writes `.audit/<merge-sha>.md` reports + lands one `audit(...)` commit on the default branch.
+`staged-review:audit-review` catches hygiene drift (extractions, doc gaps, missing TODO markers, ROADMAP/CHANGELOG drift) that pre-commit `code-review` may have skipped, writes `.audit/<sha>.md` reports, and lands one `audit(...)` commit on the default branch.
 
-**Auto-invoked post-merge.** Two invocation paths:
-
-1. **Auto-merge path** — `commit-review` Step 15 already chains `Skill(audit-review) <merge-sha>^..<merge-sha>` immediately after `gh pr merge`. Nothing extra to do.
-2. **User-merge path** — when the user merges manually (any PR, cloud-agent or self-authored), the same session runs `audit-review` against the merge SHA in the next step.
+**Not chained off `gh pr merge`.** The post-merge tail ends at branch cleanup. The `staged-review` plugin's SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) surfaces accumulated tails next session:
 
 ```
-# After `gh pr merge` lands (auto or manual):
-git checkout <default-branch> && git pull
-Skill(audit-review)  # arguments: <merge-sha>^..<merge-sha>
+/staged-review:audit-status        # read-only snapshot of unaudited commits per branch
+Skill(audit-review) <range>        # batched audit over the accumulated range
 ```
+
+`<range>` is typically `<last-audit-sha>..<default-branch-HEAD>` — one batched pass covers all merge SHAs since the last audit.
 
 **Manual override:** `/audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks.
 
 **Tiny-commit fast path.** For commits ≤100 LOC AND no `lib/` (or language equivalent) touched, the skill skips Codex dispatch and writes a `verdict: clean — fast-path` report. No separate skip flag needed; if every commit in the range is fast-path-eligible, the audit is cosmetic and ends in seconds.
 
-**Why post-merge, not post-pr-create.** Three reasons. (a) Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge — auditing pre-bot means re-auditing if bots flag substantive findings. (b) The audit commit lands on the default branch where it's durable; running pre-merge would land it on a soon-to-be-deleted feature branch. (c) `.audit/<merge-sha>.md` becomes the canonical inspection artifact for the merged change set, indexed off the SHA that's actually in `main` history.
+**Why deferred, not chained.** Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge, so auditing pre-bot risks re-auditing. The audit commit lands on the default branch where it's durable. Batching N merges into one pass is strictly cheaper than N synchronous passes, and `.audit/<sha>.md` artifacts indexed off merge SHAs in default-branch history remain the canonical inspection surface.
 
 ## Lifecycle — Cleanup Is Part of Completion
 
@@ -609,16 +607,13 @@ If any precondition fails, fall back to surfacing the verdict — user merges ma
 
 **`[BLOCK-MERGE]` label is the user's manual override.** Add the label to any PR (cloud-agent or self-authored worktree) to pause auto-merge — useful when the verdict reads ✅ but the user wants to inspect manually before shipping (uncertainty, late-arriving context, holding for a coordination batch). Remove the label and re-run `commit-review` (or just `gh pr merge` manually) to ship.
 
-**On auto-merge, immediately chain `audit-review`:**
+**On auto-merge, end at branch cleanup. Do NOT chain `audit-review`.** The full tail is one command:
 
 ```
-gh pr merge <n> --squash --delete-branch          # capture <merge-sha>
-DEFAULT=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)  # `main`, `master`, or `development`
-git checkout "$DEFAULT" && git pull
-Skill(audit-review)  # arguments: <merge-sha>^..<merge-sha>
+gh pr merge <n> --squash --delete-branch    # no follow-up — audit-review is deferred
 ```
 
-The `audit-review` chain is the post-merge hygiene + bookkeeping pass — replaces the old `commit-review` Step 15 doc-update commit. See `staged-review:audit-review` skill for details.
+`audit-review` runs deferred — the `staged-review` SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) surfaces accumulated tails next session. Clear via `/staged-review:audit-status` (snapshot) or `Skill(audit-review) <range>` (batched audit).
 
 ### Forbidden under any condition
 
@@ -630,21 +625,21 @@ The `audit-review` chain is the post-merge hygiene + bookkeeping pass — replac
 
 ### Why this loosens
 
-Pre-commit `code-review` (Phase 2 sub-phase) + bots (Phase 3, CodeRabbit/Copilot/Codex bot) + pre-merge `commit-review` correctness gate (Phase 4: blocker-tier bugs + acceptance-criteria + CI gate) + post-merge `audit-review` (Phase 6: full 5+1 categories with mandatory Codex second-opinion) together cover what the user gate previously caught. The user gate was load-bearing when commit-review was the *only* review pass; with the six-phase chain in place, the autonomy-first lens applies — gating each merge behind manual user approval is redundant work for an inspection surface (`.audit/<sha>.md` reports + `audit(...)` commits) that's already durable post-merge.
+Pre-commit `code-review` (Phase 2 sub-phase) + bots (Phase 3, CodeRabbit/Copilot/Codex bot) + pre-merge `commit-review` correctness gate (Phase 4: blocker-tier bugs + acceptance-criteria + CI gate) + deferred post-merge `audit-review` (Phase 6: full 5+1 categories with mandatory Codex second-opinion) together cover what the user gate previously caught. The user gate was load-bearing when commit-review was the *only* review pass; with the six-phase chain in place, the autonomy-first lens applies — gating each merge behind manual user approval is redundant work for an inspection surface (`.audit/<sha>.md` reports + `audit(...)` commits) that's already durable post-merge.
 
 **Why self-authored worktree PRs are no longer carved out.** The original carve-out reasoned that self-authored work has different blast-radius (review depth varies; the user often wants to land their own merges deliberately). The user's stated stance is now autonomy-first: *"I trust the chain; PRs + audits are the inspection surface."* The five preconditions remain the actual safety net; the cloud-agent-vs-self-authored axis is no longer load-bearing. The `[BLOCK-MERGE]` label is the per-PR manual override for the rare case the user wants a deliberate inspection before shipping.
 
 ### How to apply
 
-- **After `commit-review` reaches ✅ on a feature-branch PR:** run the 5-precondition check. All hold → `gh pr merge --squash --delete-branch`, capture merge SHA, check out the repo's default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — usually `main` / `master` / `development`) and pull, then `Skill(audit-review)` against `<merge-sha>^..<merge-sha>`. One short status line per step. Applies to worktree branches, `cursor/*`, and `codex/*` alike.
+- **After `commit-review` reaches ✅ on a feature-branch PR:** run the 5-precondition check. All hold → `gh pr merge --squash --delete-branch`. Tail ends at branch cleanup; `audit-review` runs deferred (SessionStart hook flags it). One short status line per step. Applies to worktree branches, `cursor/*`, and `codex/*` alike.
 - **If any precondition fails:** surface the merge command and the failing precondition, then stop. User merges (or addresses the failure first — fix CI, resolve requested-changes, remove `[BLOCK-MERGE]`).
 - **Subagents reviewing PRs inherit the preconditions** — explicitly include "auto-merge allowed only when all 5 preconditions hold; otherwise surface verdict" in delegation prompts.
 
 ### Cross-references
 
-- `~/.claude/includes/critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE" — `audit(...)` commits are auto-allowed on the repo's default branch (the audit-review chain depends on this exception).
+- `~/.claude/includes/critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE" — `audit(...)` commits are auto-allowed on the repo's default branch.
 - `~/.claude/includes/delegation-rules.md` § "Force-Push to `cursor/*` Is One-Shot Scope Authorization" — companion autonomy-first loosening for the iteration loop.
-- `staged-review:audit-review` skill — the post-merge hygiene + bookkeeping pass that auto-merge chains into.
+- `staged-review:audit-review` skill — deferred post-merge hygiene + bookkeeping pass; surfaced by `staged-review`'s SessionStart hook, next session runs `Skill(audit-review) <range>` off that signal (`/staged-review:audit-status` is a read-only snapshot the user can run if they want a peek).
 
 ## 🚨 POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS
 
@@ -854,6 +849,27 @@ Findings during code review or PR review have a ceremony floor below which they 
 **Why "correctness × size" not "D/B/U × LOC":** D/B/U scores prioritize tracked work; they don't decide whether work should be tracked. A D:1 finding can still be a real bug (3-line missing nil-check) — dropping it because the score is low is exactly the failure mode "iterate fast but error-free" forbids. Correctness vs cosmetic is the load-bearing axis; LOC is just a tiebreaker for tracking-vs-inline.
 
 **Cross-references (delegation flows only — applies if `delegation.md` is imported):** push-back-vs-fix-locally calculus is in `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Hard rule against pushing to cloud-agent branches is in `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
+
+### Refine, Don't Duplicate — Before `rmap new`
+
+When new information arrives about work that's already on the roadmap (clearer requirements, refined acceptance criteria, additional edge cases, a discovered constraint), **update the existing pending task** — do not open a new one. `rmap new` is for **new scope**, not for **spec refinement** of pending work.
+
+**Required check before every `rmap new`:** scan pending tasks in the same bundle/topic (`rmap list --status pending`, or grep `roadmap/tasks.toml`). If one covers the same surface area, edit its `body` / `acceptance_criteria` / `out_of_scope` / `scores` in place. New task ONLY when the work could ship as an independent PR alongside the existing one.
+
+**Why this matters:** opening a duplicate fragments context across two rows, leaves the original stale, inflates roadmap noise, and breaks the "queue, not log" invariant that makes `rmap next` trustworthy.
+
+**Heuristic — refinement vs new scope:**
+
+| Signal                                                          | Action                       |
+|-----------------------------------------------------------------|------------------------------|
+| Same bundle, same user-visible outcome, sharper requirements    | Edit existing                |
+| Same bundle, same outcome, adds an edge case or constraint      | Edit existing (`acceptance_criteria`) |
+| Same bundle, but ships as a separable follow-up PR              | New task, link with `depends_on` |
+| Different bundle or different user-visible outcome              | New task                     |
+| Bug against a **pending** task's surface (unclaimed)            | Edit existing (add to `acceptance_criteria`) — not a new bug task |
+| Bug against a **claimed/in-flight** task's surface              | Don't mutate the spec mid-flight — push back to the agent (see `agent-pr-review`) or file a follow-up task |
+
+When in doubt: edit. A spec that grew is easier to read than a roadmap that doubled.
 
 ### Task Descriptions as Prompts
 
