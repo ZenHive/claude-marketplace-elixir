@@ -28,7 +28,7 @@ Workflow-only — no CLI, no skill wrapper beyond this one. Triggered by user re
 
 | Tier | CI | Bots | Conflicts | Action |
 |---|---|---|---|---|
-| Ceremony | green | clean | none | Auto-merge if preconditions hold (cloud-agent PR), then chain `audit-review`; otherwise surface as "ready, awaiting `gh pr merge`" |
+| Ceremony | green | clean | none | Auto-merge if preconditions hold (cloud-agent PR); audit-review is deferred (runs once at end of train). Otherwise surface as "ready, awaiting `gh pr merge`" |
 | Standard | green | clean | none | Same as ceremony, plus 5-min skim if any bot finding |
 | Critical | green | clean | none | Hand off to `staged-review:commit-review` (single-PR Tier 2), back to queue |
 | Any | red | — | — | Surface for human triage; skip in current pass |
@@ -65,7 +65,7 @@ for each remaining PR in dependency order:
 - **Forbidden:** semantic conflict resolution, any logic edit, function-body changes during rebase, any push without `--force-with-lease`, any push to a non-cloud-agent branch under this carve-out.
 - **Abort path:** if mechanical resolution doesn't apply cleanly, `git rebase --abort` and post a Linear `@cursor` / `@codex` comment with conflict context. Agent picks up the rebase.
 
-**Auto-merge per PR (preconditions hold).** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" loosens for cloud-agent PRs that meet all 5 preconditions — merge-train auto-merges each PR in dependency order, chains `audit-review` against each merge SHA, then rebases the next PR onto the new tip. PRs failing preconditions surface with the `gh pr merge` command for the user.
+**Auto-merge per PR (preconditions hold).** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" loosens for cloud-agent PRs that meet all 5 preconditions — merge-train auto-merges each PR in dependency order, then rebases the next PR onto the new tip. `audit-review` is NOT chained per merge; one batched `Skill(audit-review) <train-base>..<default-branch-HEAD>` runs at the end of the cascade (same session) covering every merge SHA in a single pass. This is the end-of-cascade variant of the deferred model — solo-PR sessions defer to next-session via the SessionStart hook; merge-trains batch within-session at cascade end. PRs failing preconditions surface with the `gh pr merge` command for the user.
 
 ### When to use
 
@@ -78,7 +78,7 @@ for each remaining PR in dependency order:
 
 ### Bookkeeping commits
 
-Post-merge ROADMAP/CHANGELOG/README updates land in the chained `audit-review` `audit(<sha>): ...` commit on the repo's default branch (`main` / `master` / `development`) per merge. Reviewer rebases each remaining PR onto the new default tip in parallel, force-with-leases, CI re-runs. The audit commit IS the bookkeeping; no separate `Update docs for PR #N` commit.
+Post-merge ROADMAP/CHANGELOG/README updates land in a single deferred `audit-review` `audit(<sha>): ...` commit on the repo's default branch (`main` / `master` / `development`) covering the whole train. Run `Skill(audit-review) <train-base>..<default-branch-HEAD>` once after the cascade completes. Reviewer rebases each remaining PR onto the new default tip in parallel during the cascade, force-with-leases, CI re-runs. The audit commit IS the bookkeeping; no separate `Update docs for PR #N` commit per merge.
 
 ### Cross-References
 
@@ -87,4 +87,4 @@ Post-merge ROADMAP/CHANGELOG/README updates land in the chained `audit-review` `
 - `linear-queue.md` — the Linear-as-queue substrate
 - `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — the base rule this carve-out is an authorized exception to; § "DON'T AUTO-MERGE PRS" — the 5-precondition auto-merge gate
 - `staged-review:commit-review` skill — single-PR Tier-2 handoff target for critical-tier PRs
-- `staged-review:audit-review` skill — chained against each merge SHA
+- `staged-review:audit-review` skill — deferred; invoke once over `<train-base>..<default-branch-HEAD>` after the cascade completes

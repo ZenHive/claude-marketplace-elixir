@@ -14,16 +14,16 @@ Walk a commit range. Audit each commit. Auto-apply hygiene fixes. Write a `.audi
 
 `task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)`
 
-- **Predecessor:** merge (Phase 5) — auto-merge tail of `commit-review` OR user manual `gh pr merge`
-- **Successor:** (terminal — Linear status flips to `Done`, audit commit lands on default branch)
-- **Linear status on entry:** `In Review`
-- **Linear status on exit:** `Done` (Linear's native GH workflow rule fires on merge; audit-review confirms via `get_issue` and explicitly transitions only if the rule didn't fire)
+- **Predecessor:** merge (Phase 5) — auto-merge tail of `commit-review` OR user manual `gh pr merge`. The audit pass is deferred — the merge tail ends at branch cleanup; this skill runs separately.
+- **Successor:** (terminal — audit commit lands on default branch)
+- **Linear status on entry:** any (typically already `Done` because the deferred audit runs after merge has flipped status)
+- **Linear status on exit:** `Done` confirmed; explicit transition only if not already set
 
 | Layer | Skill | Input | Trigger | Human gates |
 |---|---|---|---|---|
 | Pre-commit (Phase 2 sub-phase) | `code-review` | `git diff --staged` | Implementer about to commit | One: exit-plan-to-apply |
 | Pre-merge (Phase 4) | `commit-review` | `gh pr diff <n>` | Linear queue / `gh pr list` + open PR | Zero (feature-branch PRs auto-merge on ✅ + green CI + 5 preconditions) |
-| Post-merge (Phase 6, this skill) | **`audit-review`** | `git log <range>` | Auto-chain off `commit-review` auto-merge; user-merge sessions invoke directly; or manual `/audit-review` | **Zero** |
+| Post-merge (Phase 6, this skill) | **`audit-review`** | `git log <range>` | Deferred — `staged-review` SessionStart hook surfaces unaudited tails (≥3 commits past last `audit(...)` ancestor); user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>` | **Zero** |
 
 `audit-review` shares Categories 1-6 and the Codex dispatch payload with `code-review`. The differences are:
 
@@ -507,19 +507,15 @@ Effect:
 
 Reasoning: typo fixes, formatting, doc-only commits don't earn a Codex dispatch (which costs more than the diff). Skipping the dispatch on these saves token budget for commits that actually warrant deep audit.
 
-## Triggers (Skill-Chain Auto-Invocation)
+## Triggers (Deferred Invocation)
 
-The skill is auto-invoked from three skill chains; manual `/audit-review` is the fourth path. **The skill itself doesn't know which path triggered it** — it always operates on a commit range, regardless of how it got the range.
+The skill runs deferred — it is NOT chained synchronously off any merge or PR-create. Two invocation paths, both user-driven:
 
-1. **Self-authored worktree** (`worktree-workflow.md`): after `gh pr create`, the implementer session invokes `Skill(audit-review)` against `<base>..HEAD` before running `git worktree remove`. The audit commit lands on the feature branch, gets pushed with the PR, and is part of the merged history.
+1. **SessionStart hook surfaces the tail.** The `staged-review` plugin's SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) emits `additionalContext` recommending `/staged-review:audit-status` (read-only snapshot) or `Skill(audit-review) <range>` (batched audit). User reads the prompt, invokes one.
 
-2. **Post-merge cloud PR auto-merge chain** (`commit-review`): after `commit-review` reaches ✅ + green CI + cloud-agent branch and runs `gh pr merge --squash --delete-branch`, it immediately invokes `Skill(audit-review)` against the merge SHA. The audit commit lands on `main` (per the `critical-rules.md` § GIT COMMIT / PUSH exception for `^audit\(` commits).
+2. **Manual** (`/audit-review`): user runs the slash command for catch-up audits, batch passes after a backfill, compliance asks, or the `agent-pr-review.md` § "Bundled Code-Revisions in Bookkeeping Commit" variant (one case where the audit fires on a specific merge SHA in the same session). Default range is HEAD..last-audit (exclusive); user can pass any commit or range.
 
-3. **Post-merge non-auto-merge cloud PR or self-authored merge** (`linear-queue.md` § "Self-Authored Worktree Flow"): immediately after a user-confirmed `gh pr merge`, the reviewer session invokes `Skill(audit-review)` against the merge SHA.
-
-4. **Manual** (`/audit-review`): user runs the slash command for catch-up audits, batch passes after a backfill, or compliance asks. Default range is HEAD..last-audit (exclusive); user can pass any commit or range.
-
-In all four cases, the workflow body above is identical. The difference is who picks up the audit commit (PR review surface, ongoing main, or whatever scope the user is working in).
+**The skill itself doesn't care which path triggered it** — it always operates on a commit range. The audit commit lands on the default branch (per `critical-rules.md` § GIT COMMIT / PUSH exception for `^audit\(` commits).
 
 ## Common Mistakes
 
@@ -534,7 +530,7 @@ In all four cases, the workflow body above is identical. The difference is who p
 | Running `git push` after the audit commit | Skill never pushes. User pushes when ready. Same posture as `code-review` Step 8 (reviewer leaves edits unstaged for the committer) |
 | Bypassing pre-commit hooks with `--no-verify` | Per `critical-rules.md` § "🚨 FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH". Fix the issue, recommit (NEW commit, not `--amend`) |
 | Filing auto-applied findings as `rmap` tasks | Only `discuss-design` divergences become `rmap` tasks (`rmap new --from-stdin`). Auto-applied findings already live in the audit commit + `.audit/<sha>.md` |
-| Using `git add -A` to stage audit files | Always stage explicitly: `git add .audit/` + named touched files. Same shape as `commit-review` Step 15 |
+| Using `git add -A` to stage audit files | Always stage explicitly: `git add .audit/` + named touched files |
 | Inventing `.audit/` entries when the commit doesn't actually need them | Every commit in the range gets a `.audit/<sha>.md` (full or fast-path stub). Don't skip "boring" commits to keep the corpus clean — completeness is the corpus's value |
 | Forgetting the closing line on Codex unreachability | Always close with `dual-reviewer pass` or `Codex unreachable — single-reviewer pass [for N of M commits]`. Silent dropping looks like success |
 | Confirming the user before applying findings | The only confirmation gate in this skill is range-too-wide (>50 commits). Per-finding gates contradict the autonomy-first lens — the audit commit is the surface |
@@ -547,8 +543,9 @@ Closely related includes and skills:
 - `staged-review:commit-review` — pre-merge cloud-agent PR gate. Tiny-PR fast path mirrors that skill's Step 5.5 heuristic
 - `~/.claude/includes/critical-rules.md` § GIT COMMIT / PUSH / PR-CREATE — `audit(...)` commits are auto-allowed inside tracked worktrees AND on `main` (post-merge audit lands on `main` by design, scoped to commits matching `^audit\(`)
 - `~/.claude/includes/critical-rules.md` § "🚨 FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH" — pre-commit hook flags during the audit commit get fixed in a new commit, not bypassed
-- `~/.claude/includes/worktree-workflow.md` — auto-trigger path #1 (self-authored worktree)
-- `~/.claude/includes/linear-queue.md` § "Self-Authored Worktree Flow" — auto-trigger path #3 (post-merge user-confirmed merge); auto-trigger path #2 (post-merge auto-merge chain) is governed by `~/.claude/includes/delegation-rules.md` § "DON'T AUTO-MERGE PRS"
+- `~/.claude/includes/worktree-workflow.md` § "After PR Merge — `audit-review` Is Deferred" — the deferred trigger model
+- `~/.claude/includes/delegation-rules.md` § "DON'T AUTO-MERGE PRS" — auto-merge tail ends at branch cleanup; audit runs deferred
+- `plugins/staged-review/scripts/check-unaudited-commits.sh` — SessionStart hook that surfaces the unaudited tail (≥3 threshold)
 - `~/.claude/includes/task-prioritization.md` § "Ceremony Floor" — applied implicitly via the rating scale and the discuss-design dialogue. Bug findings always surface; small cosmetic findings auto-apply or skip; `rmap` task filing is reserved for cross-session coordination cost (which is exactly what discuss-design divergence represents)
 - `~/.claude/includes/rmap.md` — the roadmap substrate; status flips go through `rmap status` and divergence-dropped findings are filed via `rmap new --from-stdin` (both re-render `ROADMAP.md`, never hand-edited)
 - `feedback_autonomy_first.md` (memory) — the design lens: workflows default to less human-in-the-loop. This skill is the post-commit / post-merge half of the three-tier autonomous review architecture

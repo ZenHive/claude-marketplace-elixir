@@ -153,7 +153,7 @@ The agent applies, re-pushes, CI verifies. Authorship preserved. Single error ga
 
 ### Bundled Code-Revisions in Bookkeeping Commit (Variant)
 
-The canonical post-merge `audit-review` chain expects the `audit(...)` commit on the repo's default branch to be **hygiene-only** (doc updates, ROADMAP/CHANGELOG, in-code `@doc`/`@spec` drift). This variant uses the same skeleton with **code revisions bundled into the audit commit**, trading evaluator separation for round-trip-cost savings when push-back is high-cost / low-yield.
+A deferred `audit-review` pass produces an `audit(...)` commit on the repo's default branch that is normally **hygiene-only** (doc updates, ROADMAP/CHANGELOG, in-code `@doc`/`@spec` drift). This variant uses the same skeleton with **code revisions bundled into the audit commit**, trading evaluator separation for round-trip-cost savings when push-back is high-cost / low-yield.
 
 **When this fires.** All four conditions hold:
 
@@ -165,7 +165,7 @@ The canonical post-merge `audit-review` chain expects the `audit(...)` commit on
 **Shape.**
 
 1. **Merge the PR as-is** — `gh pr merge --squash --delete-branch` (auto-merge if preconditions hold, otherwise user-confirmed).
-2. **Pre-stage the code revisions BEFORE invoking `audit-review`.** On the repo's default branch, edit the offending files to drop the dead code, `git add` (do NOT commit). The audit pass then runs against the staged-but-uncommitted state, applies hygiene fixes, and folds everything into one `audit(<merge-sha>): N fixes — bundled-revisions` commit. **Recovery if interrupted:** if the session ends or audit-review aborts mid-run, you'll be left with staged-but-uncommitted edits on the default branch. Either resume in a new session by re-running `Skill(audit-review)` (the staged edits remain pre-staged), or `git stash` to set them aside, run a clean `audit-review`, then `git stash pop` and recommit. Don't leave the default branch dirty across sessions.
+2. **Pre-stage the code revisions, then invoke `audit-review` over the merge SHA range.** On the repo's default branch, edit the offending files to drop the dead code, `git add` (do NOT commit), then run `Skill(audit-review) <merge-sha>^..<merge-sha>`. The audit pass runs against the staged-but-uncommitted state, applies hygiene fixes, and folds everything into one `audit(<merge-sha>): N fixes — bundled-revisions` commit. The bundled-revisions variant is the one case where audit-review fires on a specific merge SHA rather than waiting for the SessionStart hook to flag the tail — pre-staged dead-code edits left across sessions would drift. **Recovery if interrupted:** if the session ends or audit-review aborts mid-run, you'll be left with staged-but-uncommitted edits on the default branch. Either resume in a new session by re-running `Skill(audit-review)` (the staged edits remain pre-staged), or `git stash` to set them aside, run a clean `audit-review`, then `git stash pop` and recommit. Don't leave the default branch dirty across sessions.
 3. **Linear close-out:** the closing comment **explicitly distinguishes what was merged from what was reverted, and why the agent couldn't have caught it** (env constraint — preserves no-blame framing). Flip status → `Done` manually if Linear's auto-transition didn't fire.
 
 **Trade-offs.** Reviewer DOES grade the merged work this time (the trade), but against hard ground truth (dialyzer / hex / live-data) which is harder to fake. INE traceability preserved (audit commit body names the PR). Touched-file scope rule applies. PR diff drift on GitHub: anyone reading `gh pr view N` sees the original diff (including dead code that no longer exists on the default branch); the closing Linear comment + `.audit/<sha>.md` document the divergence. Revert atomicity: `git revert <audit-sha>` reverts both hygiene updates AND code revisions.
@@ -191,5 +191,5 @@ Auto-detects `--repo` from current git dir. Use after a cloud-agent PR merges to
 - `cloud-agent-environments.md` — per-agent env reference; the Push-Back matrix depends on it
 - `delegation-rules.md` § "DON'T AUTO-MERGE PRS", § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH", § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS"
 - `staged-review:commit-review` skill — the pre-merge gate that consumes this review tiering + push-back matrix
-- `staged-review:audit-review` skill — post-merge audit; the Bundled Code-Revisions variant pre-stages into it
+- `staged-review:audit-review` skill — deferred post-merge audit; the Bundled Code-Revisions variant pre-stages into a same-session invocation
 - `task-prioritization.md` § "Ceremony Floor" — review-time cost-benefit gate

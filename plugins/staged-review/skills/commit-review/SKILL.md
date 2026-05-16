@@ -1,6 +1,6 @@
 ---
 name: commit-review
-description: Use as Tier 2 deep audit for cloud-agent or self-authored PRs that touch critical-tier code paths (signing, RPC, ABI, money, crypto, migrations) OR when CodeRabbit/Copilot (Tier 1) flagged ambiguity — for routine PRs, defer to CodeRabbit + CI. Two pickup modes: Linear-aware (poll for delegated issues with an open PR attachment) when Linear MCP available, gh-only (`gh pr list` or PR number argument) otherwise — never aborts. Fetches PR diff and upstream comments via `gh pr view` / `gh pr diff` / `gh api` without checkout by default — spins up a review worktree only when fix-locally is required or CI is absent. Fetches existing comments from the GitHub PR (Copilot, CodeRabbit, humans) and from the Linear issue when present (user clarifications, prior reviewer notes, prior `@codex`/`@cursor` push-back rounds), classifies tiny PRs (<100 LOC, no `lib/` changes) onto a 3-line fast path, otherwise reads `gh pr checks <n>` as the harness gate (CI replaces local mix runs — falls back to local harness if CI absent, surfacing a `TODO(setup-ci)` finding pointing at the `elixir-ci-harness` skill), reviews the diff against acceptance criteria, **auto-posts asymmetric push-back comments** (PR review = line-level code; Linear = ONE paragraph on scope/intent — never duplicate), defaults push-back over local fix per the per-agent reachability matrix. **Pre-merge correctness gate only** — hygiene findings (extractions, abstractions, TODO markers, external doc drift) move to `staged-review:audit-review` post-merge. **Auto-merges feature-branch PRs (any branch other than the default — worktree branches, `cursor/*`, `codex/*` all qualify) on ✅ verdict + green CI + no requested-changes + no `[BLOCK-MERGE]` label**, then chains to `Skill(audit-review)` against the merge SHA.
+description: Use as Tier 2 deep audit for cloud-agent or self-authored PRs that touch critical-tier code paths (signing, RPC, ABI, money, crypto, migrations) OR when CodeRabbit/Copilot (Tier 1) flagged ambiguity — for routine PRs, defer to CodeRabbit + CI. Two pickup modes: Linear-aware (poll for delegated issues with an open PR attachment) when Linear MCP available, gh-only (`gh pr list` or PR number argument) otherwise — never aborts. Fetches PR diff and upstream comments via `gh pr view` / `gh pr diff` / `gh api` without checkout by default — spins up a review worktree only when fix-locally is required or CI is absent. Fetches existing comments from the GitHub PR (Copilot, CodeRabbit, humans) and from the Linear issue when present (user clarifications, prior reviewer notes, prior `@codex`/`@cursor` push-back rounds), classifies tiny PRs (<100 LOC, no `lib/` changes) onto a 3-line fast path, otherwise reads `gh pr checks <n>` as the harness gate (CI replaces local mix runs — falls back to local harness if CI absent, surfacing a `TODO(setup-ci)` finding pointing at the `elixir-ci-harness` skill), reviews the diff against acceptance criteria, **auto-posts asymmetric push-back comments** (PR review = line-level code; Linear = ONE paragraph on scope/intent — never duplicate), defaults push-back over local fix per the per-agent reachability matrix. **Pre-merge correctness gate only** — hygiene findings (extractions, abstractions, TODO markers, external doc drift) move to `staged-review:audit-review` post-merge. **Auto-merges feature-branch PRs (any branch other than the default — worktree branches, `cursor/*`, `codex/*` all qualify) on ✅ verdict + green CI + no requested-changes + no `[BLOCK-MERGE]` label**. Tail ends at branch cleanup; `audit-review` runs deferred (SessionStart hook surfaces unaudited tails, user invokes `Skill(audit-review) <range>` to batch-clear).
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 ---
 
@@ -17,7 +17,7 @@ allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent
 - **Linear status on entry:** `In Review` (canonical) or `In Progress` with open PR attachment (non-canonical — agent transition didn't fire)
 - **Linear status on exit:** `In Review` (verdict surfaced; merge happens in Phase 5) or skipped if project doesn't use Linear
 
-Read the PR diff. Read upstream reviewer comments (PR + Linear). Read CI status. Audit against acceptance criteria — **correctness gate only** (Cat 1 bugs + in-code `@doc`/`@spec` drift; hygiene moves to `audit-review` post-merge). **Default to push-back over local fix.** **Auto-post draft push-back comments** to PR + Linear per the asymmetric-channels rule (no "want me to post?" prompt). On ✅ verdict, **auto-merge feature-branch PRs** (any branch other than the repo's default — worktree branches, `cursor/*`, `codex/*` all qualify) that satisfy the preconditions (✅ verdict + green CI + feature branch + no requested-changes review + no `[BLOCK-MERGE]` label), then immediately chain `Skill(audit-review)` against the merge SHA so post-merge hygiene + bookkeeping happen automatically.
+Read the PR diff. Read upstream reviewer comments (PR + Linear). Read CI status. Audit against acceptance criteria — **correctness gate only** (Cat 1 bugs + in-code `@doc`/`@spec` drift; hygiene moves to `audit-review` post-merge). **Default to push-back over local fix.** **Auto-post draft push-back comments** to PR + Linear per the asymmetric-channels rule (no "want me to post?" prompt). On ✅ verdict, **auto-merge feature-branch PRs** (any branch other than the repo's default — worktree branches, `cursor/*`, `codex/*` all qualify) that satisfy the preconditions (✅ verdict + green CI + feature branch + no requested-changes review + no `[BLOCK-MERGE]` label). Tail ends at branch cleanup; `audit-review` runs deferred — the `staged-review` SessionStart hook flags accumulated unaudited tails next session.
 
 The autonomy-first design rests on three layers: pre-merge correctness gate (this skill), post-merge hygiene (audit-review), and CI as the deterministic harness. Together they replace the old single-step user merge gate. See `delegation-rules.md` § "DON'T AUTO-MERGE PRS" for the precondition list and the `[BLOCK-MERGE]` escape hatch the user can label any PR with to manually pause an auto-merge.
 
@@ -39,14 +39,14 @@ WHAT THIS SKILL DOES:
   - **Default to push-back over local fix** — local fix is the exception, governed by the per-agent push-back-vs-fix-locally matrix (Step 7)
   - **Auto-post asymmetric push-back comments** — PR review = line-level code feedback; Linear comment = ONE paragraph on scope/intent match. Never duplicate content across surfaces. Per `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — comment posting is DEFAULT-DO during active delegation flow, no "should I post?" prompt
   - Surface a verdict (✅ ready / ⚠️ blockers / 💬 discussion items)
-  - **On ✅ verdict + feature-branch PR satisfying auto-merge preconditions** — auto-run `gh pr merge --squash --delete-branch`, then immediately `Skill(audit-review)` against the merge SHA so post-merge hygiene + ROADMAP/CHANGELOG bookkeeping happen autonomously
+  - **On ✅ verdict + feature-branch PR satisfying auto-merge preconditions** — auto-run `gh pr merge --squash --delete-branch`. Tail ends at branch cleanup. `audit-review` runs deferred (the `staged-review` SessionStart hook flags unaudited tails next session; user batch-clears via `Skill(audit-review) <range>`)
 
 WHAT THIS SKILL DOES NOT DO:
   - **Auto-merge PRs whose head IS the repo's default branch** — out of scope by definition (and gh wouldn't accept anyway). Auto-merge applies to any feature branch (worktree branches, `cursor/*`, `codex/*` all qualify)
   - **Auto-merge over red CI, requested-changes review, or `[BLOCK-MERGE]` label** — every precondition must hold. If any fails, surface the verdict and let the user merge manually
-  - **Apply external doc hygiene** — CHANGELOG entries, ROADMAP status flips, CLAUDE.md drift, README updates are `audit-review`'s job post-merge. The pre-merge skill stays narrow on correctness
-  - **Optional Codex CLI second-opinion** — removed in this version. Per-PR Codex dispatch is `audit-review`'s mandatory work post-merge; doubling it pre-merge is diminishing returns
-  - Sobelow drift detection — the harness CI step (`Sobelow drift check` in `cartouche/.github/workflows/harness.yml`'s pattern) covers this loudly; audit-review owns the post-merge regen on `main`
+  - **Apply external doc hygiene** — CHANGELOG entries, ROADMAP status flips, CLAUDE.md drift, README updates are `audit-review`'s job (deferred post-merge). The pre-merge skill stays narrow on correctness
+  - **Optional Codex CLI second-opinion** — per-PR Codex dispatch is `audit-review`'s mandatory work in the deferred pass; doubling it pre-merge is diminishing returns
+  - Sobelow drift detection — the harness CI step (`Sobelow drift check` in `cartouche/.github/workflows/harness.yml`'s pattern) covers this loudly; audit-review owns the regen when the deferred pass runs
   - Commit any local fix edits to the cloud-agent branch — staged in a worktree only; preferred fix-locally channel is paste-as-`@cursor`-comment per the matrix
   - Review local staged work (use `staged-review:code-review` for that)
   - Replace the cloud agent's dispatch — the agent is the implementer here, not the reviewer
@@ -57,14 +57,14 @@ WHAT THIS SKILL DOES NOT DO:
 | Aspect | `code-review` | `commit-review` (this skill) | `audit-review` |
 |---|---|---|---|
 | Input | `git diff --staged` | `gh pr diff <number>` + `gh pr view --json reviews,comments` + `gh api repos/.../pulls/<n>/comments` (no checkout by default); worktree-checkout only on fix-locally or CI-absent | `git show <sha>` per commit in range |
-| Trigger | Local pre-commit | Cloud-agent (Codex/Cursor) PR awaiting Tier 2 review | Post-commit / post-merge (chains off auto-merge or runs manually) |
+| Trigger | Local pre-commit | Cloud-agent (Codex/Cursor) PR awaiting Tier 2 review | Deferred — SessionStart hook surfaces unaudited tail (≥3); user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>` |
 | Harness gate | Local hooks ran inline | CI checks (`gh pr checks`) — falls back to local harness if absent | n/a (post-merge — CI already gated) |
 | Audit scope | All 5 categories + Cat 6 doc gaps | **Cat 1 (bugs) + in-code `@doc`/`@spec` correctness drift only** — hygiene moves to `audit-review` | All 6 categories — hygiene + correctness post-merge |
 | Codex second-opinion | Mandatory | **None** — `audit-review`'s mandatory dispatch covers this post-merge | Mandatory |
 | Default action on blocker | Auto-fix when mechanical, surface for user otherwise | **Push back via PR/Linear comment** — auto-posted; local fix is the exception per per-agent matrix | Auto-apply directly + auto-resolve discuss-design via dialogue |
-| Output | Findings + plan-mode-gated edits + final commit-by-user | Verdict + auto-posted push-back + **auto-merge feature-branch PRs on preconditions** + audit-review chain | `audit(...)` commit with fixes + `.audit/<sha>.md` reports |
+| Output | Findings + plan-mode-gated edits + final commit-by-user | Verdict + auto-posted push-back + **auto-merge feature-branch PRs on preconditions** (tail ends at branch cleanup) | `audit(...)` commit with fixes + `.audit/<sha>.md` reports |
 
-The three skills compose into a single autonomous review-and-merge chain for cloud-agent PRs: pre-merge correctness gate → auto-merge → post-merge hygiene + bookkeeping. User attention is reserved for the rare `[BLOCK-MERGE]` label decision, the divergence-dropped findings that surface in audit-review's ROADMAP filings, and any `⚠️ blockers` / `💬 discussion` verdicts that fail the auto-merge preconditions.
+The three skills compose into a review-and-merge pipeline for cloud-agent PRs: pre-merge correctness gate → auto-merge → deferred post-merge hygiene + bookkeeping (user-invoked over a range). User attention is reserved for the rare `[BLOCK-MERGE]` label decision, invoking the deferred audit pass when the hook flags it, divergence-dropped findings that surface in audit-review's ROADMAP filings, and any `⚠️ blockers` / `💬 discussion` verdicts that fail the auto-merge preconditions.
 
 ## When to Invoke vs Defer to CodeRabbit
 
@@ -100,9 +100,8 @@ digraph commit_review {
   verdict   [label="11. Present verdict\n✅ ready / ⚠️ blockers / 💬 discussion\nAuto-post push-back drafts to PR + Linear"];
   cleanup   [label="12. Cleanup worktree (no-op if none was created)\nauto-remove if clean,\nleave + instruct if dirty"];
   gate      [label="13. Auto-merge precondition check\n✅ verdict + green CI + feature branch (not default)\n+ no requested-changes + no [BLOCK-MERGE] label\n→ auto-merge; else → surface verdict only"];
-  merge     [label="14. Merge feature-branch PR\n`gh pr merge --squash --delete-branch`"];
-  audit_chain [label="15. Chain Skill(audit-review)\nagainst the merge SHA on the default branch\n(audit-review handles ROADMAP/CHANGELOG/README,\nsobelow regen, .audit/<sha>.md, audit() commit)"];
-  close     [label="16. Linear close-out\nverify auto-transition to Done\n+ post closing comment"];
+  merge     [label="14. Merge feature-branch PR\n`gh pr merge --squash --delete-branch`\n(tail ends here — audit-review is deferred)"];
+  close     [label="15. Linear close-out\nverify auto-transition to Done\n+ post closing comment"];
 
   detect -> list -> spec -> resolve -> comments -> classify;
   classify -> ci [label="full"];
@@ -117,7 +116,7 @@ digraph commit_review {
   verdict -> cleanup -> gate;
   gate -> merge [label="all preconditions met"];
   gate -> close [label="auto-merge skipped\n(blockers/discussion or precondition fails)"];
-  merge -> audit_chain -> close;
+  merge -> close;
 }
 ```
 
@@ -134,7 +133,7 @@ Linear is **optional** as of v1.18. Two pickup modes; pick whichever fits the pr
 - Step 5 (fetch Linear comments) → become "skip — only fetch GitHub PR comments"
 - Step 9 (cross-reference Linear acceptance criteria) → become "cross-reference PR body's acceptance criteria if present, otherwise apply the narrowed correctness audit without an external spec gate"
 - Step 11 Linear comment post → become "skip Linear surface; PR review covers everything"
-- Step 16 Linear close-out → become "skip — no Linear issue to transition"
+- Step 15 Linear close-out → become "skip — no Linear issue to transition"
 
 **Mode detection is one-shot at Step 1.** Don't bounce between modes mid-flow. If Linear MCP is available BUT the PR has no linked Linear issue (rare for cloud-agent PRs, common for self-authored worktree PRs that the user opened locally without filing in Linear first), fall back to gh-only mode for THAT PR specifically.
 
@@ -683,7 +682,7 @@ The forbidden phrasing is "File a new `rmap` task for <small inline finding> (sc
 **Narrowed correctness audit (Step 8):** N findings, all priority ≤ 4 / discuss-trivial
 **Coverage:** N% on touched modules (≥ tier)
 
-Proceeding to Step 13 — auto-merge precondition check. If all preconditions hold, auto-runs `gh pr merge --squash --delete-branch` then chains `Skill(audit-review)` against the merge SHA. Hygiene categories (Cat 2-5 + external Cat 6) + ROADMAP/CHANGELOG/README/.sobelow-skips bookkeeping live in audit-review post-merge.
+Proceeding to Step 13 — auto-merge precondition check. If all preconditions hold, auto-runs `gh pr merge --squash --delete-branch`. Tail ends at branch cleanup. Hygiene categories (Cat 2-5 + external Cat 6) + ROADMAP/CHANGELOG/README/.sobelow-skips bookkeeping live in `audit-review`, which runs deferred — the `staged-review` SessionStart hook surfaces unaudited tails next session.
 ```
 
 **⚠️ Blockers:**
@@ -704,7 +703,7 @@ Proceeding to Step 13 — auto-merge precondition check. If all preconditions ho
 
 **Non-blocking findings table:** [the findings table per code-review Step 6 format, with upstream attribution where applicable]
 
-Auto-merge skipped — verdict not ✅. Step 14 (merge) and Step 15 (audit-review chain) skipped. Step 16 (Linear close-out) fires only if the user later merges manually.
+Auto-merge skipped — verdict not ✅. Step 14 (merge) skipped. Step 15 (Linear close-out) fires only if the user later merges manually. `audit-review` is deferred regardless — hook flags the tail next session.
 ```
 
 **💬 Discussion items:**
@@ -719,9 +718,9 @@ Surface any `disputed` upstream comments here too.]
 
 **Auto-post the Linear comment (full machinery only).** Per the auto-post rule, drafted Linear-channel one-paragraph scope/intent summaries land via `mcp__linear-server__save_comment` without re-asking. Surface in one short line ("Posting scope summary to MW-247: acceptance criteria 3 not addressed") and post.
 
-**Don't run `gh pr merge` without satisfying Step 13's auto-merge preconditions.** Per `delegation-rules.md` § "DON'T AUTO-MERGE PRS" (widened in v1.18 to feature-branch PRs): auto-merge is allowed when **all five preconditions hold** — ✅ verdict + green CI + feature branch (not the repo's default) + no requested-changes review + no `[BLOCK-MERGE]` label. If any precondition fails, surface the verdict and let the user merge manually. After Step 12 cleanup, the flow continues into Step 13 (auto-merge precondition check) → Step 14 (merge if eligible) → Step 15 (chain `audit-review` against the merge SHA) → Step 16 (Linear close-out).
+**Don't run `gh pr merge` without satisfying Step 13's auto-merge preconditions.** Per `delegation-rules.md` § "DON'T AUTO-MERGE PRS" (widened in v1.18 to feature-branch PRs): auto-merge is allowed when **all five preconditions hold** — ✅ verdict + green CI + feature branch (not the repo's default) + no requested-changes review + no `[BLOCK-MERGE]` label. If any precondition fails, surface the verdict and let the user merge manually. After Step 12 cleanup, the flow continues into Step 13 (auto-merge precondition check) → Step 14 (merge if eligible) → Step 15 (Linear close-out). `audit-review` is NOT chained off Step 14 — it runs deferred, surfaced by the `staged-review` SessionStart hook.
 
-On a `⚠️ Blockers` or `💬 Discussion` verdict, Step 13 surfaces "auto-merge skipped — verdict not ✅" and Steps 14-15 are skipped — there's no merge to chain. The deliverable is the verdict + auto-posted push-back; user decides on next-action manually. Step 16 still fires if the user later merges manually and wants Linear close-out.
+On a `⚠️ Blockers` or `💬 Discussion` verdict, Step 13 surfaces "auto-merge skipped — verdict not ✅" and Step 14 is skipped. The deliverable is the verdict + auto-posted push-back; user decides on next-action manually. Step 15 still fires if the user later merges manually and wants Linear close-out.
 
 ### Step 12: Cleanup the Review Worktree (No-Op if None Was Created)
 
@@ -752,7 +751,7 @@ The Step 10b fire path runs its own narrower cleanup before STOP — it intentio
 
 ### Step 13: Auto-Merge Precondition Check
 
-**Only fires on a `✅ Ready to merge` verdict.** On `⚠️ Blockers` or `💬 Discussion`, surface "auto-merge skipped — verdict not ✅" and skip Steps 14-15. Step 16 still fires if the user later merges manually and wants Linear close-out.
+**Only fires on a `✅ Ready to merge` verdict.** On `⚠️ Blockers` or `💬 Discussion`, surface "auto-merge skipped — verdict not ✅" and skip Steps 14-15. Step 15 still fires if the user later merges manually and wants Linear close-out.
 
 The auto-merge gate is **scoped to feature-branch PRs** — any branch that isn't the repo's default. Worktree branches, `cursor/*`, `codex/*` all qualify; only PRs whose head IS the default branch are out of scope (and gh wouldn't accept those anyway). v1.18 widened this from cloud-agent-only — see `delegation-rules.md` § "Why this loosens" for the autonomy-first rationale.
 
@@ -780,14 +779,14 @@ LABELS=$(gh pr view <N> --json labels -q '.labels[].name')
 echo "$LABELS" | grep -qi 'BLOCK-MERGE' && PRECONDITION_FAIL="block_merge_label"
 ```
 
-If any precondition fails, surface a one-line explanation referencing the failed precondition and skip to Step 16 (verdict-only deliverable; user merges manually if appropriate). Don't retry, don't pause for user input — the user already has the verdict and can act on it.
+If any precondition fails, surface a one-line explanation referencing the failed precondition and skip to Step 15 (verdict-only deliverable; user merges manually if appropriate). Don't retry, don't pause for user input — the user already has the verdict and can act on it.
 
 **The `[BLOCK-MERGE]` label is the user's manual override.** Adding it to any PR (cloud-agent or self-authored worktree) pauses the auto-merge mechanism without rejecting the verdict. The user removes the label when ready to allow auto-merge on a re-run, OR merges manually at any time.
 
 When all preconditions hold, announce the auto-merge in one line and proceed:
 
 ```
-[INE-<M> · PR #<N>] Auto-merge preconditions met — running `gh pr merge --squash --delete-branch`, then chaining audit-review.
+[INE-<M> · PR #<N>] Auto-merge preconditions met — running `gh pr merge --squash --delete-branch`. `audit-review` deferred.
 ```
 
 ### Step 14: Auto-Merge the Feature-Branch PR
@@ -800,48 +799,19 @@ gh pr merge <N> --squash --delete-branch
 
 Default to `--squash --delete-branch` — squash keeps the default branch history linear (one commit per Linear issue / PR), and `--delete-branch` removes the feature branch automatically. Applies uniformly to worktree branches, `cursor/*`, and `codex/*`. If the repo's PR policy specifies `merge` or `rebase` over squash (configurable per-repo via `.commit-review.toml` `merge_strategy` if present), use that strategy instead.
 
-Confirm the merge succeeded and capture the merge SHA:
+Confirm the merge succeeded:
 
 ```bash
 gh pr view <N> --json state,mergedAt,mergeCommit -q '{state, mergedAt, sha: .mergeCommit.oid}'
 ```
 
-Capture the merge SHA — Step 15 needs it for the audit-review chain.
+Tail ends at branch cleanup. `audit-review` runs deferred — the `staged-review` SessionStart hook (`check-unaudited-commits.sh`, ≥3 threshold) surfaces accumulated tails next session; user batch-clears via `/staged-review:audit-status` or `Skill(audit-review) <range>`.
 
-On merge failure (`mergeable: CONFLICTING`, required check still pending despite Step 13's CI check) → surface the gh error and stop. Don't retry. The audit-review chain is skipped (no merge happened); the user resolves the conflict and re-invokes the skill.
+On merge failure (`mergeable: CONFLICTING`, required check still pending despite Step 13's CI check) → surface the gh error and stop. Don't retry. User resolves the conflict and re-invokes the skill.
 
 **Never push to the cloud-agent's branch.** The merge happens via `gh pr merge`; the branch is deleted as part of the merge. Direct pushes to `cursor/...` or `codex/...` are forbidden per `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
 
-### Step 15: Chain `Skill(audit-review)` Against the Merge SHA
-
-Immediately after a successful merge, switch to the host repo's default branch and pull the merged state:
-
-```bash
-DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)  # main / master / development
-git checkout "$DEFAULT_BRANCH"
-git pull
-```
-
-Then invoke `audit-review` with the merge SHA scope:
-
-```
-Skill(audit-review) with arguments: <merge-sha>^..<merge-sha>
-```
-
-`audit-review` handles all the post-merge bookkeeping that Step 15 used to do inline:
-
-- ROADMAP.md status flip (preserving `[CX]` / `[CSR]` markers)
-- CHANGELOG.md entry under `## [Unreleased]`
-- README.md updates if user-facing surface changed
-- CLAUDE.md drift if the merged change touched repo conventions
-- `.sobelow-skips` regen if drift exists (CI's harness sobelow-drift step makes this loud upfront; audit-review confirms and applies)
-- Per-commit `.audit/<sha>.md` reports
-- Mandatory Codex second-opinion dispatch
-- One consolidated `audit(...)` commit covering the whole batch
-
-`commit-review` no longer owns those edits inline — moving them post-merge keeps the pre-merge gate narrow and gives the user a single inspectable artifact (`audit(...)` commit) for all post-merge bookkeeping. See `staged-review:audit-review` SKILL.md for the full workflow.
-
-### Step 16: Linear Close-Out
+### Step 15: Linear Close-Out
 
 If the project doesn't use Linear (per `linear-queue.md` § "ROADMAP-Fallback Flow"), skip this step entirely.
 
@@ -859,26 +829,21 @@ Otherwise:
    ```
    Surface a one-line note in the verdict: *"Linear auto-transition didn't fire — manually transitioned to Done. Consider verifying workspace config per `linear-queue.md` § 'Status Transitions'."*
 
-3. **Post a closing comment on the Linear issue.** Single comment, scope: PR-link + merge SHA + audit-commit SHA + one-line summary + flag any divergence-dropped findings audit-review filed to ROADMAP. Format:
+3. **Post a closing comment on the Linear issue.** Single comment, scope: PR-link + merge SHA + one-line summary. Format:
    ```
    mcp__linear-server__save_comment with issueId + body:
 
    Merged PR #<N>: <PR title>.
 
    Merge commit on <default-branch>: <merge SHA>.
-   Audit commit on <default-branch>: <audit-review's audit() commit SHA — captured from Step 15's invocation>.
 
-   audit-review summary:
-   - <copy the audit-review's per-commit verdict bullets>
-   - <if any discuss-design divergences were dropped + filed to ROADMAP, list them here>
-
-   Closing this issue. Follow-up tasks tracked in ROADMAP / new Linear issues if needed.
+   Closing this issue. `audit-review` runs deferred; the `staged-review` SessionStart hook flags this commit's tail next session (or when ≥3 unaudited commits have accumulated). Follow-up tasks tracked in ROADMAP / new Linear issues if needed.
    ```
 
    Posting is auto-default per the auto-post rule — surface in one line and post.
 
 4. **Final session output.** Print a one-line confirmation:
-   > `[INE-<M> · PR #<N>] Merged ✅ — merge commit <merge-sha>, audit commit <audit-sha>; Linear ticket Done; verdict + push-backs sent earlier.`
+   > `[INE-<M> · PR #<N>] Merged ✅ — merge commit <merge-sha>; Linear ticket Done; audit-review deferred; verdict + push-backs sent earlier.`
 
 Skill ends here. The user can verify the state via Linear UI / `gh pr view` / `git log main` if they want.
 
@@ -888,8 +853,8 @@ Skill ends here. The user can verify the state via Linear UI / `gh pr view` / `g
 |---------|-----|
 | Running `gh pr merge` while ANY auto-merge precondition fails | All five preconditions must hold: ✅ verdict + green CI + feature branch (not the repo's default) + no requested-changes + no `[BLOCK-MERGE]` label. Partial isn't enough — surface the verdict and let the user merge manually |
 | Running `gh pr merge` on a fork PR or a PR whose head IS the default branch | Auto-merge applies to feature-branch PRs in the same repo (worktree branches, `cursor/*`, `codex/*` all qualify). PRs from forks need the upstream maintainer's merge action; PRs whose head IS the default branch shouldn't exist (gh wouldn't accept) — surface and stop |
-| Skipping the audit-review chain after merge | Step 15 is mandatory after auto-merge. Post-merge bookkeeping (ROADMAP/CHANGELOG/README, `.audit/<sha>.md` reports, Codex second-opinion) lives there now |
-| Doing ROADMAP/CHANGELOG/README updates inline in `commit-review` | That's `audit-review`'s job post-merge. The pre-merge gate stays narrow on correctness. Inline bookkeeping was removed in v1.16 |
+| Invoking `Skill(audit-review)` synchronously after every merge | `audit-review` is deferred — running it per-merge defeats the batching the deferred model unlocks. The `staged-review` SessionStart hook flags unaudited tails; user invokes `Skill(audit-review) <range>` once over the accumulated range |
+| Doing ROADMAP/CHANGELOG/README updates inline in `commit-review` | That's `audit-review`'s job (deferred post-merge). The pre-merge gate stays narrow on correctness |
 | Running the full machinery on a tiny PR (<100 LOC, no `lib/`) | Step 5.5 routes to fast path. 3-line verdict, no audit, no Codex offer. Override with explicit user request only |
 | Running the full 5-category audit pre-merge | Pre-merge audit is narrowed to Cat 1 (bugs) + in-code `@doc`/`@spec` drift. Hygiene categories (Cat 2-5 + external Cat 6) live in `audit-review` post-merge |
 | Running this skill on every cloud-agent PR | Tier 2 framing — reserve for PRs that touch critical-tier code paths OR where CodeRabbit (Tier 1) flagged ambiguity OR explicit user invocation. Routine PRs defer to CodeRabbit + CI |
@@ -932,5 +897,5 @@ Closely related includes and skills the workflow composes with:
 - `~/.claude/includes/delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — auto-post posture for push-back drafts (default DO during active flow)
 - `~/.claude/includes/cloud-agent-environments.md` — per-agent reachability matrix (hex.pm, Tidewave, internet) feeding Step 7's classification
 - `staged-review:code-review` — pre-commit local-work counterpart; shares the audit categories but mandates Codex CLI second-opinion (single-judge failure mode)
-- `staged-review:audit-review` — post-commit / post-merge counterpart; chained off Step 15 after auto-merge. Owns hygiene categories (Cat 2-5 + external Cat 6) + ROADMAP/CHANGELOG/README/sobelow-skips bookkeeping + Codex second-opinion + per-commit `.audit/<sha>.md` reports + consolidated `audit(...)` commit on `main`
+- `staged-review:audit-review` — post-commit / post-merge counterpart; runs deferred (SessionStart hook surfaces unaudited tails ≥3, user invokes over a range). Owns hygiene categories (Cat 2-5 + external Cat 6) + ROADMAP/CHANGELOG/README/sobelow-skips bookkeeping + Codex second-opinion + per-commit `.audit/<sha>.md` reports + consolidated `audit(...)` commit on `main`
 - `elixir-ci-harness` — the canonical `harness.yml` adopted when Step 6 surfaces `TODO(setup-ci)`; closes the CI-as-shared-error-gate loop

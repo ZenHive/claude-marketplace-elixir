@@ -66,26 +66,24 @@ git worktree prune
 
 To start working in a new worktree, open a fresh Claude Code session in that directory: `claude` from `~/_DATA/worktrees/<repo>/<id>/`.
 
-## After PR Merge — Run `audit-review`
+## After PR Merge — `audit-review` Is Deferred
 
-After the PR merges to the default branch, `staged-review:audit-review` runs against the merge SHA. Catches hygiene drift (extractions, doc gaps, missing TODO markers, ROADMAP/CHANGELOG drift) that pre-commit `code-review` may have skipped under time pressure. The skill writes `.audit/<merge-sha>.md` reports + lands one `audit(...)` commit on the default branch.
+`staged-review:audit-review` catches hygiene drift (extractions, doc gaps, missing TODO markers, ROADMAP/CHANGELOG drift) that pre-commit `code-review` may have skipped, writes `.audit/<sha>.md` reports, and lands one `audit(...)` commit on the default branch.
 
-**Auto-invoked post-merge.** Two invocation paths:
-
-1. **Auto-merge path** — `commit-review` Step 15 already chains `Skill(audit-review) <merge-sha>^..<merge-sha>` immediately after `gh pr merge`. Nothing extra to do.
-2. **User-merge path** — when the user merges manually (any PR, cloud-agent or self-authored), the same session runs `audit-review` against the merge SHA in the next step.
+**Not chained off `gh pr merge`.** The post-merge tail ends at branch cleanup. The `staged-review` plugin's SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) surfaces accumulated tails next session:
 
 ```
-# After `gh pr merge` lands (auto or manual):
-git checkout <default-branch> && git pull
-Skill(audit-review)  # arguments: <merge-sha>^..<merge-sha>
+/staged-review:audit-status        # read-only snapshot of unaudited commits per branch
+Skill(audit-review) <range>        # batched audit over the accumulated range
 ```
+
+`<range>` is typically `<last-audit-sha>..<default-branch-HEAD>` — one batched pass covers all merge SHAs since the last audit.
 
 **Manual override:** `/audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks.
 
 **Tiny-commit fast path.** For commits ≤100 LOC AND no `lib/` (or language equivalent) touched, the skill skips Codex dispatch and writes a `verdict: clean — fast-path` report. No separate skip flag needed; if every commit in the range is fast-path-eligible, the audit is cosmetic and ends in seconds.
 
-**Why post-merge, not post-pr-create.** Three reasons. (a) Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge — auditing pre-bot means re-auditing if bots flag substantive findings. (b) The audit commit lands on the default branch where it's durable; running pre-merge would land it on a soon-to-be-deleted feature branch. (c) `.audit/<merge-sha>.md` becomes the canonical inspection artifact for the merged change set, indexed off the SHA that's actually in `main` history.
+**Why deferred, not chained.** Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge, so auditing pre-bot risks re-auditing. The audit commit lands on the default branch where it's durable. Batching N merges into one pass is strictly cheaper than N synchronous passes, and `.audit/<sha>.md` artifacts indexed off merge SHAs in `main` history remain the canonical inspection surface.
 
 ## Lifecycle — Cleanup Is Part of Completion
 

@@ -54,7 +54,7 @@ Each phase runs in a **fresh session** with file-based handoffs (`.thoughts/` di
 2. **Implement** → code + ROADMAP updates (`task-driver`)
 3. **Code Review** → `staged-review:code-review` (pre-commit, any language) → commit
 4. **Pre-merge gate** → `staged-review:commit-review` (cloud-agent PRs only — Cursor / Codex)
-5. **Post-merge audit** → `staged-review:audit-review` (auto-fires after `gh pr create` and after every cloud-agent merge)
+5. **Post-merge audit** → `staged-review:audit-review` (deferred — SessionStart hook surfaces unaudited tail at ≥3 threshold; user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>`)
 
 ### Three-Tier Code Review Chain
 
@@ -64,9 +64,9 @@ The `staged-review` plugin covers the full pre-commit → pre-merge → post-mer
 |---|---|---|---|---|
 | Pre-commit | `code-review` | `git diff --staged` | All 5+1 categories | Single (Claude) — fast triage with auto-apply |
 | Pre-merge | `commit-review` | Cloud-agent PR before merge | Cat 1 + thin slice of Cat 6 | Single (Claude) — narrow correctness gate, auto-merges on ✅ + green CI + 5 preconditions |
-| Post-merge | `audit-review` | After `gh pr create` / every cloud-agent merge | All 5+1 categories | **Dual (Claude + mandatory parallel Codex)**, with Claude+Codex dialogue on `discuss-design` — fully autonomous |
+| Post-merge | `audit-review` | Deferred — SessionStart hook surfaces unaudited tail (≥3) / manual `Skill(audit-review) <range>` | All 5+1 categories | **Dual (Claude + mandatory parallel Codex)**, with Claude+Codex dialogue on `discuss-design` — fully autonomous |
 
-The expensive dual-reviewer work (parallel Codex dispatch + Claude+Codex dialogue) lives only in `audit-review`. Pre-commit and pre-merge stay fast and single-reviewer. Since `audit-review` auto-fires after `gh pr create` and after every cloud-agent merge, every commit reaches the dual-reviewer pass either way — duplicating it pre-commit would be redundant work on the same code.
+The expensive dual-reviewer work (parallel Codex dispatch + Claude+Codex dialogue) lives only in `audit-review`. Pre-commit and pre-merge stay fast and single-reviewer. Every commit reaches the dual-reviewer pass eventually — the SessionStart hook flags accumulated tails, batched audit passes cover the range — so duplicating it pre-commit would be redundant work on the same code.
 
 Implementer / reviewer separation is preserved across the chain: each layer is a different session, no agent grades its own work.
 

@@ -44,19 +44,17 @@ For the Cursor / Codex delegation workflow (`[CSR]` / `[CX]` task marker → Lin
 4. **Narrowed audit**: Category 1 (Bugs) only + a thin slice of Category 6 (in-code `@doc`/`@spec` correctness drift). Hygiene categories (extractions, abstractions, TODO markers, ROADMAP/CHANGELOG drift) are **not** raised pre-merge — they're audit-review's job
 5. Auto-posts push-back as Linear `@cursor` comment + GitHub PR review per `delegation-rules.md` § "POST LINEAR/PR COMMENTS WITHOUT ASKING"
 6. Verdict: ✅ ready / ⚠️ blockers / 💬 discussion
-7. **On ✅ + 5 preconditions hold**: auto-runs `gh pr merge --squash --delete-branch`, captures merge SHA, then chains `Skill(audit-review)` against `<merge-sha>^..<merge-sha>` for post-merge hygiene
+7. **On ✅ + 5 preconditions hold**: auto-runs `gh pr merge --squash --delete-branch`; tail ends at branch cleanup. `audit-review` is deferred — surfaced by the SessionStart hook
 8. **On any precondition fail**: surface verdict and stop — user merges manually
 
-Auto-merge preconditions: ✅ verdict, green CI, cloud-agent branch (`cursor/*` or `codex/*`), no `requested-changes` review, no `[BLOCK-MERGE]` label. See `delegation-rules.md` § "DON'T AUTO-MERGE PRS".
+Auto-merge preconditions: ✅ verdict, green CI, feature branch (not the repo's default), no `requested-changes` review, no `[BLOCK-MERGE]` label. See `delegation-rules.md` § "DON'T AUTO-MERGE PRS".
 
 ## `audit-review` — Post-Commit / Post-Merge Audit
 
-Fully autonomous post-commit pass. Triggered:
+Fully autonomous post-commit pass. Deferred — runs on user invocation, not chained off any merge or PR-create:
 
-1. Auto-invoked by `worktree-workflow` after `gh pr create` (audits self-authored worktree commits)
-2. Auto-invoked by `commit-review`'s auto-merge tail (audits the merge SHA on `main`)
-3. Auto-invoked by `linear-queue` (self-authored worktree flow) after a user-confirmed merge for non-auto-merge cases
-4. Manually via `/audit-review [<sha>|<range>]`
+1. **SessionStart hook** (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tails next session via `additionalContext` recommending `/staged-review:audit-status` or `Skill(audit-review) <range>`
+2. **Manual** via `/audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks
 
 Workflow:
 
@@ -69,7 +67,7 @@ Workflow:
 7. Write `.audit/<sha>.md` per audited commit
 8. Auto-commit one `audit(...)` covering the batch
 
-The `audit(...)` commit is auto-allowed on `main` (per `critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE") — it IS the post-merge bookkeeping commit, replacing the old `commit-review` Step 15 doc-only commit.
+The `audit(...)` commit is auto-allowed on the repo's default branch (per `critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE") — it IS the post-merge bookkeeping commit.
 
 ## `/audit-status` — Read-Only Drift Snapshot
 
