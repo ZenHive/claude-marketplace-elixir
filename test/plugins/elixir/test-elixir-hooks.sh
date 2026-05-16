@@ -535,6 +535,14 @@ test_hook_json \
   0 \
   '.suppressOutput == true'
 
+# Test 54a: --format=json (equal-sign form) is also accepted
+test_hook_json \
+  "warn-missing-tool-flags: 'mix credo --strict --format=json' is silent (equal-sign form)" \
+  "plugins/elixir/scripts/warn-missing-tool-flags.sh" \
+  '{"tool_input":{"command":"mix credo --strict --format=json"},"cwd":"/tmp"}' \
+  0 \
+  '.suppressOutput == true'
+
 # Test 55: mix compile without time fires
 test_hook_json \
   "warn-missing-tool-flags: 'mix compile' (no time prefix) fires" \
@@ -679,6 +687,94 @@ test_hook_json \
   '{"tool_input":{"command":"mix test"},"cwd":"/tmp"}' \
   0 \
   '.suppressOutput == true'
+
+# Test 71a: compound `git rm a && rm b` denies the second segment
+test_hook_json \
+  "block-destructive-bash: 'git rm tracked.ex && rm scratch.txt' blocked (compound bypass)" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"git rm tracked.ex && rm scratch.txt"},"cwd":"/tmp"}' \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny" and (.hookSpecificOutput.permissionDecisionReason | contains("git rm"))'
+
+# Test 71b: compound with `;` separator also denies the bare rm
+test_hook_json \
+  "block-destructive-bash: 'git rm a.ex; rm b.txt' blocked (semicolon compound)" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"git rm a.ex; rm b.txt"},"cwd":"/tmp"}' \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny"'
+
+# Test 71c: sudo rm is also blocked
+test_hook_json \
+  "block-destructive-bash: 'sudo rm foo.txt' blocked" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"sudo rm foo.txt"},"cwd":"/tmp"}' \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny"'
+
+# Test 71d: npm rm allowed (package-manager wrapper)
+test_hook_json \
+  "block-destructive-bash: 'npm rm lodash' is allowed (package-manager wrapper)" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"npm rm lodash"},"cwd":"/tmp"}' \
+  0 \
+  '.suppressOutput == true'
+
+# Test 71e: pnpm rm allowed
+test_hook_json \
+  "block-destructive-bash: 'pnpm rm react' is allowed" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"pnpm rm react"},"cwd":"/tmp"}' \
+  0 \
+  '.suppressOutput == true'
+
+# Test 71f: yarn rm allowed
+test_hook_json \
+  "block-destructive-bash: 'yarn rm webpack' is allowed" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"yarn rm webpack"},"cwd":"/tmp"}' \
+  0 \
+  '.suppressOutput == true'
+
+# Test 71g: bundle rm allowed
+test_hook_json \
+  "block-destructive-bash: 'bundle rm rspec' is allowed" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"bundle rm rspec"},"cwd":"/tmp"}' \
+  0 \
+  '.suppressOutput == true'
+
+# Test 71h: cargo rm allowed
+test_hook_json \
+  "block-destructive-bash: 'cargo rm serde' is allowed" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"cargo rm serde"},"cwd":"/tmp"}' \
+  0 \
+  '.suppressOutput == true'
+
+# Test 71i: gem rm allowed
+test_hook_json \
+  "block-destructive-bash: 'gem rm activerecord' is allowed" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"gem rm activerecord"},"cwd":"/tmp"}' \
+  0 \
+  '.suppressOutput == true'
+
+# Test 71j: env-var-prefixed bare rm still denied
+test_hook_json \
+  "block-destructive-bash: 'MIX_ENV=test rm tmp.txt' blocked (env-prefix stripped)" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"MIX_ENV=test rm tmp.txt"},"cwd":"/tmp"}' \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny"'
+
+# Test 71k: npm rm in compound with bare rm — bare rm still denied
+test_hook_json \
+  "block-destructive-bash: 'npm rm foo && rm scratch.txt' blocked (compound — wrapper allowed, bare denied)" \
+  "plugins/elixir/scripts/block-destructive-bash.sh" \
+  '{"tool_input":{"command":"npm rm foo && rm scratch.txt"},"cwd":"/tmp"}' \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny"'
 
 # =============================================================================
 # Warn Doctest IO and Untagged TODOs (warn-doctest-io-and-untagged-todos.sh) — Task #31

@@ -34,7 +34,7 @@ if echo "$HOOK_COMMAND" | grep -qE '(^|[[:space:]])mix[[:space:]]+credo([[:space
     has_strict=false
     has_json=false
     echo "$HOOK_COMMAND" | grep -q -- '--strict' && has_strict=true
-    echo "$HOOK_COMMAND" | grep -qE -- '--format[[:space:]]+json' && has_json=true
+    echo "$HOOK_COMMAND" | grep -qE -- '--format([[:space:]]+|=)json' && has_json=true
     if [[ "$has_strict" != "true" || "$has_json" != "true" ]]; then
       WARNINGS+="• \`mix credo\` is missing required flags. Project standard:
     mix credo --strict --format json
