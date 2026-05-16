@@ -668,6 +668,174 @@
       "created_at": "2026-05-14",
       "scored_at": "2026-05-14",
       "cross_repo": []
+    },
+    {
+      "id": 50,
+      "phase": 11,
+      "bundle": "rmap_integration",
+      "status": "pending",
+      "title": "Propagate batched-execution rule into task-driver skill",
+      "scores": {
+        "d": 3,
+        "b": 7,
+        "u": 7
+      },
+      "eff": 2.33,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Step 2 output proposes batches when shortlist tasks are independent",
+        "Filed plans for multi-batch work include ⏸ CHECKPOINT markers as lines of their own (not prose)",
+        "Commit one-liners appear at checkpoints where a commit is the next step",
+        "Section cross-references workflow-philosophy.md § Batched Execution"
+      ],
+      "body": "Update `plugins/task-driver/skills/task-driver/SKILL.md` to apply the Batched Execution rule from `~/.claude/includes/workflow-philosophy.md`. Pickup Mode Step 2 (the Parallel Opportunities display) should escalate to proposing a batch + subagent fan-out when the shortlist contains independent tasks. Plan-and-File mode (P1-P6) should render ⏸ CHECKPOINT markers and commit one-liners as first-class structural elements in filed plans when the plan is multi-batch. Reference the canonical rule rather than duplicating it.",
+      "created_at": "2026-05-15",
+      "scored_at": "2026-05-15",
+      "cross_repo": []
+    },
+    {
+      "id": 51,
+      "phase": 11,
+      "bundle": "rmap_integration",
+      "status": "pending",
+      "title": "Propagate batched-execution rule into workflow-generator templates",
+      "scores": {
+        "d": 4,
+        "b": 7,
+        "u": 6
+      },
+      "eff": 1.63,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "plan-template renders ⏸ CHECKPOINT as a line of its own when the plan is multi-batch",
+        "implement-template stops at ⏸ CHECKPOINT and emits a commit one-liner if commit is next",
+        "oneshot-template no longer blanket-forbids parallel phases",
+        "Templates cross-reference workflow-philosophy.md § Batched Execution"
+      ],
+      "body": "Update `plugins/elixir-workflows/skills/workflow-generator/templates/{plan,implement,oneshot}-template.md` to apply the Batched Execution rule. plan-template renders ⏸ CHECKPOINT markers as first-class structural elements in phased plans; implement-template's phase-loop honors them as /compact STOPs and fans out disjoint same-batch work to subagents; oneshot-template's 'Sequential Execution Notes' is reconciled — disjoint phases MAY fan out, dependent phases stay sequential. May split into one task per template at pickup if oversized.",
+      "created_at": "2026-05-15",
+      "scored_at": "2026-05-15",
+      "cross_repo": []
+    },
+    {
+      "id": 52,
+      "phase": 11,
+      "bundle": "rmap_integration",
+      "status": "pending",
+      "title": "Generalize agent-dispatch /compact section as instance of canonical rule",
+      "scores": {
+        "d": 2,
+        "b": 5,
+        "u": 5
+      },
+      "eff": 2.5,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "agent-dispatch.md cross-references workflow-philosophy.md § Batched Execution as the general form",
+        "Existing /compact-between-batches rule still reads correctly",
+        "Sync to agent-dispatch skill is clean (no drift)"
+      ],
+      "body": "Rework `~/.claude/includes/agent-dispatch.md` § 'Batch Sizing and Pacing' so its /compact-between-batches language is framed as the delegation-specific *instance* of the canonical rule in workflow-philosophy.md § Batched Execution. Vocabulary stays — this is where 'batch' originates. Run `scripts/sync-skills-from-includes.sh` to propagate to the cloud-delegation:agent-dispatch skill.",
+      "created_at": "2026-05-15",
+      "scored_at": "2026-05-15",
+      "cross_repo": []
+    },
+    {
+      "id": 53,
+      "phase": 11,
+      "bundle": "rmap_integration",
+      "status": "pending",
+      "title": "Document /batch + rmap next-bundle integration with Batched Execution",
+      "scores": {
+        "d": 3,
+        "b": 6,
+        "u": 6
+      },
+      "eff": 2.0,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "rmap.md mentions batch as derived layer of next-bundle output",
+        "flow-review.md notes /batch → flow-review synergy + commit-review gate guard",
+        "Skills sync cleanly (rmap, flow-review)"
+      ],
+      "body": "Add cross-references and integration docs: in `~/.claude/includes/rmap.md`, document that a 'batch' is a derived dependency layer of a next-bundle task set (no new rmap command — batch-derivation is the executor's job, computed from depends_on edges). In `~/.claude/includes/flow-review.md`, note that /batch output (N PRs) feeds the merge-train and that batch-produced PRs still route through commit-review (don't bypass the pre-commit gate). Touches rmap.md and flow-review.md; run sync.",
+      "created_at": "2026-05-15",
+      "scored_at": "2026-05-15",
+      "cross_repo": []
+    },
+    {
+      "id": 54,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "pending",
+      "title": "Align audit-review/flow-review checkpoint vocabulary with canonical ⏸ CHECKPOINT",
+      "scores": {
+        "d": 2,
+        "b": 4,
+        "u": 4
+      },
+      "eff": 2.0,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "audit-review SKILL.md uses ⏸ CHECKPOINT marker in its checkpoint-rendering language",
+        "flow-review cross-references the canonical Batched Execution rule"
+      ],
+      "body": "Audit-review's existing `_in_progress_<range>.md` STOP-checkpoint predates the canonical rule. Align: ensure `plugins/staged-review/skills/audit-review/SKILL.md` uses the ⏸ CHECKPOINT glyph as the rendered marker (the on-disk filename stays — it's the resume artifact), and that flow-review.md adds a cross-reference to workflow-philosophy.md § Batched Execution where appropriate.",
+      "created_at": "2026-05-15",
+      "scored_at": "2026-05-15",
+      "cross_repo": []
+    },
+    {
+      "id": 55,
+      "phase": 11,
+      "bundle": "rmap_integration",
+      "status": "pending",
+      "title": "Evaluate batch-worker subagent definition",
+      "scores": {
+        "d": 4,
+        "b": 5,
+        "u": 4
+      },
+      "eff": 1.13,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Decision is documented (either a new agent file lands, or workflow-philosophy.md gains a brief why-no-batch-worker note)",
+        "If shipped: subagent works in a fan-out test with isolation: worktree",
+        "Plugin's plugin.json + SKILLS.md + README catalogs updated if a new agent ships"
+      ],
+      "body": "Decide whether to ship a reusable worktree-isolated batch-worker subagent definition (in a plugin's `agents/` dir, per the Claude Code sub-agents docs) for disjoint-batch fan-out, versus continuing to lean on built-in Explore / general-purpose / codex:codex-rescue. Subagent definitions can pre-set isolation: worktree, tool restrictions, and a focused system prompt; against, plugin-shipped subagents can't use hooks/mcpServers/permissionMode. If shipping, place under plugins/task-driver/agents/ or a new plugin. If not, document the decision in workflow-philosophy.md § Batched Execution as a footnote.",
+      "created_at": "2026-05-15",
+      "scored_at": "2026-05-15",
+      "cross_repo": []
+    },
+    {
+      "id": 56,
+      "phase": 11,
+      "bundle": "rmap_integration",
+      "status": "pending",
+      "title": "Evaluate rmap next-bundle --batches flag (cross-repo)",
+      "scores": {
+        "d": 5,
+        "b": 5,
+        "u": 5
+      },
+      "eff": 1.0,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "Decision is recorded (link to rmap-repo issue or PR)",
+        "If implemented in rmap: rmap.md gets a follow-up edit documenting --batches"
+      ],
+      "body": "Cross-repo tracker — rmap is a separate binary. Evaluate whether `rmap next-bundle` should grow a `--batches` flag that groups a bundle's tasks into dependency layers (topological sort by depends_on) and emits them grouped in the JSON. The alternative is leaving batch-derivation entirely to the consuming executor. If the flag lands, executors can read pre-grouped batches without reimplementing topo-sort. Decision + implementation happens in the rmap repo; this task is a placeholder so the question doesn't get lost.",
+      "created_at": "2026-05-15",
+      "scored_at": "2026-05-15",
+      "cross_repo": []
     }
   ]
 }

@@ -14,7 +14,7 @@ The [elixir-volt](https://github.com/elixir-volt) ecosystem — Node.js replacem
 
 | Package | Hex | Purpose | Detail |
 |---|---|---|---|
-| `oxc` | `~> 0.7` | Parse, transform, bundle, minify JS/TS (Rust NIF) | `oxc.md` |
+| `oxc` | `~> 0.13` | Parse, transform, bundle, minify, format, lint JS/TS (Rust NIFs) | `oxc.md` |
 | `quickbeam` | `~> 0.10` | Run JS on the BEAM — browser APIs, DOM, fetch, crypto, WebSocket, WASM (Zig NIF) | `quickbeam.md` |
 | `npm` | `~> 0.5` | Install npm packages, resolve deps, verify integrity | Pure Elixir |
 | `npm_semver` | `~> 0.1` | npm-compatible semver | Pure Elixir |

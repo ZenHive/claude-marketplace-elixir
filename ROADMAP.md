@@ -77,6 +77,7 @@ Remaining tasks to personalize the Claude Code plugin marketplace. **This file i
 | Task 45 | ⬜ | 🎁 **audit_followups** · Worktree + clean-tree preconditions in audit-review [D:3/B:6/U:7 → Eff:2.17] 🎯 |
 | Task 46 | ⬜ | 🎁 **audit_followups** · Audit-corpus-only mode (report without apply) [D:3/B:5/U:5 → Eff:1.67] 🚀 |
 | Task 47 | ⬜ | 🎁 **audit_followups** · Per-commit Codex output capture in .audit/ [D:2/B:4/U:4 → Eff:2.0] 🎯 |
+| Task 54 | ⬜ | 🎁 **audit_followups** · Align audit-review/flow-review checkpoint vocabulary with canonical ⏸ CHECKPOINT [D:2/B:4/U:4 → Eff:2.0] 🎯 |
 <!-- TASKS:END -->
 
 ---

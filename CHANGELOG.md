@@ -6,6 +6,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**Skill sync from canonical includes — elixir v1.28.1 → v1.28.2, task-driver v1.3.0 → v1.3.1, cloud-delegation v1.12.1 → v1.12.2**
+
+Doc-only sync. No behavior changes — skill bodies regenerated from updated `~/.claude/includes/*.md`.
+
+- **elixir 1.28.2** — `oxc` skill expanded to cover oxfmt's full Prettier-ish option set, `:sort_imports` and `:sort_tailwindcss` plugins, the filesystem-entry mode of `OXC.bundle/2`, and the Rolldown option surface (`:exports`, `:preserve_entry_signatures`, `:conditions`, `:main_fields`, `:modules`, `:module_types`, `:cwd`). Min version bumped `~> 0.10` → `~> 0.13`. `elixir-volt` summary table reflects new oxc capabilities + matching version pin. `git-worktrees` + `roadmap-planning` skills picked up minor cross-ref polish from their canonical includes (`[P]` → `parallel` marker label; `≥`/`<` tier-threshold inclusivity).
+- **task-driver 1.3.1** — `rmap` skill gains a "Pinning an LLM model per task" section documenting the existing `model = "<id>"` field, surfaced by `rmap delegate` as a `- Model:` bullet in the rendered prompt's `## Context`. Distinct from `assignee` (who owns it) and `--to` (which agent environment). Migration section slimmed — points readers at `rmap import` instead of inlining the 4-step manual procedure.
+- **cloud-delegation 1.12.2** — `cloud-agent-environments` skill cross-references repointed from `task-prioritization.md § "Codex Delegation"` to `agent-dispatch.md § "Codex Delegation"` (section moved during the linear-workflow split).
+
 **Make `rmap` the standard roadmap substrate — task-driver v1.2.1 → v1.3.0, elixir v1.28.0 → v1.28.1**
 
 `rmap` is a single-binary CLI that manages `roadmap/tasks.toml` as a typed source and renders `ROADMAP.md` + `roadmap/data.json` from it. It already shares our efficiency formula, tier thresholds, and D/B/U scale — but the includes and skills still described a manual markdown-editing process (hand-formatting `[D:X/B:Y/U:Z]`, manually flipping status glyphs, hand-archiving completed tasks into `CHANGELOG.md`). This restructures the task-writing/roadmap surface so `rmap` is the standard: `roadmap/tasks.toml` is canonical, `ROADMAP.md` is rendered output, and hand-edited roadmaps are a legacy state with a documented migration path.

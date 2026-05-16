@@ -22,7 +22,7 @@ For the **reviewer / dispatcher** view (push-back-vs-fix calculus, eligibility m
 - Even when you point at the pre-installed binary directly with explicit PATH + `MIX_HOME`, **`mix local.hex` and `mix deps.get` return `hex.pm` 403 Forbidden through the agent-phase proxy**. The Codex Cloud "Common dependencies" allowlist preset covers crates.io / npmjs.com / pypi.org but not hex.pm.
 - Repos that pin a newer toolchain via `mise.toml` (e.g. Symphony's Erlang 28 / Elixir 1.19.5-otp-28) hit a second wall: `mise install` can't reach the toolchain assets through the proxy either.
 
-Net effect is the same — Codex can't run any `mix` task, ships zero harness evidence — but the load-bearing fix is hex.pm allowlisting (and ideally putting the mise-installed Elixir on default PATH), not "install Elixir." Until that lands, **`[CX]` code-mutation delegation is suspended** for any Elixir repo. See `task-prioritization.md` § "Codex Delegation (`[CX]`)" for the policy lock; route everything to `[CSR]` (Cursor) in the meantime — Cursor's harness has Elixir/OTP on PATH, hex.pm reachable, and runs the full mix toolchain.
+Net effect is the same — Codex can't run any `mix` task, ships zero harness evidence — but the load-bearing fix is hex.pm allowlisting (and ideally putting the mise-installed Elixir on default PATH), not "install Elixir." Until that lands, **`[CX]` code-mutation delegation is suspended** for any Elixir repo. See `agent-dispatch.md` § "Codex Delegation (`[CX]`)" for the policy lock; route everything to `[CSR]` (Cursor) in the meantime — Cursor's harness has Elixir/OTP on PATH, hex.pm reachable, and runs the full mix toolchain.
 
 Public ask filed with Symphony team: [openai/symphony#70](https://github.com/openai/symphony/discussions/70) (Q&A discussion, 2026-05-13).
 
@@ -179,7 +179,7 @@ Fly Sprite-hosted Claude Code is a third delegation option that doesn't fit the 
 
 - `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent" — reviewer-side push-back-vs-fix calculus
 - `agent-dispatch.md` § "Cursor Delegation Flow" / "Codex Delegation (`[CX]`)" — issue creation, PR review, merge gate
-- `task-prioritization.md` § "Codex Delegation (`[CX]`)" — eligibility criteria for delegation
+- `agent-dispatch.md` § "Codex Delegation (`[CX]`)" — eligibility criteria for delegation
 - `critical-rules.md` § "FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH" — touched-file scope for harness fixes
 - `elixir-ci-harness` skill (claude-marketplace-elixir) — copy-ready CI workflow that closes the Codex-Cloud-no-hex.pm gap
 - `feedback_codex_sandbox_pr_gap.md` — observed Codex env gaps post-allowlist

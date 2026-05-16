@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Rust NIF bindings for the [OXC](https://oxc.rs) toolchain. Parses, transforms, minifies, and bundles JS/TS on the BEAM — no Node.js.
 
-**Min version: `{:oxc, "~> 0.10"}`.** The atom-keyed AST contract: `:type`/`:kind` values are snake_case atoms (`:import_declaration`, not `"ImportDeclaration"`); error tuples are `{:error, [%{message: String.t()}]}`; bang functions raise `OXC.Error`. Surface includes `OXC.codegen/1,!`, `OXC.bind/2`/`splice/3` (placeholder templating), `OXC.transform_many/2` (parallel via rayon), `OXC.Format` (oxfmt as a separate Rust NIF), `OXC.Lint` (oxlint's 650+ rules plus custom Elixir rules via `OXC.Lint.Rule`), and the `:external` bundle option.
+**Min version: `{:oxc, "~> 0.13"}`.** The atom-keyed AST contract: `:type`/`:kind` values are snake_case atoms (`:import_declaration`, not `"ImportDeclaration"`); error tuples are `{:error, [%{message: String.t()}]}`; bang functions raise `OXC.Error`. Surface includes `OXC.codegen/1,!`, `OXC.bind/2`/`splice/3` (placeholder templating), `OXC.transform_many/2` (parallel via rayon), `OXC.Format` (oxfmt as a separate Rust NIF — Prettier-compatible, ~30× faster, ships `:sort_imports` and `:sort_tailwindcss` plugins), `OXC.Lint` (oxlint's 650+ rules plus custom Elixir rules via `OXC.Lint.Rule`), and the full Rolldown bundle option surface (`:external`, `:exports`, `:preserve_entry_signatures`, `:conditions`, `:main_fields`, `:modules`, `:module_types`, `:cwd`). `OXC.bundle/2` accepts either a filesystem entry path (string) or a virtual `[{filename, source}]` project. The low-level `OXC.Native` NIF surface is public (rarely needed — use the `OXC` wrapper).
 
 **Does NOT cover:** runtime JS execution (→ QuickBEAM), installing npm packages (→ `mix npm.install`), frontend build + HMR (→ Volt).
 
@@ -103,7 +103,7 @@ OXC.splice(ast, :body, ["const x = 1;", "return x;"]) |> OXC.codegen!()
 
 ### Format
 
-`OXC.Format` wraps oxfmt (the OXC formatter, separate Rust NIF `oxc_fmt_nif`). Prettier-compatible output defaults; no Node.js needed.
+`OXC.Format` wraps oxfmt (the OXC formatter, separate Rust NIF `oxc_fmt_nif`). Prettier-compatible output, ~30× faster.
 
 ```elixir
 {:ok, "const x = 1 + 2;\nfunction foo(a, b) {\n  return a + b;\n}\n"} =
@@ -112,7 +112,38 @@ OXC.splice(ast, :body, ["const x = 1;", "return x;"]) |> OXC.codegen!()
 formatted = OXC.Format.run!(source, "t.ts")   # bang variant — raises OXC.Error
 ```
 
-Options mirror Prettier-ish knobs (`print_width`, `tab_width`, `use_tabs`, `single_quote`, `trailing_comma`, `semi`). `oxc_fmt_nif` ships precompiled for aarch64/x86_64 glibc + darwin — **no musl builds**, so on Alpine you'll compile from source (Rust toolchain required).
+**Prettier-ish options:** `:print_width` (default 80), `:tab_width` (2), `:use_tabs` (false), `:semi` (true), `:single_quote` (false), `:jsx_single_quote` (false), `:trailing_comma` (`:all`), `:bracket_spacing` (true), `:bracket_same_line` (false), `:arrow_parens` (`:always`), `:end_of_line` (`:lf`), `:quote_props` (`:as_needed`), `:single_attribute_per_line` (false), `:object_wrap` (`:preserve` | `:collapse`), `:experimental_operator_position` (`:start` | `:end`), `:experimental_ternaries` (false), `:embedded_language_formatting` (`:auto` | `:off`).
+
+**`:sort_imports`** — `true` for defaults, or a map of sub-options. Groups, orders, and dedupes import declarations:
+
+```elixir
+OXC.Format.run!(source, "t.ts",
+  sort_imports: %{
+    ignore_case: true,        # case-insensitive sorting (default)
+    sort_side_effects: false, # leave `import "x"` alone (default)
+    order: :asc,              # :asc | :desc
+    newlines_between: true,   # blank lines between groups
+    partition_by_newline: false,
+    partition_by_comment: false,
+    internal_pattern: ["~/", "@/"]  # prefixes treated as internal imports
+  })
+```
+
+**`:sort_tailwindcss`** — `true` for defaults, or a map. Sorts class names to Tailwind's recommended order:
+
+```elixir
+OXC.Format.run!(source, "App.tsx",
+  sort_tailwindcss: %{
+    config: "tailwind.config.js",  # v3 config path
+    stylesheet: "app.css",         # v4 stylesheet path
+    functions: ["clsx", "cn"],     # function names containing classes
+    attributes: ["className"],     # extra attrs to sort
+    preserve_whitespace: false,
+    preserve_duplicates: false
+  })
+```
+
+`oxc_fmt_nif` ships precompiled for aarch64/x86_64 glibc + darwin — **no musl builds**, so on Alpine you'll compile from source (Rust toolchain required).
 
 ### Transform Many
 
@@ -135,7 +166,7 @@ Each result is `{:ok, code}`, `{:ok, %{code:, sourcemap:}}` (with `sourcemap: tr
 ### Bundle
 
 ```elixir
-# Bundle multiple TS/JS modules — :entry is REQUIRED
+# Virtual project — list of {filename, source} tuples; :entry REQUIRED
 {:ok, js} = OXC.bundle(
   [
     {"event.ts", event_source},
@@ -144,15 +175,26 @@ Each result is `{:ok, code}`, `{:ok, %{code:, sourcemap:}}` (with `sourcemap: tr
   entry: "target.ts"
 )
 
+# Filesystem entry — first arg is a real path (string), resolves packages
+# from :cwd (or the file's directory). :entry is NOT used in this mode.
+{:ok, js} = OXC.bundle("priv/js/app.ts", cwd: File.cwd!())
+
 # Full options
-{:ok, js} = OXC.bundle(files,
-  entry: "main.ts",          # REQUIRED — entry module filename from files
+{:ok, js} = OXC.bundle(input,
+  entry: "main.ts",          # virtual-project entry filename (omit for filesystem path input)
+  cwd: File.cwd!(),          # project dir — resolves packages for filesystem entries
   format: :iife,             # :iife (default) | :esm | :cjs
   minify: true,
   treeshake: true,           # remove unused exports
   preamble: "const { ref } = Vue;",  # code injected at top of IIFE body
   external: ["react", "scheduler"],  # preserve as `import` in output (bare ESM
                                      # specifiers auto-detect; this is for cases auto-detect misses)
+  exports: :auto,            # :auto | :default | :named | :none
+  preserve_entry_signatures: :strict,  # :strict | :allow_extension | :exports_only | false
+  conditions: ["browser", "import", "default"],  # package export conditions for the resolver
+  main_fields: ["browser", "module", "main"],    # package.json fields for resolution
+  modules: ["node_modules"],                     # module directories
+  module_types: %{".css" => :empty, ".ttf" => :dataurl},  # per-extension loader
   banner: "/* v1.0 */",
   footer: "/* end */",
   define: %{"process.env.NODE_ENV" => ~s("production")},
@@ -162,6 +204,10 @@ Each result is `{:ok, code}`, `{:ok, %{code:, sourcemap:}}` (with `sourcemap: tr
   target: "es2020"
 )
 ```
+
+**`:module_types` loaders:** `:js`, `:jsx`, `:ts`, `:tsx`, `:json`, `:text`, `:base64`, `:dataurl`, `:binary`, `:empty`, `:css`, `:asset`. Use `:empty` to stub out CSS/font imports that the bundler doesn't need to process.
+
+**Filesystem vs virtual:** virtual projects (`[{filename, source}]`) are best for tests, generated sources, and the esbuild-style "load this exact string" use case. Filesystem entries (`"path/to/entry.ts"`) resolve packages through `node_modules` via `:cwd` — closes the gap the README pattern in this repo previously fills with `npx esbuild`.
 
 ### Imports
 
@@ -382,7 +428,7 @@ end
 | Property key access fails | Keys can be identifier or literal | `p.key.name \|\| p.key.value` |
 | Wrong file extension | Extension picks parser | `.ts`, `.tsx`, `.js`, `.jsx` |
 | Y-combinator forgotten | Anon fns can't self-recurse | Pass `fn` as arg |
-| `bundle/2` empty | Missing `:entry` | `:entry` is required |
+| `bundle/2` empty | Missing `:entry` (virtual project) | `:entry` is required when input is `[{filename, source}]`; omit it when input is a filesystem path string |
 | `transform_many`/`bundle` arg order reversed | `transform_many` is `{source, filename}`; `bundle` is `{filename, source}` | Remember: bundle files are virtual project *files* (filename first); transform inputs are *sources* being labeled |
 | `OXC.bind` `FunctionClauseError` | Passed a map `%{v: ...}` | Bindings must be a keyword list `[v: ...]` |
 | TS types vanish after `codegen` roundtrip | `codegen` emits JS, not TS | Expected — codegen is not an identity function on TS |

@@ -18,9 +18,9 @@ Each `[[task]]` in `roadmap/tasks.toml` carries `scores = { d, b, u }`. `rmap` c
 
 | Eff | Tier |
 |-----|------|
-| > 2.0 | 🎯 Exceptional ROI — do immediately |
-| 1.5–2.0 | 🚀 High ROI — do soon |
-| 1.0–1.5 | 📋 Good ROI — plan carefully |
+| ≥ 2.0 | 🎯 Exceptional ROI — do immediately |
+| 1.5–<2.0 | 🚀 High ROI — do soon |
+| 1.0–<1.5 | 📋 Good ROI — plan carefully |
 | < 1.0 | ⚠️ Poor ROI — reconsider or defer |
 
 `rmap` applies these exact tier thresholds; a `scored_at` older than 30 days renders an `Eff:W?` decay suffix.
@@ -102,7 +102,9 @@ A task in `roadmap/tasks.toml`:
 
 ```toml
 [[task]]
+id = 42
 phase = 2
+bundle = "realtime"
 status = "pending"
 title = "Add WebSocket reconnection"
 scores = { d = 3, b = 9, u = 9 }   # rmap computes Eff 3.0 → 🎯

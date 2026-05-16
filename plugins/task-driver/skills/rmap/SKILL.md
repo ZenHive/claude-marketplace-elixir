@@ -36,6 +36,7 @@ This file is the **decision layer** — *which* command, *when*. The authoritati
 | Add a dependency | `rmap depend <id> on <id>` |
 | Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch) — see `task-writing.md` |
 | Format a task as a cloud-agent prompt | `rmap delegate <id> --to claude\|codex\|cursor` |
+| Migrate a hand-edited ROADMAP.md | `rmap import` |
 | See what changed vs a git ref | `rmap diff [--verbose] [--json]` |
 | Health signals (soft, always exit 0) | `rmap doctor [--json]` |
 | Strict gates (pre-commit / CI) | `rmap validate` · `rmap validate --check-render` |
@@ -58,14 +59,13 @@ Set scores in `tasks.toml` (via `rmap new` or editing the file); never hand-form
 - **status:** `pending | in_progress | blocked | done | superseded` — transitions go through `rmap status`. `blocked` requires a `blocked_reason`.
 - **markers:** `parallel | cx | csr | bug | security | docs` — `parallel` is the old `[P]`; `cx` / `csr` are the Codex / Cursor delegation markers.
 
+### Pinning an LLM model per task
+
+`model = "<model-id>"` on a `[[task]]` records which LLM should do the work — free-text, unvalidated (model IDs churn). `rmap delegate` surfaces it as a `- Model:` bullet in the prompt's `## Context` so the target agent knows which model to run. Settable at creation via `rmap new` (interactive + `--from-stdin`) or a direct edit. Distinct from `assignee` (who owns it) and `rmap delegate --to` (which agent *environment*).
+
 ### Migrating a hand-edited ROADMAP.md
 
-rmap has no `import` command yet — migration is a one-time manual pass:
-
-1. Author `roadmap/tasks.toml` from the existing markdown: `schema_version = 1`, `project`, `default_branch`, `[phases.N]` tables, `[bundles.<name>]` if used, one `[[task]]` per task with `scores`, `status`, `title`, and `body` / `acceptance_criteria` carried from the prose.
-2. Replace the hand-maintained task tables in `ROADMAP.md` with marker pairs — `<!-- TASKS:BEGIN phase=N -->` … `<!-- TASKS:END -->` per phase (optional `<!-- FOCUS:BEGIN/END -->` and `<!-- MERMAID:BEGIN/END -->` pairs). Prose, headings, and links outside the markers are byte-preserved across every render.
-3. `rmap validate` → `rmap render` → diff-check the rendered `ROADMAP.md` against intent.
-4. Commit `roadmap/tasks.toml` + the marker-fied `ROADMAP.md` together.
+Run `rmap import` — it emits a paste-ready prompt that walks an agent through converting one or more hand-edited `ROADMAP.md` files into `roadmap/tasks.toml` (schema, marker pairs, validate → render → diff-check). One-time, LLM-driven; the prompt carries the detail so this include doesn't have to.
 
 ### Cross-references
 

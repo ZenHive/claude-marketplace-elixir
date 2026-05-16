@@ -135,5 +135,5 @@ A project can opt out of the worktree workflow by pinning a memory file under `~
 - `~/.claude/CLAUDE.md` § "Worktree-Per-Branch Workflow" — the rule pointer
 - `~/.claude/includes/critical-rules.md` § "NEVER COMMIT WITHOUT EXPLICIT REQUEST" — the relaxed rule for tracked worktrees
 - `~/.claude/includes/delegation-rules.md` — strict rules that stay strict (cloud-agent branches); auto-merge loosened for cloud-agent PRs
-- `~/.claude/includes/task-prioritization.md` § "Parallel Work (`[P]`)" — when ROADMAP-tracked work uses worktrees
+- `~/.claude/includes/task-prioritization.md` § "Parallel Work (`parallel` marker)" — when roadmap-tracked work uses worktrees
 - `staged-review:audit-review` skill — the post-merge hygiene pass
