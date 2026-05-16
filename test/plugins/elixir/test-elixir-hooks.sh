@@ -91,10 +91,14 @@ test_hook_json \
   '.hookSpecificOutput.permissionDecisionReason | contains("Missing Required Dependency: credo")'
 
 # Test 9: Pre-commit uses -C flag directory instead of CWD
+# cwd must NOT be a worktree root (pre-commit-unified.sh:50-53 suppresses
+# when HOOK_CWD's .git is a file — true for any git worktree). Use the
+# test parent dir as a non-worktree, non-Elixir cwd; -C still routes to
+# the broken fixture and produces the expected deny.
 test_hook_json \
   "Pre-commit: Uses git -C directory instead of CWD" \
   "plugins/elixir/scripts/pre-commit-unified.sh" \
-  "{\"tool_input\":{\"command\":\"git -C $REPO_ROOT/test/plugins/elixir/precommit-test commit -m 'test'\"},\"cwd\":\"$REPO_ROOT\"}" \
+  "{\"tool_input\":{\"command\":\"git -C $REPO_ROOT/test/plugins/elixir/precommit-test commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir\"}" \
   0 \
   '.hookSpecificOutput.permissionDecision == "deny"'
 
