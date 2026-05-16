@@ -4,6 +4,19 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**Phase 8 `hook_scripts` bundle — elixir v1.28.2 → v1.29.0**
+
+Four new lightweight hook scripts that close gaps between project-standard rules (in `~/.claude/includes/critical-rules.md`, `development-commands.md`, `development-philosophy.md`) and what gets enforced at hook time. Until now Claude had to remember these in-session; they now fire automatically. Bundle delivers all four (rmap tasks #29, #30, #31, #32) in one release — same plugin surface, same output shapes, same test harness.
+
+- **`block-destructive-bash.sh`** (PreToolUse:Bash, **blocking** — task #29) — Denies three command shapes Claude is told never to run: `mix phx.server` (server is always already running, see `critical-rules.md` § NEVER START THE PHOENIX SERVER), destructive deps/build (`mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps` — see `critical-rules.md` § NEVER RUN DESTRUCTIVE DEPENDENCY COMMANDS), and bare `rm` outside `git rm` (see `critical-rules.md` § Shell Safety). Each deny names the safe alternative in `permissionDecisionReason`. Allows `mix deps.unlock --check-unused`, `mix deps.compile <dep> --force`, and `git rm <path>`.
+- **`warn-shell-eval-elixir.sh`** (PreToolUse:Bash, warn-only — task #32) — Warns when Claude is about to run Elixir from the shell (`mix run -e`, `elixir -e`, `iex -e`, `mix run X.exs`). Suggests `mcp__tidewave__project_eval` (same BEAM as dev, no fresh-VM startup) and `mcp__tidewave__get_logs` (replaces `tail -f` on app logs). Warning footer names `priv/repo/seeds.exs` and one-shot CI scripts as legitimate exceptions. Pattern + warning text ported from the hieroglyph-repo hookify rule (`hookify.prefer-tidewave-over-shell-eval.local.md`).
+- **`warn-missing-tool-flags.sh`** (PreToolUse:Bash, warn-only — task #30) — Warns when `mix credo` is invoked without both `--strict` and `--format json` (project standard per `development-commands.md`), or when `mix compile` runs without a `time` prefix. Skips non-analysis credo subcommands (`--version`, `gen.*`, `help`). Hook-script internals (post-edit-check.sh, pre-commit-unified.sh) run mix as subprocesses — not via Claude's Bash tool — so they don't trigger this hook.
+- **`warn-doctest-io-and-untagged-todos.sh`** (PostToolUse:Edit|Write|MultiEdit, warn-only — task #31) — Two checks credo can't easily see: (a) `IO.puts` / `IO.inspect` inside an `@doc` or `@moduledoc` heredoc (per `development-philosophy.md` § "No IO in @doc examples"); (b) `#` comments starting with deferred-work phrases ("For now,", "Currently,", "Temporarily,", "In production,", "This is a workaround,") without a `TODO:` prefix that credo can track. False-positive guards: IO check uses awk to track heredoc state; comment check anchors to `^[[:space:]]*#` so `For now,` inside a string literal never fires.
+
+Plugin version bumped `1.28.2` → `1.29.0` (4 new hooks = minor). Marketplace version unchanged (adding hooks to an existing plugin is not a catalog-structure change). 40 new tests in `test/plugins/elixir/test-elixir-hooks.sh` (now 79 total in that file), with 6 committed fixtures under `test/plugins/elixir/doctest-io-fixtures/` covering the doctest-IO and untagged-comment matrix.
+
 ### Changed
 
 **Skill sync from canonical includes — elixir v1.28.2 → v1.28.3**

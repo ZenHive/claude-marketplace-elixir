@@ -44,14 +44,18 @@ Each hook is tagged as **convention** (permanent quality gate) or **model-limita
 - ✅ **Private function docs check** `[convention]` - Warns when `defp` functions are missing `@doc false` or comments
 - ✅ **Typespec check** `[convention]` - Warns when public `def` functions are missing `@spec`
 - ✅ **Typedoc check** `[convention]` - Warns when type definitions are missing `@typedoc`
+- ✅ **Warn on doctest IO + untagged TODOs** `[convention]` - Warns when `IO.puts` / `IO.inspect` appears inside an `@doc` heredoc, or when a `#` comment begins with a deferred-work phrase (`For now,`, `Currently,`, `Temporarily,`, `In production,`, `This is a workaround,`) without a `TODO:` prefix that credo can track
 
 **PostToolUse - After reading files:**
 - ✅ **Documentation recommendation on read** `[model-limitation]` - Detects dependency usage in files and suggests documentation lookup
 
-**PreToolUse - Before git commits:**
+**PreToolUse - Before bash commands:**
 - ✅ **Pre-commit validation** `[convention]` - Ensures code is formatted, compiles, and has no unused deps before committing
+- ✅ **Block destructive bash** `[convention]` - Blocks `mix phx.server` (server is always already running), destructive deps/build (`mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps`), and bare `rm` (including `sudo rm`) in any command segment — `git rm a && rm b` is denied on the second segment. Allows `mix deps.unlock --check-unused`, `mix deps.compile <dep> --force`, and `<tool> rm` for tool ∈ {git, npm, pnpm, yarn, bundle, cargo, gem}
+- ✅ **Warn shell-eval Elixir** `[model-limitation]` - Warns (non-blocking) when Claude is about to run `mix run -e`, `elixir -e`, `iex -e`, or `mix run X.exs` — suggests `mcp__tidewave__project_eval` for same-BEAM evaluation without fresh-VM startup. Legitimate exceptions named in the warning footer
+- ✅ **Warn missing tool flags** `[model-limitation]` - Warns when `mix credo` is invoked without `--strict --format json`, or when `mix compile` is run without a `time` prefix (per `development-commands.md`)
 
-**PreToolUse - Before running tests:**
+**PreToolUse - Before mix test / dialyzer:**
 - ✅ **Suggest --failed** `[model-limitation]` - On 2nd consecutive `mix test`, suggests `--failed --trace` to speed up test-fix cycles
 - ✅ **Prefer test.json** `[convention]` - Silently rewrites `mix test` → `mix test.json` (args preserved) for AI-friendly output
 - ✅ **Prefer dialyzer.json** `[convention]` - Silently rewrites `mix dialyzer` → `mix dialyzer.json` (args preserved) for AI-friendly output
