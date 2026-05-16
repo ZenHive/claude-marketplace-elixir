@@ -19,6 +19,19 @@ Plugin version bumped `1.28.2` → `1.29.0` (4 new hooks = minor). Marketplace v
 
 ### Changed
 
+**Decouple `audit-review` from `commit-review` — staged-review skills + 7 canonical includes**
+
+`audit-review` no longer chains synchronously off any merge or PR-create. It runs deferred — surfaced by the `staged-review` SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) and invoked manually via `/staged-review:audit-status` (snapshot) or `Skill(audit-review) <range>` (batched audit). Batching N merges into one pass replaces N synchronous per-merge audits.
+
+- **commit-review SKILL.md** — Step 15 (synchronous audit chain) deleted; flow diagram, comparison table, common-mistakes rows updated. Step 16 (Linear close-out) renumbered to Step 15.
+- **audit-review SKILL.md** — 4 chain triggers collapsed to 2 (SessionStart hook + manual). Phase Awareness updated.
+- **delegation-rules.md** § "DON'T AUTO-MERGE PRS" — auto-merge tail ends at `gh pr merge --squash --delete-branch` + branch cleanup.
+- **worktree-workflow.md** § "After PR Merge" — rewritten as deferred model.
+- **dev-lifecycle.md**, **linear-queue.md**, **agent-pr-review.md**, **agent-dispatch.md**, **flow-review.md** — chain references updated. Merge-train cascade runs one batched audit over `<train-base>..<default-branch-HEAD>` at the end instead of one per merge.
+- **CLAUDE.md**, **SKILLS.md**, **README.md**, **plugins/staged-review/README.md** — skill table rows reflect the deferred trigger model.
+
+Design choice: manual + SessionStart hook (not background fire-and-forget). Background subprocesses in the same session can't spawn subagents (harness rule) and output isn't visible to the user.
+
 **Skill sync from canonical includes — elixir v1.28.2 → v1.28.3**
 
 Doc-only sync. No behavior changes — skill bodies regenerated from updated `~/.claude/includes/*.md`.

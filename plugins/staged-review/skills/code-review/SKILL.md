@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Use when reviewing staged files, performing code review, or before committing. Single-reviewer pre-commit triage — reviews `git diff --staged` for bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ similar patterns), actionable TODOs, and doc gaps. The dual-reviewer pass with mandatory Codex dispatch and Claude+Codex dialogue runs post-PR-create / post-merge in `audit-review`. Presents a findings table, auto-applies rated fixes, escalates `discuss-design` to the user. Language-agnostic.
+description: Use when reviewing staged files, performing code review, or before committing. Single-reviewer pre-commit triage — reviews `git diff --staged` for bugs, missing extractions (code AND data), TODO markers referencing ROADMAP.md tasks, abstraction opportunities (3+ similar patterns), actionable TODOs, and doc gaps. The dual-reviewer pass with mandatory Codex dispatch and Claude+Codex dialogue runs deferred post-merge in `audit-review`. Presents a findings table, auto-applies rated fixes, escalates `discuss-design` to the user. Language-agnostic.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent, ExitPlanMode
 ---
 
@@ -27,7 +27,7 @@ Read the staged diff. Find real problems. Present them in a table. Auto-apply ra
 
 Same 5+1 categories across all three layers. `commit-review` runs only Cat 1 (Bugs) + a thin slice of Cat 6 (`@doc`/`@spec` correctness drift) — hygiene categories deferred to `audit-review` post-merge. `audit-review` skips plan-mode (the `audit(...)` commit IS the inspectable artifact).
 
-**Why no Codex at this layer?** `audit-review` auto-fires after every merge (chained off `commit-review`'s auto-merge tail; manual-merge sessions invoke it directly). Every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-merge is redundant work on the same code; the post-merge pass has the committed view, ROADMAP scope, all hygiene categories, AND bot findings already integrated, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
+**Why no Codex at this layer?** `audit-review` runs deferred — the SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) surfaces accumulated merge tails for batched audit, or the user invokes `Skill(audit-review) <range>` manually. Every commit eventually reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-merge is redundant work on the same code; the post-merge pass has the committed view, ROADMAP scope, all hygiene categories, AND bot findings already integrated, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
 
 **When NOT to use `code-review`:** if the code is already committed (use `audit-review`), or if reviewing a PR pre-merge (use `commit-review`).
 
@@ -39,7 +39,7 @@ WHAT THIS SKILL DOES:
   - Rate each finding 1-10 priority (or `discuss`)
   - Present findings as a table (informational)
   - Auto-apply fixes for anything rated 3-10 and actionable TODOs — **including doc updates** (ROADMAP.md, CHANGELOG.md, CLAUDE.md, README.md)
-  - Escalate `discuss-design` to the user (no Codex dialogue at this layer — `audit-review` runs it post-PR-create / post-merge)
+  - Escalate `discuss-design` to the user (no Codex dialogue at this layer — `audit-review` runs it deferred post-merge)
 
 WHAT THIS SKILL DOES NOT DO:
   - Dispatch Codex (deferred to `audit-review` for the full dual-reviewer + dialogue pass)
@@ -264,7 +264,7 @@ Otherwise, surface each `discuss-design` finding to the user in a brief paragrap
 
 Wait for their decision. Apply what they choose.
 
-**Defer-to-audit option.** The user can also say "let audit handle it" — the `discuss-design` item drops to the `audit-review` queue, which runs a Claude+Codex dialogue post-PR-create / post-merge (per `worktree-workflow.md`). That's the lower-friction path when the user doesn't want to context-switch into the design question right now. Note the deferral in the Step 9 summary so the user knows the dual-reviewer pass will revisit it.
+**Defer-to-audit option.** The user can also say "let audit handle it" — the `discuss-design` item drops to the `audit-review` queue, which runs a Claude+Codex dialogue deferred post-merge (surfaced by the `staged-review` SessionStart hook or invoked manually via `Skill(audit-review)`). That's the lower-friction path when the user doesn't want to context-switch into the design question right now. Note the deferral in the Step 9 summary so the user knows the dual-reviewer pass will revisit it.
 
 After user-resolved or deferred items are handled, move to the summary.
 
@@ -315,7 +315,7 @@ Investigate and fix. The downstream code at [file:line] depends on this.
 
 ## Why Single-Reviewer at This Layer
 
-The dual-reviewer pass (mandatory parallel Codex + Claude+Codex dialogue on `discuss-design` items) lives in `audit-review`, which auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge. Every commit reaches the dual-reviewer pass either way — running it pre-commit AND post-PR-create is redundant work on the same code.
+The dual-reviewer pass (mandatory parallel Codex + Claude+Codex dialogue on `discuss-design` items) lives in `audit-review`, which runs deferred — surfaced by the `staged-review` SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) or invoked manually via `Skill(audit-review) <range>`. Every commit eventually reaches the dual-reviewer pass either way — running it pre-commit AND post-merge is redundant work on the same code.
 
 **The calibration to keep in mind:**
 
@@ -331,7 +331,7 @@ The dual-reviewer pass (mandatory parallel Codex + Claude+Codex dialogue on `dis
 |---------|-----|
 | Reviewing all files, not just staged | Always start with `git diff --staged` |
 | Skipping ROADMAP.md read | Read it BEFORE reviewing — task numbers matter, and `discuss-design` reasoning depends on it |
-| Dispatching Codex pre-commit "just to be safe" | The dual-reviewer pass lives in `audit-review` (auto-fires after `gh pr create` / post-merge). Pre-commit is single-reviewer by design — don't recreate the audit-review work here |
+| Dispatching Codex pre-commit "just to be safe" | The dual-reviewer pass lives in `audit-review` (runs deferred — SessionStart hook surfaces the merge tail, or invoke manually). Pre-commit is single-reviewer by design — don't recreate the audit-review work here |
 | Trying to run a Claude+Codex dialogue on `discuss-design` here | Step 8 is user escalation (or defer-to-audit). The dialogue is in `audit-review` |
 | Defaulting `discuss-design` to "ask the user" without offering defer-to-audit | Always offer the defer-to-audit option in Step 8 — it's usually the lower-friction path |
 | `discuss-trivial` not auto-applying | Apply it with the rest in Step 7. Note the alternative + reasoning in the Step 9 summary so the user can revert in one line if they disagree |

@@ -78,7 +78,7 @@ Remaining tasks to personalize the Claude Code plugin marketplace. **This file i
 | Task 46 | ⬜ | 🎁 **audit_followups** · Audit-corpus-only mode (report without apply) [D:3/B:5/U:5 → Eff:1.67] 🚀 |
 | Task 47 | ⬜ | 🎁 **audit_followups** · Per-commit Codex output capture in .audit/ [D:2/B:4/U:4 → Eff:2.0] 🎯 |
 | Task 54 | ⬜ | 🎁 **audit_followups** · Align audit-review/flow-review checkpoint vocabulary with canonical ⏸ CHECKPOINT [D:2/B:4/U:4 → Eff:2.0] 🎯 |
-| Task 57 | ⬜ | 🎁 **audit_followups** · Decouple audit-review from commit-review; default to deferred/batched [D:3/B:7/U:8 → Eff:2.5] 🎯 |
+| Task 57 | ✅ | 🎁 **audit_followups** · Decouple audit-review from commit-review; default to deferred/batched [D:3/B:7/U:8 → Eff:2.5] 🎯 |
 <!-- TASKS:END -->
 
 ---

@@ -597,7 +597,7 @@ scored_at = "2026-05-15"
 id = 57
 phase = 10
 bundle = "audit_followups"
-status = "pending"
+status = "done"
 title = "Decouple audit-review from commit-review; default to deferred/batched"
 scores = { d = 3, b = 7, u = 8 }
 acceptance_criteria = ["commit-review SKILL.md no longer chains audit-review post-merge (Step 15 removed or reframed)", "delegation-rules.md auto-merge tail ends at `gh pr merge --squash --delete-branch` + branch cleanup; no audit-review chain", "worktree-workflow.md documents audit-review as a deferred batched pass, with the SessionStart hook + audit-status skill as the surfacing path", "Existing `check-unaudited-commits.sh` threshold (≥3) reviewed — adjust if needed so the new model triggers reliably without nag", "Decision recorded in the task on background-fire-and-forget vs manual + hook (recommend manual + hook)", "Skills sync clean (`./scripts/sync-skills-from-includes.sh --dry-run` shows expected diffs)", "Test: merge a PR, verify no audit-review fires synchronously; verify SessionStart hook flags it next session"]
@@ -607,16 +607,17 @@ Remove the synchronous `Skill(audit-review)` chain from `commit-review` Step 15 
 
 Rationale: audit-review is hygiene + bookkeeping, not a correctness gate. The current chain costs minutes per merge (Codex dispatch + apply + commit) and serializes N merges into N audit passes; batching one pass over a range is strictly cheaper. The infra is already in place — SessionStart hook flags the tail at ≥3 unaudited, `Skill(audit-review)` accepts a range, `audit-status` surfaces it.
 
-Open design question (resolve in the task): should audit-review be *fully* manual (user-triggered after the hook flags it) OR *semi-automatic* (e.g., a `run_in_background: true` Bash invocation that fires-and-forgets on merge)? Background mode keeps the "no manual ceremony" autonomy-first stance but is fragile (subprocess in the same session, output not seen by user); manual + hook is simpler and matches how unaudited-commits is already surfaced. Recommend manual + hook as the default; revisit background only if the hook proves insufficient in practice.
+Decision: **manual + SessionStart hook** (not background fire-and-forget). Background subprocesses in the same session can't spawn their own subagents (harness rule), output isn't visible to the user, and the existing hook + audit-status surfacing path is already idempotent and proven. Background-runner can be reconsidered if the hook proves insufficient in practice.
 
 Touched docs:
 - `plugins/staged-review/skills/commit-review/SKILL.md` — drop Step 15 chain, update flow diagram, update the comparison table
-- `~/.claude/includes/delegation-rules.md` § 'DON'T AUTO-MERGE PRS' — remove the "immediately chain" language; merge tail ends at `gh pr merge` + cleanup
-- `~/.claude/includes/worktree-workflow.md` § 'After PR Merge — Run `audit-review`' — reframe as "audit-review runs deferred/batched; SessionStart hook flags the tail"
-- `plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md` — phase 6 description updates (audit-review is deferred, not chained from phase 5 merge)
-- `CLAUDE.md` § skill table — clarify audit-review trigger model
-
-Sync via `scripts/sync-skills-from-includes.sh` after include edits.
+- `plugins/staged-review/skills/audit-review/SKILL.md` — collapse 4 chain triggers to 2 (SessionStart hook + manual)
+- `~/.claude/includes/delegation-rules.md` § 'DON'T AUTO-MERGE PRS' — auto-merge tail ends at branch cleanup
+- `~/.claude/includes/worktree-workflow.md` § 'After PR Merge' — reframed as deferred
+- `~/.claude/includes/dev-lifecycle.md` — phase 6 trigger column
+- `~/.claude/includes/linear-queue.md`, `agent-pr-review.md`, `agent-dispatch.md`, `flow-review.md` — chain references updated
+- `CLAUDE.md`, `SKILLS.md`, `README.md`, `plugins/staged-review/README.md` — skill table rows
 """
 created_at = "2026-05-16"
 scored_at = "2026-05-16"
+done_at = "2026-05-16"

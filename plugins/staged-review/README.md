@@ -18,7 +18,7 @@ Three sibling skills covering the pre-commit / pre-merge / post-merge axis:
 
 Same 5+1 category catalog across all three. Categories shift between layers: pre-commit is single-reviewer triage with auto-apply; pre-merge is correctness-only (hygiene moves post-merge); post-merge is the dual-reviewer audit pass with mandatory Codex second-opinion + dialogue.
 
-**Why the dual-reviewer pass lives in `audit-review`, not `code-review`:** `audit-review` auto-fires after `gh pr create` (per `worktree-workflow`) and after every cloud-agent merge — every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-PR-create is redundant work on the same code; the post-PR-create pass has the committed view, ROADMAP scope, and all hygiene categories, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
+**Why the dual-reviewer pass lives in `audit-review`, not `code-review`:** `audit-review` runs deferred — the SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) surfaces every merge for an eventual batched audit, so every commit reaches the dual-reviewer pass either way. Running Codex pre-commit AND post-merge is redundant work on the same code; the post-merge pass has the committed view, ROADMAP scope, and all hygiene categories, so it's the better place to spend the dual-reviewer cost. Pre-commit stays fast.
 
 ## `code-review` — Staged Files (Single-Reviewer Pre-Commit Triage)
 
@@ -30,7 +30,7 @@ Reviews `git diff --staged` against 5 categories:
 4. **Abstraction Opportunities** — 3+ similar patterns that could be unified
 5. **Actionable TODOs** — TODOs resolvable now, fixed directly
 
-Plus **Category 6: Documentation Gaps** (ROADMAP, CHANGELOG, CLAUDE.md, README, in-code `@doc`/`@spec` drift). Single-reviewer pass — no Codex dispatch at this layer (the dual-reviewer pass runs in `audit-review` post-PR-create / post-merge).
+Plus **Category 6: Documentation Gaps** (ROADMAP, CHANGELOG, CLAUDE.md, README, in-code `@doc`/`@spec` drift). Single-reviewer pass — no Codex dispatch at this layer (the dual-reviewer pass runs in `audit-review` deferred post-merge).
 
 Each finding is rated 1-10 priority. Actionable items are fixed directly, not just flagged. `discuss-design` items escalate to the user, who can also defer them to `audit-review`'s Claude+Codex dialogue.
 
@@ -44,19 +44,17 @@ For the Cursor / Codex delegation workflow (`[CSR]` / `[CX]` task marker → Lin
 4. **Narrowed audit**: Category 1 (Bugs) only + a thin slice of Category 6 (in-code `@doc`/`@spec` correctness drift). Hygiene categories (extractions, abstractions, TODO markers, ROADMAP/CHANGELOG drift) are **not** raised pre-merge — they're audit-review's job
 5. Auto-posts push-back as Linear `@cursor` comment + GitHub PR review per `delegation-rules.md` § "POST LINEAR/PR COMMENTS WITHOUT ASKING"
 6. Verdict: ✅ ready / ⚠️ blockers / 💬 discussion
-7. **On ✅ + 5 preconditions hold**: auto-runs `gh pr merge --squash --delete-branch`, captures merge SHA, then chains `Skill(audit-review)` against `<merge-sha>^..<merge-sha>` for post-merge hygiene
+7. **On ✅ + 5 preconditions hold**: auto-runs `gh pr merge --squash --delete-branch`; tail ends at branch cleanup. `audit-review` is deferred — surfaced by the SessionStart hook
 8. **On any precondition fail**: surface verdict and stop — user merges manually
 
-Auto-merge preconditions: ✅ verdict, green CI, cloud-agent branch (`cursor/*` or `codex/*`), no `requested-changes` review, no `[BLOCK-MERGE]` label. See `delegation-rules.md` § "DON'T AUTO-MERGE PRS".
+Auto-merge preconditions: ✅ verdict, green CI, feature branch (not the repo's default), no `requested-changes` review, no `[BLOCK-MERGE]` label. See `delegation-rules.md` § "DON'T AUTO-MERGE PRS".
 
 ## `audit-review` — Post-Commit / Post-Merge Audit
 
-Fully autonomous post-commit pass. Triggered:
+Fully autonomous post-commit pass. Deferred — runs on user invocation, not chained off any merge or PR-create:
 
-1. Auto-invoked by `worktree-workflow` after `gh pr create` (audits self-authored worktree commits)
-2. Auto-invoked by `commit-review`'s auto-merge tail (audits the merge SHA on `main`)
-3. Auto-invoked by `linear-queue` (self-authored worktree flow) after a user-confirmed merge for non-auto-merge cases
-4. Manually via `/audit-review [<sha>|<range>]`
+1. **SessionStart hook** (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tails next session via `additionalContext` recommending `/staged-review:audit-status` or `Skill(audit-review) <range>`
+2. **Manual** via `/staged-review:audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks
 
 Workflow:
 
@@ -69,7 +67,7 @@ Workflow:
 7. Write `.audit/<sha>.md` per audited commit
 8. Auto-commit one `audit(...)` covering the batch
 
-The `audit(...)` commit is auto-allowed on `main` (per `critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE") — it IS the post-merge bookkeeping commit, replacing the old `commit-review` Step 15 doc-only commit.
+The `audit(...)` commit is auto-allowed on the repo's default branch (per `critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE") — it IS the post-merge bookkeeping commit.
 
 ## `/audit-status` — Read-Only Drift Snapshot
 
@@ -84,7 +82,7 @@ Prints a table: branch / unaudited-count / last-audit-sha / last-audit-date / ra
 
 ## SessionStart Hook — Unaudited-Tail Detection
 
-A `SessionStart` hook (`scripts/check-unaudited-commits.sh`) fires when ≥3 commits sit past the last `audit(...)` ancestor on the current branch. Emits a one-line `additionalContext` recommendation pointing at `/staged-review:audit-status` (for the snapshot) or `Skill(audit-review)` (to actually audit). Silent below the threshold, silent outside a git repo. Catches the gap-cases the auto-invoke chain misses — interrupted sessions, manual `git commit` outside any flow, branch switches.
+A `SessionStart` hook (`scripts/check-unaudited-commits.sh`) fires when ≥3 commits sit past the last `audit(...)` ancestor on the current branch. Emits a one-line `additionalContext` recommendation pointing at `/staged-review:audit-status` (for the snapshot) or `Skill(audit-review)` (to actually audit). Silent below the threshold, silent outside a git repo. This is the primary trigger for the deferred audit model — covers interrupted sessions, manual `git commit` outside any flow, branch switches, and the steady-state merge tail.
 
 ## Usage
 

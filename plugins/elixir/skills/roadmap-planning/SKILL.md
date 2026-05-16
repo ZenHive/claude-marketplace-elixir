@@ -108,7 +108,8 @@ When new information arrives about work that's already on the roadmap (clearer r
 | Same bundle, same outcome, adds an edge case or constraint      | Edit existing (`acceptance_criteria`) |
 | Same bundle, but ships as a separable follow-up PR              | New task, link with `depends_on` |
 | Different bundle or different user-visible outcome              | New task                     |
-| Bug discovered against an in-flight/pending task's surface      | Edit existing (add to `acceptance_criteria`) — not a new bug task |
+| Bug against a **pending** task's surface (unclaimed)            | Edit existing (add to `acceptance_criteria`) — not a new bug task |
+| Bug against a **claimed/in-flight** task's surface              | Don't mutate the spec mid-flight — push back to the agent (see `agent-pr-review`) or file a follow-up task |
 
 When in doubt: edit. A spec that grew is easier to read than a roadmap that doubled.
 

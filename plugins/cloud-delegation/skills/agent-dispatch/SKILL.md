@@ -53,7 +53,7 @@ Apply these filters **in order** when picking ROADMAP tasks to delegate. The fir
 
 > **🚨 Suspended (Elixir projects, 2026-05-05).** Codex Cloud has no Elixir runtime; tier-2 review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
 
-**When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Local Claude invokes `staged-review:commit-review`; auto-merge fires when 5 preconditions hold, `audit-review` chains off the merge (see `delegation-rules.md` § "DON'T AUTO-MERGE PRS").
+**When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Local Claude invokes `staged-review:commit-review`; auto-merge fires when 5 preconditions hold (see `delegation-rules.md` § "DON'T AUTO-MERGE PRS"); `audit-review` runs deferred (SessionStart hook flags it).
 
 **Marker semantics.** Mark ROADMAP tasks suitable for Codex delegation with `[CX]`. **Default: tasks meeting all criteria are `[CX]` unless there's a stated reason otherwise.** Claude's bias is to grab work; this default is a counterweight.
 
@@ -87,7 +87,7 @@ Same shape as the Codex flow with **broader eligibility** — Cursor's cloud env
 
 4. **Push back via Linear comment with `@cursor` mention.** Cursor picks up `@cursor` mentions within ~5 min, amends the PR with a fresh commit, posts confirmation, reruns the harness. See `agent-pr-review.md` § "Wake-Mention Discipline" for placement rules.
 
-5. **Auto-merge on ✅ + green CI** (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"). When all 5 preconditions hold (✅ verdict, green CI, feature branch — not the repo's default, no requested-changes, no `[BLOCK-MERGE]` label), `commit-review` runs `gh pr merge --squash --delete-branch` then chains `Skill(audit-review)` against the merge SHA. Verdict + audit run unattended. If any precondition fails, surface the verdict and stop — user merges manually.
+5. **Auto-merge on ✅ + green CI** (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"). When all 5 preconditions hold (✅ verdict, green CI, feature branch — not the repo's default, no requested-changes, no `[BLOCK-MERGE]` label), `commit-review` runs `gh pr merge --squash --delete-branch`. Tail ends at branch cleanup; `audit-review` runs deferred (SessionStart hook surfaces unaudited tails; next session batch-clears via `Skill(audit-review) <range>`). If any precondition fails, surface the verdict and stop — user merges manually.
 
 ### Plan-Shaped Linear Task Specs
 
@@ -124,21 +124,21 @@ Before submitting a batch of N≥2 plan-shaped issues, run § "Pre-Flight Confli
 
 ### Code-Only PRs + Required Acceptance Criteria
 
-**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` (chained off `commit-review`'s auto-merge) and updated in a single post-merge `audit(...)` commit on the repo's default branch.
+**Cloud-agent PRs touch code + tests only.** They do NOT modify `ROADMAP.md`, `CHANGELOG.md`, `README.md`, or `.sobelow-skips`. These files are owned by `staged-review:audit-review` and updated in a single `audit(...)` commit on the repo's default branch in the deferred audit pass (next session, off the SessionStart-hook signal).
 
 **Why:** PRs that touch shared docs hit `mergeable: CONFLICTING DIRTY` against earlier merges of the same files — every PR adds a rebase round just to resolve doc conflicts. Centralizing doc updates in one reviewer-owned commit per PR eliminates the conflict class.
 
 **How to apply.** In the issue body's `## Out of scope`, list the files explicitly:
 
-> Out of scope: `ROADMAP.md`, `CHANGELOG.md`, `README.md`, `.sobelow-skips`. Reviewer (`staged-review:audit-review` post-merge chain) updates these on the repo's default branch after merge.
+> Out of scope: `ROADMAP.md`, `CHANGELOG.md`, `README.md`, `.sobelow-skips`. Reviewer (`staged-review:audit-review`, deferred post-merge pass) updates these on the repo's default branch.
 
 **Required acceptance-criteria bullet** (every delegated issue's `## Acceptance criteria` MUST include this; do NOT add doc-update bullets):
 
 - **Full harness green at PR open** — `mix format --check-formatted`, `mix compile --warnings-as-errors`, `mix credo --strict` (TODO/FIXME exit-2 carve-out only), `mix sobelow --exit Low`, `mix doctor`, `mix test.json --quiet`, `mix test.json --cover --cover-threshold N` at the repo's coverage tier, `mix dialyzer` all clean. CI runs the same checks. A red harness on PR open is a blocking acceptance-criterion miss.
 
-**Audit-review owns the post-merge commit.** When `commit-review`'s auto-merge fires (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"), it chains `Skill(audit-review)` against the merge SHA. Audit-review runs the 5+1-category audit, dispatches mandatory Codex second-opinion, auto-applies hygiene fixes (ROADMAP row → ✅ preserving `[CX]` / `[CSR]` marker, CHANGELOG entry under `## [Unreleased]`, README/CLAUDE.md drift, in-code `@doc`/`@spec` fixes), and writes `.audit/<sha>.md`. Lands as one `audit(<sha>): N fixes — dual-reviewer pass` commit on the repo's default branch.
+**Audit-review owns the post-merge commit.** Auto-merge ends at branch cleanup; audit-review runs deferred. The `staged-review` SessionStart hook flags accumulated unaudited commits (≥3 threshold) next session; next session runs `Skill(audit-review) <range>` to batch-audit. The skill runs the 5+1-category audit, dispatches mandatory Codex second-opinion, auto-applies hygiene fixes (ROADMAP row → ✅ preserving `[CX]` / `[CSR]` marker, CHANGELOG entry under `## [Unreleased]`, README/CLAUDE.md drift, in-code `@doc`/`@spec` fixes), and writes one `.audit/<sha>.md` per audited commit. Lands as one `audit(<audit-sha>): N fixes — dual-reviewer pass` commit covering the whole range, on the repo's default branch.
 
-**`.sobelow-skips` exception:** for repos with sobelow line-fingerprint drift, the harness fails-loud-with-diff if drift is detected; audit-review applies the regen at the post-merge audit pass in the same `audit(...)` commit. Agent never touches the file.
+**`.sobelow-skips` exception:** for repos with sobelow line-fingerprint drift, the harness fails-loud-with-diff if drift is detected; audit-review applies the regen when the deferred pass runs, folded into the same `audit(...)` commit. Agent never touches the file.
 
 ### Batch Sizing and Pacing
 

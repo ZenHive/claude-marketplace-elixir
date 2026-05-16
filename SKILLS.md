@@ -84,8 +84,8 @@ Three sibling skills covering pre-commit → pre-merge → post-merge. Same revi
 | Skill | What it gives you | Invoke when |
 |---|---|---|
 | [`code-review`](plugins/staged-review/skills/code-review/SKILL.md) | Single-reviewer **pre-commit** triage of `git diff --staged` — bugs, missing extractions, TODO markers, abstraction opportunities, doc gaps. Auto-applies rated fixes | Reviewing staged files before committing |
-| [`commit-review`](plugins/staged-review/skills/commit-review/SKILL.md) | **Pre-merge** correctness gate for cloud-agent / self-authored PRs — CI-as-gate, asymmetric push-back, auto-merges feature-branch PRs on ✅ + green CI + preconditions, chains `audit-review` | A PR touches critical-tier paths, or a Tier-1 bot flagged ambiguity |
-| [`audit-review`](plugins/staged-review/skills/audit-review/SKILL.md) | **Post-merge** full audit on committed code — mandatory parallel Codex second opinion, auto-applies hygiene fixes, writes `.audit/<sha>.md`, commits as `audit(...)`. Fully autonomous | Running post-commit/post-merge review against a commit range |
+| [`commit-review`](plugins/staged-review/skills/commit-review/SKILL.md) | **Pre-merge** correctness gate for cloud-agent / self-authored PRs — CI-as-gate, asymmetric push-back, auto-merges feature-branch PRs on ✅ + green CI + preconditions; tail ends at branch cleanup | A PR touches critical-tier paths, or a Tier-1 bot flagged ambiguity |
+| [`audit-review`](plugins/staged-review/skills/audit-review/SKILL.md) | **Post-merge** full audit on committed code — mandatory parallel Codex second opinion, auto-applies hygiene fixes, writes `.audit/<sha>.md`, commits as `audit(...)`. Fully autonomous. **Deferred** — SessionStart hook surfaces unaudited tail (≥3); user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>` | Running post-commit/post-merge review against a commit range |
 
 ### Cloud-agent delegation
 

@@ -136,7 +136,7 @@ Local Claude implementing a Linear-tracked task in a worktree (no cloud-agent di
 | 3. PR open | `gh pr create` returns | `save_comment(issueId, "PR #<n> opened: <url>")` + status → `In Review` (or rely on Linear AI Guidance) | One line, includes the PR URL |
 | 4. Pre-merge verdict | `commit-review` reaches verdict | `save_comment(issueId, <verdict summary + decision>)` | Reuses commit-review's verdict-comment shape |
 | 5. Merge | Auto-merge or manual `gh pr merge` | `save_comment(issueId, "Merged at <sha>")` + status → `Done` (or rely on native GH workflow rule) | One line |
-| 6. Audit complete | `audit-review` writes `.audit/<sha>.md` | `save_comment(issueId, "Audit complete: <one-line summary>")` (optional — only post if findings, otherwise the audit commit + `.audit/<sha>.md` is the trail) | One line |
+| 6. Audit | Next session runs `Skill(audit-review) <range>` off the SessionStart-hook signal (deferred — next session, not chained off merge); skill writes `.audit/<sha>.md` per merge SHA in range | `save_comment(issueId, "Audited at <audit-sha>: <one-line summary>")` (optional — only post if findings, otherwise the audit commit + `.audit/<sha>.md` is the trail) | One line |
 
 **Posting permission:** all six rides on `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — DEFAULT-DO during an active delegation flow. No per-comment user gates.
 
@@ -160,7 +160,7 @@ If cross-repo coordination becomes regular (3+ linked issues per month), promote
 
 **Changes vs Linear-backed:** no `mcp__linear-server__*` calls; skip the Linear close-out step (audit-review writes `.audit/<sha>.md` as the durable trail). No Linear `@cursor` / `@codex` push-back channel — push-back goes on the GitHub PR review (line-level findings + scope paragraph in one PR comment), wake-mention discipline adapted to PR-only. No issue body — the ROADMAP row's prompt + the project's CLAUDE.md is the agent's full context, which pushes more weight onto plan-shaped ROADMAP rows.
 
-**Identical:** code-only PRs, plan-shaped specs, post-merge `audit(...)` commit on the repo's default branch via audit-review chain, draft-PR handling, bot ensemble integration in commit-review.
+**Identical:** code-only PRs, plan-shaped specs, deferred post-merge `audit(...)` commit on the repo's default branch (next session runs `Skill(audit-review)` over a range off the SessionStart-hook signal), draft-PR handling, bot ensemble integration in commit-review.
 
 Use this fallback when the project hasn't onboarded Linear, when Linear is intentionally out-of-scope, or as a safety net during MCP outages. Linear is an upgrade-path, not a hard dependency.
 
@@ -183,4 +183,4 @@ Team key, project list, repo↔project mapping, project IDs, worked examples are
 - `worktree-workflow.md` — the worktree mechanics the Self-Authored Worktree Flow rides on
 - `workflow-philosophy.md` § "Implementer / Reviewer Handoff" — the handoff shape Linear+worktree implements
 - `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — comment-posting permission for the self-authored flow
-- `staged-review:audit-review` skill — post-merge hygiene + bookkeeping
+- `staged-review:audit-review` skill — deferred post-merge hygiene + bookkeeping; SessionStart hook surfaces unaudited tails, next session runs `Skill(audit-review) <range>` to batch-clear
