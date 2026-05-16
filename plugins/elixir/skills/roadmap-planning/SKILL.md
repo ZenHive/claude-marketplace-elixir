@@ -92,6 +92,26 @@ Findings during code review or PR review have a ceremony floor below which they 
 
 **Cross-references (delegation flows only — applies if `delegation.md` is imported):** push-back-vs-fix-locally calculus is in `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Hard rule against pushing to cloud-agent branches is in `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
 
+### Refine, Don't Duplicate — Before `rmap new`
+
+When new information arrives about work that's already on the roadmap (clearer requirements, refined acceptance criteria, additional edge cases, a discovered constraint), **update the existing pending task** — do not open a new one. `rmap new` is for **new scope**, not for **spec refinement** of pending work.
+
+**Required check before every `rmap new`:** scan pending tasks in the same bundle/topic (`rmap list --status pending`, or grep `roadmap/tasks.toml`). If one covers the same surface area, edit its `body` / `acceptance_criteria` / `out_of_scope` / `scores` in place. New task ONLY when the work could ship as an independent PR alongside the existing one.
+
+**Why this matters:** opening a duplicate fragments context across two rows, leaves the original stale, inflates roadmap noise, and breaks the "queue, not log" invariant that makes `rmap next` trustworthy.
+
+**Heuristic — refinement vs new scope:**
+
+| Signal                                                          | Action                       |
+|-----------------------------------------------------------------|------------------------------|
+| Same bundle, same user-visible outcome, sharper requirements    | Edit existing                |
+| Same bundle, same outcome, adds an edge case or constraint      | Edit existing (`acceptance_criteria`) |
+| Same bundle, but ships as a separable follow-up PR              | New task, link with `depends_on` |
+| Different bundle or different user-visible outcome              | New task                     |
+| Bug discovered against an in-flight/pending task's surface      | Edit existing (add to `acceptance_criteria`) — not a new bug task |
+
+When in doubt: edit. A spec that grew is easier to read than a roadmap that doubled.
+
 ### Task Descriptions as Prompts
 
 A task's `body` field should be a prompt for Claude Code (WHAT to accomplish), not an implementation spec (HOW). Let Claude research the codebase. Avoid code examples (they rot). Capture success criteria as `acceptance_criteria`. See `task-writing.md` for detail.

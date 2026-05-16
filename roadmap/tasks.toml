@@ -161,7 +161,7 @@ body = "Rewrite include files with condensed knowledge from skills + references;
 id = 29
 phase = 8
 bundle = "hook_scripts"
-status = "pending"
+status = "done"
 title = "Block destructive Bash patterns"
 scores = { d = 3, b = 8, u = 7 }
 scored_at = "2026-05-14"
@@ -183,7 +183,7 @@ acceptance_criteria = [
 id = 30
 phase = 8
 bundle = "hook_scripts"
-status = "pending"
+status = "done"
 title = "Warn on tooling-flag omissions"
 scores = { d = 2, b = 6, u = 6 }
 scored_at = "2026-05-14"
@@ -204,7 +204,7 @@ acceptance_criteria = [
 id = 31
 phase = 8
 bundle = "hook_scripts"
-status = "pending"
+status = "done"
 title = "Warn on doctest IO and untagged temporary code"
 scores = { d = 4, b = 6, u = 4 }
 scored_at = "2026-05-14"
@@ -226,7 +226,7 @@ acceptance_criteria = [
 id = 32
 phase = 8
 bundle = "hook_scripts"
-status = "pending"
+status = "done"
 title = "Warn on shell-eval Elixir, prefer Tidewave"
 scores = { d = 2, b = 7, u = 7 }
 scored_at = "2026-05-14"

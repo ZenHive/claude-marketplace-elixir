@@ -218,7 +218,7 @@
       "id": 29,
       "phase": 8,
       "bundle": "hook_scripts",
-      "status": "pending",
+      "status": "done",
       "title": "Block destructive Bash patterns",
       "scores": {
         "d": 3,
@@ -240,7 +240,7 @@
       "id": 30,
       "phase": 8,
       "bundle": "hook_scripts",
-      "status": "pending",
+      "status": "done",
       "title": "Warn on tooling-flag omissions",
       "scores": {
         "d": 2,
@@ -262,7 +262,7 @@
       "id": 31,
       "phase": 8,
       "bundle": "hook_scripts",
-      "status": "pending",
+      "status": "done",
       "title": "Warn on doctest IO and untagged temporary code",
       "scores": {
         "d": 4,
@@ -285,7 +285,7 @@
       "id": 32,
       "phase": 8,
       "bundle": "hook_scripts",
-      "status": "pending",
+      "status": "done",
       "title": "Warn on shell-eval Elixir, prefer Tidewave",
       "scores": {
         "d": 2,

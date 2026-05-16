@@ -6,6 +6,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**Skill sync from canonical includes — elixir v1.28.2 → v1.28.3**
+
+Doc-only sync. No behavior changes — skill bodies regenerated from updated `~/.claude/includes/*.md`.
+
+- **elixir 1.28.3** — `quickbeam` skill min version bumped `~> 0.10.11` → `~> 0.10.12`, with a new note flagging the conflict with `oxc 0.13` (quickbeam 0.10.12 still pins `oxc ~> 0.12.1` / `< 0.13.0`, so projects pulling in both must stay on oxc 0.12.x until quickbeam relaxes the range). `roadmap-planning` skill gains a new "Refine, Don't Duplicate — Before `rmap new`" section: required pending-task scan before every `rmap new`, refinement-vs-new-scope heuristic table, and the "queue, not log" invariant rationale.
+
+**Phase 8 (hook_scripts) marked done** — tasks 29–32 (Block destructive Bash patterns, Warn on tooling-flag omissions, Warn on doctest IO + untagged temporary code, Warn on shell-eval Elixir) transitioned `pending → done` in `roadmap/tasks.toml` (rendered into `ROADMAP.md` + `roadmap/data.json` by `rmap`).
+
 **Skill sync from canonical includes — elixir v1.28.1 → v1.28.2, task-driver v1.3.0 → v1.3.1, cloud-delegation v1.12.1 → v1.12.2**
 
 Doc-only sync. No behavior changes — skill bodies regenerated from updated `~/.claude/includes/*.md`.
