@@ -5,11 +5,11 @@ Remaining tasks to personalize the Claude Code plugin marketplace. **This file i
 ## Current Focus
 
 <!-- FOCUS:BEGIN -->
-**Focus phase:** 8 — Hook Scripts (0 of 4 done · 0 in progress)
+**Focus phase:** 8 — Hook Scripts (4 of 4 done · 0 in progress)
 
 **Last shipped:** no recent shipments
 
-**Up next:** Task 32 — Warn on shell-eval Elixir, prefer Tidewave [D:2/B:7/U:7 → Eff:3.5] 🎯
+**Up next:** Task 44 — Replace zsh-incompatible classification script in audit-review SKILL.md [D:2/B:5/U:6 → Eff:2.75] 🎯
 <!-- FOCUS:END -->
 
 ## Official Documentation References
@@ -46,10 +46,10 @@ Remaining tasks to personalize the Claude Code plugin marketplace. **This file i
 <!-- TASKS:BEGIN phase=8 -->
 | Task | Status | Notes |
 |------|--------|-------|
-| Task 29 | ⬜ | 🎁 **hook_scripts** · Block destructive Bash patterns [D:3/B:8/U:7 → Eff:2.5] 🎯 |
-| Task 30 | ⬜ | 🎁 **hook_scripts** · Warn on tooling-flag omissions [D:2/B:6/U:6 → Eff:3.0] 🎯 |
-| Task 31 | ⬜ | 🎁 **hook_scripts** · Warn on doctest IO and untagged temporary code [D:4/B:6/U:4 → Eff:1.25] 📋 |
-| Task 32 | ⬜ | 🎁 **hook_scripts** · Warn on shell-eval Elixir, prefer Tidewave [D:2/B:7/U:7 → Eff:3.5] 🎯 |
+| Task 29 | ✅ | 🎁 **hook_scripts** · Block destructive Bash patterns [D:3/B:8/U:7 → Eff:2.5] 🎯 |
+| Task 30 | ✅ | 🎁 **hook_scripts** · Warn on tooling-flag omissions [D:2/B:6/U:6 → Eff:3.0] 🎯 |
+| Task 31 | ✅ | 🎁 **hook_scripts** · Warn on doctest IO and untagged temporary code [D:4/B:6/U:4 → Eff:1.25] 📋 |
+| Task 32 | ✅ | 🎁 **hook_scripts** · Warn on shell-eval Elixir, prefer Tidewave [D:2/B:7/U:7 → Eff:3.5] 🎯 |
 <!-- TASKS:END -->
 
 ## Phase 9 — Codex Delegation Workflow (done)
