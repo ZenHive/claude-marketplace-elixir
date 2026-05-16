@@ -124,7 +124,7 @@ If below tier, raise coverage **first** — write the missing tests, confirm the
 - Pure renames (variable, function, module — no behavior change)
 - Typo fixes in strings, log messages, error messages
 
-**Why:** mutating poorly-tested code is how regressions ship. The gate is a "do I have a safety net before I touch this?" check. Writing the missing tests first also surfaces the module's actual contract — which often changes the implementation you were about to write.
+The gate is a "do I have a safety net before I touch this?" check; writing the missing tests also surfaces the module's actual contract.
 
 **How to apply:**
 1. Run `mix test.json --cover --quiet --output /tmp/cov.json` (or `--cover-threshold 80` for a hard exit).
@@ -227,9 +227,7 @@ end
 
 **When our hooks flag issues on files you touched, just fix them — including pre-existing flags unrelated to your change.** Don't plan around it, don't ask permission, don't burn tokens discussing whether to. Hook fires → fix → re-run → stage.
 
-Applies to every hook-driven check (credo, format, dialyzer, doctor, sobelow, ex_dna, etc.). Scope is **only the files your change touched** — not the whole project.
-
-**Why:** debt accumulates across sessions. A touched file that ends dirtier than baseline makes the next session noisier; over time "zero issues" becomes "hundreds of issues." User pre-approves the broader scope so each fix doesn't need a clarifying question.
+Applies to every hook-driven check (credo, format, dialyzer, doctor, sobelow, ex_dna, etc.). Scope is **only the files your change touched** — not the whole project. User pre-approves the broader scope so each fix doesn't need a clarifying question; debt accumulates across sessions otherwise, and a touched file ending dirtier than baseline makes the next session noisier.
 
 **How to apply:**
 - Pre-existing flags in your touched file count too: alias ordering, unused vars, refactor opportunities, `TODO:` formatting.
@@ -273,7 +271,6 @@ When a task says "define unified data structs," the scope is ALL structs the sys
 
 You have no consumer telemetry. No usage counts. No signal about whether a feature will be called 12 times or 1200 times. So phrases like *"demand for this is unproven"*, *"we should wait until N consumers ask for this"*, *"is this widely needed?"*, *"only worth doing if a Nth+ use case is imminent"* are **risk-aversion theater**, not analysis. They sound rigorous; they're hedging.
 
-**Why this fails:**
 - In single-developer codebases or focused teams, the developer IS the demand signal. They asked. That's the data point.
 - "Wait for usage data" is a corporate-flavored instinct that doesn't apply to small teams. There's no telemetry pipeline; there's the user in front of you.
 - It gaslights the user: their request is reframed as "unproven need" requiring further validation. They have to argue for what they already asked for.
@@ -392,7 +389,7 @@ False technical claims cascade into bad architectural decisions, wasted resource
 - Anything already in the project's codebase or in hex docs you've already pulled in this session
 - Anything explicitly documented in a CLAUDE.md or include the user has imported
 
-**Why:** training-bias overconfidence on niche specs ships off-by-one byte-order bugs, wrong opcode gas costs, malformed RLP encodings, miscounted signature recovery IDs — exactly the class of bug that "just check the reference impl" catches in 30 seconds. Speculating from memory burns more time downstream (debugging the wrong assumption) than the fetch costs upfront. Source-citing also lets the user verify the basis instead of trusting model authority.
+Training-bias overconfidence on niche specs ships off-by-one byte-order bugs, wrong opcode gas costs, malformed RLP encodings, miscounted signature recovery IDs — exactly the class of bug a 30-second reference-impl check catches. Cite the source so the user can verify instead of trusting model authority.
 
 **How to apply:**
 1. Notice the trigger — you're about to assert behavior in one of the "research proactively" categories.
@@ -508,7 +505,7 @@ Skill(audit-review) <range>        # batched audit over the accumulated range
 
 `<range>` is typically `<last-audit-sha>..<default-branch-HEAD>` — one batched pass covers all merge SHAs since the last audit.
 
-**Manual override:** `/audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks.
+**Manual override:** `/staged-review:audit-review [<sha>|<range>]` for catch-up audits, batch passes, or compliance asks.
 
 **Tiny-commit fast path.** For commits ≤100 LOC AND no `lib/` (or language equivalent) touched, the skill skips Codex dispatch and writes a `verdict: clean — fast-path` report. No separate skip flag needed; if every commit in the range is fast-path-eligible, the audit is cosmetic and ends in seconds.
 
@@ -587,7 +584,7 @@ A delegation marker means the task is queued for a specific cloud agent's pickup
 3. Same discipline shape as `NEVER COMMIT WITHOUT EXPLICIT REQUEST` — the marker is a fence; explicit user override is the gate.
 4. **Per-marker eligibility differs.** Cursor (`[CSR]`) can do strictly more than Codex (`[CX]`) — hex.pm, mix tasks, internet — so the user may have intentionally chosen one over the other. Don't second-guess the marker by reasoning "but Cursor could've done this — let me redirect."
 
-**Why:** Claude's bias is to grab work. Without this rule, delegation markers will silently get executed locally because the local context is "right there" and skipping feels wasteful. The marker has to be load-bearing for the whole delegation model to work — and that has to hold across every cloud agent in the lineup, not just the first one (Codex). Adding a third or fourth agent later (Devin, OpenHands, etc.) doesn't loosen the rule; it expands it.
+The marker is load-bearing across every cloud agent in the lineup; adding more agents (Devin, OpenHands, etc.) expands the rule, doesn't loosen it.
 
 ## 🚨 DON'T AUTO-MERGE PRS
 
@@ -623,11 +620,7 @@ gh pr merge <n> --squash --delete-branch    # no follow-up — audit-review is d
 - **Auto-merge on a different PR after a per-PR approval** — approval is scope-bound to the one PR; preconditions re-run for each.
 - **PRs targeting the default branch from the default branch** — out of scope by definition (and gh wouldn't accept anyway).
 
-### Why this loosens
-
-Pre-commit `code-review` (Phase 2 sub-phase) + bots (Phase 3, CodeRabbit/Copilot/Codex bot) + pre-merge `commit-review` correctness gate (Phase 4: blocker-tier bugs + acceptance-criteria + CI gate) + deferred post-merge `audit-review` (Phase 6: full 5+1 categories with mandatory Codex second-opinion) together cover what the user gate previously caught. The user gate was load-bearing when commit-review was the *only* review pass; with the six-phase chain in place, the autonomy-first lens applies — gating each merge behind manual user approval is redundant work for an inspection surface (`.audit/<sha>.md` reports + `audit(...)` commits) that's already durable post-merge.
-
-**Why self-authored worktree PRs are no longer carved out.** The original carve-out reasoned that self-authored work has different blast-radius (review depth varies; the user often wants to land their own merges deliberately). The user's stated stance is now autonomy-first: *"I trust the chain; PRs + audits are the inspection surface."* The five preconditions remain the actual safety net; the cloud-agent-vs-self-authored axis is no longer load-bearing. The `[BLOCK-MERGE]` label is the per-PR manual override for the rare case the user wants a deliberate inspection before shipping.
+The six-phase chain (pre-commit `code-review` + bots + pre-merge `commit-review` + deferred post-merge `audit-review`) covers what a manual merge gate previously caught; the five preconditions plus `[BLOCK-MERGE]` are the safety net. Self-authored worktree PRs and cloud-agent PRs follow the same rule — the cloud-agent-vs-self-authored axis is no longer load-bearing under autonomy-first; `.audit/<sha>.md` reports plus `audit(...)` commits are the durable post-merge inspection surface.
 
 ### How to apply
 
@@ -656,7 +649,7 @@ Pre-commit `code-review` (Phase 2 sub-phase) + bots (Phase 3, CodeRabbit/Copilot
 - Creating new Linear issues outside the explicit task the user asked you to delegate
 - Anything where the user hasn't named the project, queue, or PR you're operating in
 
-**Why:** the asymmetric push-back model in `agent-pr-review.md` only works if comment-posting is friction-free. If every `@cursor` mention requires "should I post this?" confirmation, the loop slows to manual-dictation pace — exactly the failure mode the delegation pattern exists to eliminate. Observed failure: Claude evading every comment-decision during active flows, treating each post as a fresh permission question — defeating the queue model.
+Comment-posting must be friction-free for the asymmetric push-back model (`agent-pr-review.md`) to work — a "should I post this?" gate per `@cursor` mention defeats the loop the delegation pattern exists for.
 
 **How to apply:**
 - Surface what you're about to post in one short line ("Posting push-back to Linear issue MW-247: missing nil-check in `validate_address/1`"), then post. Don't wait for "ok."
@@ -690,7 +683,7 @@ Fix-locally is the narrow exception, reserved for env-constraint cases the agent
 
 **Forbidden under any condition:** semantic conflict resolution during a rebase, any logic / function-body edit on an agent's branch, any push to `codex/*` outside the rebase-only carve-out, any force-push without `--force-with-lease`.
 
-**Why:** amending the agent's branch silently self-grades the work and breaks the implementer/reviewer separation the delegation model depends on. The agent never learns what was wrong, so the next PR repeats the mistake.
+Amending the agent's branch silently self-grades the work and breaks the implementer/reviewer separation — the agent never learns what was wrong, so the next PR repeats the mistake.
 
 ### Cross-references
 
@@ -704,9 +697,7 @@ Fix-locally is the narrow exception, reserved for env-constraint cases the agent
 
 This is the same shape as the worktree rule in `critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE": scope is granted once, then the loop runs without per-call friction.
 
-**Why:** during an active Cursor iteration round (review push-back → Cursor amends → user wants the local fix force-pushed onto the same branch to keep the PR linear), Claude was re-asking before every push. The user explicitly named this friction ("enough of this"). Per-push permission gates defeat the iteration loop the same way per-comment permission gates defeat the comment loop — and the comment-loop fix (default DO during active flow) is already established.
-
-**Why `cursor/*` and not `codex/*`:** Cursor PRs commonly need local force-pushes to land review fixes on the same branch — Cursor's iteration shape rewards this. Codex PRs follow a different flow where pushing to `codex/*` is much rarer and historically a foot-gun. Keep Codex strict; loosen Cursor.
+**Why `cursor/*` and not `codex/*`:** Cursor PRs commonly need local force-pushes to land review fixes on the same branch — Cursor's iteration shape rewards this. Codex PRs follow a different flow where pushing to `codex/*` is rare and risky. Keep Codex strict; loosen Cursor.
 
 **Companion autonomy-first loosening:** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" allows auto-merge on any feature-branch PR (worktree branches, `cursor/*`, `codex/*`) when all 5 preconditions hold — same scope-bound autonomy-first lens. The two loosenings are complementary: cursor-force-push handles the iteration loop, auto-merge handles the merge step.
 
@@ -733,9 +724,7 @@ This is the same shape as the worktree rule in `critical-rules.md` § "GIT COMMI
 
 ## Commit-Review Header
 
-Stated 2026-05-05: "every time in commit-review mode answer with linear task number and PR #, so i don't need to scroll through the chat."
-
-**The rule:** during any `staged-review:commit-review` flow, every assistant reply opens with a one-line bracket header showing the Linear task ID and PR number. Format:
+**The rule:** during any `staged-review:commit-review` flow, every assistant reply opens with a one-line bracket header showing the Linear task ID and PR number — the user juggles multiple cloud-agent PRs in parallel and uses chat as a working ledger. Format:
 
 ```
 [MW-247 · PR #84] <rest of the reply>
@@ -751,8 +740,6 @@ Linear task not yet fetched:
 [task-tbd · PR #84] …
 ```
 …and resolve the task ID on the next turn.
-
-**Why:** the user juggles multiple cloud-agent PRs in parallel and uses chat as a working ledger. Without the leading identifier, every reply requires a scroll-back to figure out *which* PR/issue the answer is about.
 
 **How to apply:**
 - Triggers when the active flow is `staged-review:commit-review` OR when the user is iterating on a specific cloud-agent PR (`codex/...`, `cursor/...`, future agent branches).
@@ -854,9 +841,7 @@ Findings during code review or PR review have a ceremony floor below which they 
 
 When new information arrives about work that's already on the roadmap (clearer requirements, refined acceptance criteria, additional edge cases, a discovered constraint), **update the existing pending task** — do not open a new one. `rmap new` is for **new scope**, not for **spec refinement** of pending work.
 
-**Required check before every `rmap new`:** scan pending tasks in the same bundle/topic (`rmap list --status pending`, or grep `roadmap/tasks.toml`). If one covers the same surface area, edit its `body` / `acceptance_criteria` / `out_of_scope` / `scores` in place. New task ONLY when the work could ship as an independent PR alongside the existing one.
-
-**Why this matters:** opening a duplicate fragments context across two rows, leaves the original stale, inflates roadmap noise, and breaks the "queue, not log" invariant that makes `rmap next` trustworthy.
+**Required check before every `rmap new`:** scan pending tasks in the same bundle/topic (`rmap list --status pending`, or grep `roadmap/tasks.toml`). If one covers the same surface area, edit its `body` / `acceptance_criteria` / `out_of_scope` / `scores` in place. New task ONLY when the work could ship as an independent PR alongside the existing one. Duplicates fragment context, leave the original stale, and break the "queue, not log" invariant that makes `rmap next` trustworthy.
 
 **Heuristic — refinement vs new scope:**
 
@@ -1291,7 +1276,7 @@ Elixir has no true visibility modifier on `def`. These markers communicate "not 
 **Mandate: every function gets a `@spec` — `def` and `defp` alike.** No exceptions for "trivial" helpers; the spec is one line and pins the contract Dialyzer can't always infer (e.g. `integer() | float()` vs the narrower `integer()` you actually meant).
 
 - **Why mandate, not "publics-only" (the community default):** community default optimizes for team-onboarding cost — irrelevant here. Solo-dev library portfolio with Credo strict + Dialyzer in CI on every repo. Cost is one line per function; payoff is Dialyzer pointing at the spec mismatch (fast) instead of a downstream call site three layers away (slow). Domain is signing / wallet / wire-format code where binary-length, hex-vs-binary, and union-narrowing bugs are exactly what specs on `defp` catch.
-- **CI enforcement:** in `.credo.exs`, configure `{Credo.Check.Readability.Specs, [include_defp: true]}`. **The Credo default is `include_defp: false`** (verified against `rrrene/credo` master and HexDocs as of 2026-05) — publics-only. We override to `true` because the mandate covers every function. Doctor's spec-coverage gate handles publics; this Credo check closes the gap on privates.
+- **CI enforcement:** in `.credo.exs`, configure `{Credo.Check.Readability.Specs, [include_defp: true]}`. The Credo default is `include_defp: false` (publics-only). We override to `true` because the mandate covers every function. Doctor's spec-coverage gate handles publics; this Credo check closes the gap on privates.
 - **Placement:** `@spec` line goes immediately above the `def` / `defp`, after `@doc` / `@doc false`.
 - **The one trade-off:** macro-generated `defp` functions can trip the Credo check. Suppress per-callsite with `# credo:disable-for-next-line Credo.Check.Readability.Specs` rather than dropping `include_defp` back to `false`.
 
@@ -1986,6 +1971,15 @@ This is a **Claude Code plugin marketplace** for Elixir and BEAM ecosystem devel
 
 The script preserves SKILL.md frontmatter (name, description, allowed-tools) and replaces the body with include content. See `scripts/sync-skills-from-includes.sh` for the full mapping.
 
+### Writing Style: Factual + Terse
+
+Includes (`~/.claude/includes/*.md`) and skill bodies are reference material — every line costs context.
+
+- State the rule. Drop standalone `**Why:**` / `**Why this matters:**` blocks; fold load-bearing rationale into the rule as one parenthetical.
+- No dated provenance, past-incident anecdotes, or verification breadcrumbs in prose. Current state only.
+- Good/bad example blocks may keep historical context — they teach by showing.
+- Drop hedging filler ("essentially", "fundamentally", "the reality is") unless load-bearing.
+
 ### Setup Guide Sync Check
 
 Verify `~/.claude/setup-guide.md` is in sync with actual includes on disk:
@@ -2147,9 +2141,9 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 
 | Skill | Description |
 |-------|-------------|
-| code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` post-PR-create / post-merge to avoid duplicate dual-reviewer cost (every commit reaches audit-review either way via worktree-workflow auto-invoke). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
-| commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + cloud-agent branch + no `requested-changes` + no `[BLOCK-MERGE]` label** then chains audit-review against the merge SHA |
-| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** Auto-invoked by `worktree-workflow` (post-`gh pr create`), `commit-review` (auto-merge tail), and `linear-queue` (self-authored worktree flow, post-merge for non-auto-merge cases) |
+| code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` (deferred). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
+| commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + feature branch + no `requested-changes` + no `[BLOCK-MERGE]` label**; tail ends at branch cleanup |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** **Deferred/batched** — SessionStart hook (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tail; manual `/staged-review:audit-status` for snapshot; manual `Skill(audit-review) <range>` to clear |
 
 **Task-driver plugin** (2 skills):
 

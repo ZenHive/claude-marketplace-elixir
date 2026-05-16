@@ -12,17 +12,13 @@ Operational reference for Fly Sprite-hosted Claude Code as a third delegation op
 
 **Different shape from the existing two targets.** Codex Cloud and Cursor Background are polished **harnesses** — task ingestion → branch → PR loop is built in. Sprite is **substrate**: a raw VM (Ubuntu 25.10 + Fly kernel) with Claude Code 2.1.92 pre-installed in `--dangerously-skip-permissions` mode, full network, ext4 + JuiceFS + Litestream-backed persistence. Tokens billed against the user's existing Anthropic Max plan via OAuth; no extra subscription stack. Cost shape ~$0.46 per 4-hour active session (per Simon Willison) plus per-second VM time. The trade is the orchestration glue — not built in.
 
-### What's verified vs unverified
-
-Hands-on verification done 2026-05-09 against a fresh `claude-test` sprite on `sprite v0.0.1-rc43` (created and destroyed in this session). Items below labeled "verified" come from that test; items labeled "open question" are explicitly untested and should not be assumed.
-
 ### CLI surface (rc43)
 
 | Surface | Notes |
 |---|---|
 | `sprite create [name] [--skip-console] [--label <l>] [--org <o>]` | **No `--prompt` / `--task` / `--exec`** — create is provisioning only. `--skip-console` for headless. `--label` repeatable. |
-| `sprite exec -s <n> [--env "K=V,K2=V2"] [--file local:remote] [--dir <p>] [--tty] [--http-post] -- <cmd>` | `--env` is comma-separated (verified). `--file` uploads before exec (verified, repeatable). `--http-post` is a transport toggle (HTTP/1.1 instead of WebSockets, non-TTY only); **NOT** an external orchestration entry point. Always use `--` to terminate sprite flags. |
-| `sprite sessions list / attach <id> / kill <id>` | First-class in rc43 — closes the Sept 2025 community-feedback "no detached background mode" gap. Non-TTY sessions suspend on detach (preserves output); TTY sessions keep running. **Active sessions block auto-sleep.** |
+| `sprite exec -s <n> [--env "K=V,K2=V2"] [--file local:remote] [--dir <p>] [--tty] [--http-post] -- <cmd>` | `--env` is comma-separated. `--file` uploads before exec (repeatable). `--http-post` is a transport toggle (HTTP/1.1 instead of WebSockets, non-TTY only); **NOT** an external orchestration entry point. Always use `--` to terminate sprite flags. |
+| `sprite sessions list / attach <id> / kill <id>` | First-class in rc43 — closes the long-standing "no detached background mode" gap. Non-TTY sessions suspend on detach (preserves output); TTY sessions keep running. **Active sessions block auto-sleep.** |
 | `sprite attach <command-or-id>` | Smart-match by command name OR session ID. |
 | `sprite checkpoint create [--comment] / list / info <id> / delete <id> / restore <id>` | Copy-on-write filesystem snapshots; last 5 at `/.sprite/checkpoints/`. `create` returns in seconds. |
 | `sprite info` | Replaces deprecated `sprite url`. Shows public URL, auth setting, labels. |
@@ -31,9 +27,9 @@ Hands-on verification done 2026-05-09 against a fresh `claude-test` sprite on `s
 | `sprite use [name]` / `sprite use --unset` | Per-directory `.sprite` file (nvm-style). |
 | `sprite api <path> [curl options]` + REST at `https://api.sprites.dev/v1/sprites` | Authenticated curl-via-CLI plus a public REST API. Real orchestration entry point for non-CLI dispatchers. |
 
-**Shell-syntax gotcha (verified):** `sprite exec 'echo a && echo b'` fails — `sprite exec` does NOT interpret shell. Use `-- bash -c 'echo a && echo b'` or upload a script via `--file local.sh:/tmp/run.sh -- bash /tmp/run.sh`. The `--file` upload is the cleanest dispatcher pattern (write task locally, ship + execute atomically).
+**Shell-syntax gotcha:** `sprite exec 'echo a && echo b'` fails — `sprite exec` does NOT interpret shell. Use `-- bash -c 'echo a && echo b'` or upload a script via `--file local.sh:/tmp/run.sh -- bash /tmp/run.sh`. The `--file` upload is the cleanest dispatcher pattern (write task locally, ship + execute atomically).
 
-### Inside the sprite (verified live)
+### Inside the sprite
 
 - **OS:** Ubuntu 25.10 + custom Fly kernel (`6.12.84-fly`).
 - **Pre-installed at `/.sprite/bin/`:** `claude` (Claude Code 2.1.92), `gh` (2.79.0), `git`, `node`, `python3`, **`mix`, `elixir`, `erl`** (Erlang/OTP 28, Elixir 1.19.2 — current). **No asdf shim layer needed.** Closes the entire class of asdf-PATH gotchas Cursor's env has.
@@ -101,11 +97,11 @@ Across all three: agent ends by `gh pr create`; dispatcher polls `gh pr list --s
 
 ### State and persistence
 
-- **Filesystem fully persists across sleep/wake** (ext4 + JuiceFS object-store + Litestream-backed SQLite metadata). Verified: file written before a 75s wait was still there after.
+- **Filesystem fully persists across sleep/wake** (ext4 + JuiceFS object-store + Litestream-backed SQLite metadata).
 - `~/.claude/`, `~/.codex/`, `~/.cursor/`, `~/.gemini/` are pre-baked in the base image; OAuth tokens written into them after interactive login persist.
 - `~/.bashrc` exports persist.
-- **Process state does NOT.** `claude` process dies on sleep. To resume the same conversation: `claude --continue` (resumes most-recent session in cwd) or `claude --resume <session-id>` (specific session). Filesystem-level resume is plausible; **clean cross-sleep resume is unverified** — 75s wait test didn't conclusively trigger sleep (uptime persisted). **Open question.**
-- **Wake-on-exec ~0.4s round-trip** (verified).
+- **Process state does NOT.** `claude` process dies on sleep. To resume the same conversation: `claude --continue` (resumes most-recent session in cwd) or `claude --resume <session-id>` (specific session). Filesystem-level resume is plausible; **clean cross-sleep resume is unverified** — open question.
+- **Wake-on-exec ~0.4s round-trip.**
 - **Branch state pushed to GitHub each commit; the sprite is disposable.** Don't store anything important only inside.
 
 ### Public URL (capability that doesn't exist on Codex/Cursor)
@@ -137,10 +133,10 @@ Every sprite gets a permanent **public HTTPS URL** at `https://<n>-XXX.sprites.a
 - **No built-in agent-done signal.** Use the workaround patterns above (PR appearance / done-marker grep).
 - **`claude --print` exit code is unreliable** (always 0 even on auth failure). Verify artifacts.
 
-### Open questions (verified-as-uncertain)
+### Open questions
 
 1. Does interactive `claude` `/login` complete cleanly inside `sprite console` — browser on host, device code, or URL-paste?
-2. Does `claude --continue` resume cleanly after an actual sleep/wake cycle? (75s test didn't conclusively trigger sleep.)
+2. Does `claude --continue` resume cleanly after an actual sleep/wake cycle?
 3. Does `claude mcp add … linear-server` complete its workspace OAuth inside a sprite without browser access?
 4. What's the per-org Fly billing cap (sprite-side) on runaway compute?
 

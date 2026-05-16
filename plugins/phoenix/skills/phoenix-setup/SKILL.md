@@ -15,7 +15,7 @@ mix phx.gen.auth Accounts User users --live    # ✅
 mix phx.gen.auth Accounts User users           # ❌ missing LiveView scoping
 ```
 
-**Why:** without `--live`, `config/config.exs` scope configuration is incomplete. Subsequent `mix phx.gen.live` won't scope to current user — generated code won't filter by `user_id`, creating a **major security vulnerability** where users can see/edit each other's data. Forgetting requires complete redo of auth + re-cherry-picking subsequent work.
+Without `--live`, `config/config.exs` scope configuration is incomplete. Subsequent `mix phx.gen.live` won't scope to current user — generated code won't filter by `user_id`, creating a **major security vulnerability** where users can see/edit each other's data. Forgetting requires complete redo of auth + re-cherry-picking subsequent work.
 
 With `--live`: context functions auto-accept `%Scope{}`, queries auto-filter by `user_id`, security by default.
 
