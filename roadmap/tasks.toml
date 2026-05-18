@@ -513,7 +513,7 @@ scored_at = "2026-05-14"
 id = 50
 phase = 11
 bundle = "rmap_integration"
-status = "pending"
+status = "done"
 title = "Propagate batched-execution rule into task-driver skill"
 scores = { d = 3, b = 7, u = 7 }
 acceptance_criteria = ["Step 2 output proposes batches when shortlist tasks are independent", "Filed plans for multi-batch work include ⏸ CHECKPOINT markers as lines of their own (not prose)", "Commit one-liners appear at checkpoints where a commit is the next step", "Section cross-references workflow-philosophy.md § Batched Execution"]
@@ -537,7 +537,7 @@ scored_at = "2026-05-15"
 id = 52
 phase = 11
 bundle = "rmap_integration"
-status = "pending"
+status = "done"
 title = "Generalize agent-dispatch /compact section as instance of canonical rule"
 scores = { d = 2, b = 5, u = 5 }
 acceptance_criteria = ["agent-dispatch.md cross-references workflow-philosophy.md § Batched Execution as the general form", "Existing /compact-between-batches rule still reads correctly", "Sync to agent-dispatch skill is clean (no drift)"]
@@ -549,7 +549,7 @@ scored_at = "2026-05-15"
 id = 53
 phase = 11
 bundle = "rmap_integration"
-status = "pending"
+status = "done"
 title = "Document /batch + rmap next-bundle integration with Batched Execution"
 scores = { d = 3, b = 6, u = 6 }
 acceptance_criteria = ["rmap.md mentions batch as derived layer of next-bundle output", "flow-review.md notes /batch → flow-review synergy + commit-review gate guard", "Skills sync cleanly (rmap, flow-review)"]

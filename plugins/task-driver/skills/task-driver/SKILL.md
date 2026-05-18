@@ -107,6 +107,8 @@ What this issue explicitly does NOT do.
 
 Score with the D/B/U framework (`task-prioritization.md`). When this lands as an rmap task (P5, Linear-absent path), the `[D:X/B:Y/U:Z]` notation becomes `scores = { d, b, u }` — `rmap` computes Eff and renders the bracket.
 
+**Multi-batch plans render `⏸ CHECKPOINT` as lines of their own.** When the drafted plan spans ≥3 batches (or a phased migration whose file count would blow the context window), render `⏸ CHECKPOINT — batch N complete, /compact before batch N+1` markers as first-class lines between batches in the issue body, per `workflow-philosophy.md` § "Batched Execution". A prose sentence saying "compact between phases" does NOT satisfy the rule — the marker is a line on its own. At each checkpoint where a commit is the next step, include a ready one-line commit message (imperative mood, matching repo log style). Below the threshold (1–2 batches), run as a single batch in the implementer session without checkpoints — ceremony exceeds benefit.
+
 ### P3. EnterPlanMode
 
 Call `EnterPlanMode` with the drafted plan as the plan content. The user reviews in the plan-mode UI.
@@ -244,6 +246,17 @@ Task 285 depends on 274 completing first.
 ```
 
 End with a one-line recommendation: "I suggest Task 274 (highest efficiency, unblocked). Which do you want?"
+
+**Escalate to batch + subagent fan-out when ≥3 shortlisted tasks are independent** (no shared `depends_on`, no file-scope overlap). Per `workflow-philosophy.md` § "Batched Execution", a set of disjoint tasks is a single batch — propose dispatching them to parallel subagents (worktree-isolated, one PR per item) instead of sequential per-worktree pickup. Below the threshold (1–2 independent tasks), the existing "parallel worktrees" recommendation stays — ceremony exceeds benefit. Example escalation:
+
+```
+## Parallel Opportunities
+
+Tasks 274 + 290 + 295 are independent (no shared `depends_on`).
+This is one batch of 3 — per `workflow-philosophy.md` § "Batched Execution",
+fan out to 3 parallel subagents (worktree-isolated, one PR each)
+instead of sequential per-worktree pickup.
+```
 
 ### Step 3: User Picks Task(s)
 
