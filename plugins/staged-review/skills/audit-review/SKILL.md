@@ -451,7 +451,7 @@ Applies in this order, deterministic across runs:
 
 Skip priority 1-2 cosmetic findings unless the fix is a single-line trivial edit (typo in a doc string, wrong word in an error message). Cosmetic noise dilutes the audit corpus.
 
-ROADMAP status flips go through `rmap status <id> done` (rmap re-renders `ROADMAP.md` + `roadmap/data.json`) — never a hand-edit to `ROADMAP.md`. Delegation markers (`cx` / `csr`) live on the `[[task]]` entry in `roadmap/tasks.toml` and persist across the status change automatically; the rendered `[CX]` / `[CSR]` notation is preserved by construction. See `rmap.md`.
+ROADMAP status flips go through `rmap status <id> done --implemented "<one-line summary of what shipped>"` (rmap re-renders `ROADMAP.md` + `roadmap/data.json`) — never a hand-edit to `ROADMAP.md`. The `--implemented` flag is required for `done` transitions; for trivial flips where the diff matches the task spec verbatim, `--implemented "as specified in body"` is the honest default. Delegation markers (`cx` / `csr`) live on the `[[task]]` entry in `roadmap/tasks.toml` and persist across the status change automatically; the rendered `[CX]` / `[CSR]` notation is preserved by construction. See `rmap.md`.
 
 **Acceptance-criteria cross-reference** (per commit with a Linear-linked PR from Step 4.5). For each criterion in `linear_acceptance[]`:
 

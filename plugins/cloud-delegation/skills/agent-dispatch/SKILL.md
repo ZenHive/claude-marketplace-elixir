@@ -12,7 +12,7 @@ The **dispatch layer** of the Linear-as-queue workflow — pushing self-containe
 
 It builds on `linear-queue.md` (the substrate: MCP setup, workspace shape, issue-body template, status transitions). Read that first if Linear-as-queue isn't set up yet. The return path — reviewing the PRs cloud agents open — is `agent-pr-review.md`; multi-PR merge orchestration is `flow-review.md`.
 
-> **rmap note.** The `[CX]` / `[CSR]` delegation markers and `⬜` / `🔄` statuses throughout this file are *rendered* `ROADMAP.md` notation — the source is the `cx` / `csr` markers and `pending` / `in_progress` status on `[[task]]` entries in `roadmap/tasks.toml`. Pick delegation candidates with `rmap next` / `rmap list --marker csr`, and `rmap delegate <id> --to codex|cursor` renders a task as a paste-ready cloud-agent prompt. See `rmap.md`.
+> **rmap note.** The `[CX]` / `[CSR]` delegation markers and `⬜` / `🔄` statuses throughout this file are *rendered* `ROADMAP.md` notation — the source is the `cx` / `csr` markers and `pending` / `in_progress` status on `[[task]]` entries in `roadmap/tasks.toml`. Pick delegation candidates with `rmap next --marker cx|csr` or `rmap list --marker csr --status pending --json`. `rmap delegate <id> --to codex|cursor` is the **canonical way to render a task into a cloud-agent prompt** — its output IS the Linear issue body (see § "Plan-Shaped Linear Task Specs"). See `rmap.md`.
 
 ### Repo selector for multi-repo workspaces
 
@@ -53,7 +53,7 @@ Apply these filters **in order** when picking ROADMAP tasks to delegate. The fir
 
 > **🚨 Suspended (Elixir projects).** Codex Cloud can't run `mix` tasks — Erlang/Elixir are pre-installed but off-PATH and `hex.pm` returns 403 through the proxy, so no harness evidence is possible. Review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
 
-**When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Agent wires GH-native auto-merge at PR-open (`gh pr merge <N> --auto --squash --delete-branch`); GitHub gates the merge against branch protection (CI green + no requested-changes + no `[BLOCK-MERGE]` label — see `delegation-rules.md` § "DON'T AUTO-MERGE PRS"); `audit-review` runs deferred (SessionStart hook flags it).
+**When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body = `rmap delegate <id> --to codex` output (see § "Plan-Shaped Linear Task Specs"). Agent wires GH-native auto-merge at PR-open (`gh pr merge <N> --auto --squash --delete-branch`); GitHub gates the merge against branch protection (CI green + no requested-changes + no `[BLOCK-MERGE]` label — see `delegation-rules.md` § "DON'T AUTO-MERGE PRS"); `audit-review` runs deferred (SessionStart hook flags it).
 
 **Marker semantics.** Mark ROADMAP tasks suitable for Codex delegation with `[CX]`. **Default: tasks meeting all criteria are `[CX]` unless there's a stated reason otherwise.** Claude's bias is to grab work; this default is a counterweight.
 
@@ -77,7 +77,7 @@ ROADMAP row examples:
 
 Same shape as the Codex flow with **broader eligibility** — Cursor's cloud env reaches hex.pm and runs `mix` tasks (see § "Cloud Agent Environments").
 
-1. **Create issue** with `team`, `project: <repo>`, `labels: ["cursor-eligible", "<org>/<repo>"]` (skip the second label in single-repo workspaces), `delegate: "Cursor"`, **body = the prompt** (Context / Task / Acceptance criteria / Out of scope / File paths / Scoring / Reviewer note), initial status `Todo`.
+1. **Create issue** with `team`, `project: <repo>`, `labels: ["cursor-eligible", "<org>/<repo>"]` (skip the second label in single-repo workspaces), `delegate: "Cursor"`, **body = `rmap delegate <id> --to cursor` output** (see § "Plan-Shaped Linear Task Specs"; for one-off tasks not worth tracking in `tasks.toml`, fall back to § "Ad-hoc plan-shaped template"), initial status `Todo`.
 
    `assignee` and `delegate` are independent fields — an issue can have a human assignee AND a cloud-agent delegate simultaneously. Cursor and Codex watch `delegate`; pickup does not require the agent to also be assignee.
 
@@ -97,7 +97,36 @@ Same shape as the Codex flow with **broader eligibility** — Cursor's cloud env
 
 Cloud agents do NOT carry context across sessions. Each pickup is a fresh session that reads the issue body once, implements once, and stops. Roadmap-shaped vagueness — "add X to the auth module" — burns round-trips; the agent has to rediscover paths, contracts, and conventions each round.
 
-**Template** (alongside `## Context` / `## Task` / `## Acceptance criteria` from `linear-queue.md` § "Issue Body = The Prompt"):
+**Canonical path — `rmap delegate <id> --to codex|cursor`.** Per the rmap mandate, every project's tasks live in `roadmap/tasks.toml`. `rmap delegate` renders a task as a paste-ready cloud-agent prompt with these sections in order:
+
+- `## Context` — target / project / status / phase / bundle (+ milestone, model if set)
+- `## Task` — the task `body` verbatim (the WHAT, prose; see `task-writing.md`)
+- `## Acceptance criteria` — the `acceptance_criteria` field as a checkbox list
+- `## Out of scope` — the `out_of_scope` field (only if set)
+- `## Scoring` — `[D:N/B:N/U:N → Eff:N]` bracket + tier glyph
+- `## Environment notes` — per-target boilerplate (Codex offline + no-toolchain caveats; Cursor caveats)
+- `## Instructions` — repo-inspection, scope-discipline, test/verification expectations
+
+**The flow:** run `rmap delegate <id> --to cursor` (or `--to codex` when restored), then paste the output into the Linear issue body verbatim. No hand-editing — drift between rmap spec and issue body is exactly what this replaces.
+
+**Field encoding — how to make the prompt load-bearing.** The four sections that used to be hand-written (`Files to modify` / `Files to NOT modify` / `Env constraints` / `Success criteria`) become rmap task fields. Set them at `rmap new --from-stdin` time:
+
+> **Note on `files_to_modify`.** `rmap delegate` does not yet render `files_to_modify` as its own `## Files to modify` section — surface the file list inline in `body` for the agent to read. Set the `files_to_modify` field anyway: it's the load-bearing input for § "Pre-Flight Conflict Detection" and for the file-overlap matrix in `flow-review.md`.
+
+| Plan-shaped concern   | rmap task field        | Surfaces in `rmap delegate` output as       |
+|-----------------------|------------------------|---------------------------------------------|
+| Files to modify       | `files_to_modify`      | not yet rendered — encode in `body`; see note above |
+| Files to NOT modify   | `out_of_scope`         | `## Out of scope`                            |
+| Env constraints       | (per-target boilerplate auto-emitted; project-specific in `body`) | `## Environment notes` + body context |
+| Success criteria      | `acceptance_criteria`  | `## Acceptance criteria` (checkbox list)     |
+
+Skip any of these and the agent fills the gap with assumptions — usually wrong ones that cost a round-trip. The fields are load-bearing for the same reason the hand-written sections were; they just now live in `tasks.toml` instead of an ad-hoc Linear template.
+
+**Pre-flight check.** Before submitting a batch of N≥2 plan-shaped issues, run § "Pre-Flight Conflict Detection" — the `files_to_modify` field across the batch IS the input. For tasks that don't yet have the field set, populate it (or encode the file list in `body` and surface it via `rmap show <id>`) before batching.
+
+#### Ad-hoc plan-shaped template
+
+For one-off cloud-agent dispatches not worth tracking in `tasks.toml` (rare — most work should land as an rmap task first), hand-build the prompt with these sections appended to `## Context` / `## Task` / `## Acceptance criteria` (from `linear-queue.md` § "Issue Body = The Prompt"):
 
 ```markdown
 ## Files to modify
@@ -120,9 +149,7 @@ Cloud agents do NOT carry context across sessions. Each pickup is a fresh sessio
 - PR title includes `(INE-N)`; PR opened non-draft (see `linear-queue.md` § "Status Transitions")
 ```
 
-The four sections (`Files to modify`, `Files to NOT modify`, `Env constraints`, `Success criteria`) are load-bearing. Skip any and the agent fills the gap with assumptions — usually wrong ones that cost a round-trip.
-
-Before submitting a batch of N≥2 plan-shaped issues, run § "Pre-Flight Conflict Detection" — the `## Files to modify` block IS the input.
+If you find yourself reaching for the ad-hoc template repeatedly, that's a signal the work should be filed as an rmap task instead — `rmap new --from-stdin` covers the same fields and feeds `rmap delegate` on every subsequent dispatch.
 
 ### Code-Only PRs + Required Acceptance Criteria
 

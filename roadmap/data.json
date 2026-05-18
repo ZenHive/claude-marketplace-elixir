@@ -645,7 +645,7 @@
       "id": 48,
       "phase": 11,
       "bundle": "rmap_integration",
-      "status": "pending",
+      "status": "done",
       "title": "Deeper rmap integration into delegation + review workflows",
       "scores": {
         "d": 5,
@@ -663,7 +663,10 @@
       ],
       "body": "Stage D of the rmap-mandate migration only did light cross-ref touch-ups on the periphery includes/skills. This task does the deeper integration deferred from that stage:\n\n- `agent-dispatch.md` — wire `rmap delegate <id> --to codex|cursor` into the delegation flow as the canonical way to render a task into a cloud-agent prompt, replacing the hand-built plan-shaped issue spec where the task already lives in `tasks.toml`.\n- `linear-queue.md` — make `rmap` the full ROADMAP-fallback substrate: the ROADMAP-fallback flow files via `rmap new --from-stdin` and reads queue state via `rmap next` / `rmap list`, not hand-edited markdown rows.\n- `staged-review` skills (`code-review`, `audit-review`) — ceremony-floor \"ROADMAP candidate\" findings are filed via `rmap new --from-stdin`; `audit-review`'s doc-update step calls `rmap status` / `rmap render` instead of hand-editing `ROADMAP.md`.\n\nEach touched include is canonical (`~/.claude/includes/`) — re-sync skills after editing. The `staged-review` skills are hand-authored — edit directly. Out of scope: changing the rmap CLI itself (tracked in rmap's own roadmap).\n",
       "created_at": "2026-05-14",
+      "started_at": "2026-05-18",
+      "done_at": "2026-05-18",
       "scored_at": "2026-05-14",
+      "implemented": "agent-dispatch.md routes prompt-rendering through rmap delegate (canonical path with field-to-section mapping: out_of_scope -> ## Out of scope, acceptance_criteria -> ## Acceptance criteria, files_to_modify and env constraints encoded in body or auto-emitted boilerplate; hand-built template demoted to ad-hoc fallback). linear-queue.md ROADMAP-fallback pickup uses rmap next --marker / rmap list --marker; status transitions via rmap status (never hand-edit ROADMAP.md). audit-review SKILL.md line 454 harmonized: rmap status <id> done --implemented \"...\" signature. code-review already rmap-aligned via Step 2 rmap note; no edits needed. Skills re-synced: 2 SYNCED, 0 drift.",
       "cross_repo": []
     },
     {

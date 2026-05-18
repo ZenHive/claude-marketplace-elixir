@@ -72,7 +72,7 @@ Set scores in `tasks.toml` (via `rmap new` or editing the file); never hand-form
 - Author the table in `tasks.toml`: `[milestones.v0_1] name = "..." order = N status = "active" target_version = "0.1.0"`. `target_version` is optional free-text.
 - Pin a task: `rmap milestone <id> v0_1` (or set `milestone = "v0_1"` directly). Unpin: `rmap milestone <id> none`. One milestone per task.
 - Discovery: `rmap milestones` (table view with done/total counts + next-task glyph + active-first sort); `rmap milestones --json` for the agent envelope.
-- Drive a release line: `rmap next --milestone v0_1` returns the next pending task in that release; composes with `--bundle`, `--phase`, `--marker`.
+- Drive a release line: `rmap next --milestone v0_1` returns the next pending task in that release; composes with `--bundle`, `--phase`, `--marker`. Without an explicit `--milestone`, `rmap next` automatically biases toward tasks pinned to any `active` milestone — analogous to the existing focus-phase bias. **Focus phase dominates** milestone when the two diverge (4-tier lexicographic: focus-only > active-milestone-only); pass `--milestone <name>` to override the auto-bias to a different release.
 - `rmap delegate` surfaces the milestone in `## Context` as `- Milestone: v0_1 (target=0.1.0)` so the target agent knows which release ships their work.
 - `rmap render` adds a conditional `🚀 **<milestone>** ·` segment to the task row in `ROADMAP.md` — rows without a milestone render byte-identically to before.
 
