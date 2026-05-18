@@ -9,7 +9,7 @@ Remaining tasks to personalize the Claude Code plugin marketplace. **This file i
 
 **Last shipped:** no recent shipments
 
-**Up next:** Task 44 — Replace zsh-incompatible classification script in audit-review SKILL.md [D:2/B:5/U:6 → Eff:2.75] 🎯
+**Up next:** Task 49 — Propagate the rmap mandate across repos [D:4/B:8/U:8 → Eff:2.0] 🎯
 <!-- FOCUS:END -->
 
 ## Official Documentation References
@@ -73,12 +73,13 @@ Remaining tasks to personalize the Claude Code plugin marketplace. **This file i
 | Task 41 | ⬜ | 🎁 **audit_followups** · Auto-merge for self-authored worktree PRs [D:4/B:6/U:5 → Eff:1.38] 📋 |
 | Task 42 | ⬜ | 🎁 **audit_followups** · Audit re-run on amend / rebase [D:5/B:3/U:3 → Eff:0.6] ⚠️ |
 | Task 43 | ⬜ | 🎁 **audit_followups** · Codex code-mutation re-enablement check [D:2/B:3/U:4 → Eff:1.75] 🚀 |
-| Task 44 | ⬜ | 🎁 **audit_followups** · Replace zsh-incompatible classification script in audit-review SKILL.md [D:2/B:5/U:6 → Eff:2.75] 🎯 |
-| Task 45 | ⬜ | 🎁 **audit_followups** · Worktree + clean-tree preconditions in audit-review [D:3/B:6/U:7 → Eff:2.17] 🎯 |
-| Task 46 | ⬜ | 🎁 **audit_followups** · Audit-corpus-only mode (report without apply) [D:3/B:5/U:5 → Eff:1.67] 🚀 |
-| Task 47 | ⬜ | 🎁 **audit_followups** · Per-commit Codex output capture in .audit/ [D:2/B:4/U:4 → Eff:2.0] 🎯 |
-| Task 54 | ⬜ | 🎁 **audit_followups** · Align audit-review/flow-review checkpoint vocabulary with canonical ⏸ CHECKPOINT [D:2/B:4/U:4 → Eff:2.0] 🎯 |
+| Task 44 | ⛔ | 🎁 **audit_followups** · Replace zsh-incompatible classification script in audit-review SKILL.md [D:2/B:5/U:6 → Eff:2.75] 🎯 |
+| Task 45 | ⛔ | 🎁 **audit_followups** · Worktree + clean-tree preconditions in audit-review [D:3/B:6/U:7 → Eff:2.17] 🎯 |
+| Task 46 | ⛔ | 🎁 **audit_followups** · Audit-corpus-only mode (report without apply) [D:3/B:5/U:5 → Eff:1.67] 🚀 |
+| Task 47 | ⛔ | 🎁 **audit_followups** · Per-commit Codex output capture in .audit/ [D:2/B:4/U:4 → Eff:2.0] 🎯 |
+| Task 54 | ⛔ | 🎁 **audit_followups** · Align audit-review/flow-review checkpoint vocabulary with canonical ⏸ CHECKPOINT [D:2/B:4/U:4 → Eff:2.0] 🎯 |
 | Task 57 | ✅ | 🎁 **audit_followups** · Decouple audit-review from commit-review; default to deferred/batched [D:3/B:7/U:8 → Eff:2.5] 🎯 |
+| Task 58 | ⬜ | 🎁 **audit_followups** · Harden audit-review SKILL.md (preconditions, report-only, codex capture, classification, checkpoint vocab) [D:4/B:7/U:7 → Eff:1.75] 🚀 |
 <!-- TASKS:END -->
 
 ---

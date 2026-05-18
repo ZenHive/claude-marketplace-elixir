@@ -15,8 +15,8 @@ The [elixir-volt](https://github.com/elixir-volt) ecosystem — Node.js replacem
 | Package | Hex | Purpose | Detail |
 |---|---|---|---|
 | `oxc` | `~> 0.13` | Parse, transform, bundle, minify, format, lint JS/TS (Rust NIFs) | `oxc.md` |
-| `quickbeam` | `~> 0.10` | Run JS on the BEAM — browser APIs, DOM, fetch, crypto, WebSocket, WASM (Zig NIF) | `quickbeam.md` |
-| `npm` | `~> 0.5` | Install npm packages, resolve deps, verify integrity | Pure Elixir |
+| `quickbeam` | `~> 0.10.13` | Run JS on the BEAM — browser APIs, DOM, fetch, crypto, WebSocket, WASM (Zig NIF) | `quickbeam.md` |
+| `npm` | `~> 0.7.4` | Install npm packages, resolve deps, verify integrity, supply-chain hardening (OSV checks, exotic-dep allowlist, registry policy, package-age warnings) | Pure Elixir — `npm-*.md` |
 | `npm_semver` | `~> 0.1` | npm-compatible semver | Pure Elixir |
 
 **Phoenix frontend packages:** `volt` (build tool / dev server / HMR — replaces Vite), `oxide_ex` (Tailwind Oxide via Rust NIF), `vize_ex` (Vue SFC compiler), `phoenix_vapor` (Vue templates → LiveView rendered structs).

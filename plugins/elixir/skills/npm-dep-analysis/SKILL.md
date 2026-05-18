@@ -20,19 +20,19 @@ mix npm.tree             # full tree
 mix npm.dedupe           # flatten duplicate versions
 ```
 
-### Dependency Graph (`NPM.DepGraph`)
+### Dependency Graph (`NPM.Dependency.Graph`)
 
 **Two-step pattern:** `adjacency_list/1` takes lockfile; everything else takes the adjacency list.
 
 ```elixir
 {:ok, lockfile} = NPM.Lockfile.read()
-adj = NPM.DepGraph.adjacency_list(lockfile)
+adj = NPM.Dependency.Graph.adjacency_list(lockfile)
 
-NPM.DepGraph.fan_out(adj)    # pkg → num deps pulled in (high = bloat risk)
-NPM.DepGraph.fan_in(adj)     # pkg → num dependents (high = critical)
-NPM.DepGraph.roots(adj)      # direct dependencies
-NPM.DepGraph.leaves(adj)     # no sub-deps
-NPM.DepGraph.cycles(adj)     # [] = healthy
+NPM.Dependency.Graph.fan_out(adj)    # pkg → num deps pulled in (high = bloat risk)
+NPM.Dependency.Graph.fan_in(adj)     # pkg → num dependents (high = critical)
+NPM.Dependency.Graph.roots(adj)      # direct dependencies
+NPM.Dependency.Graph.leaves(adj)     # no sub-deps
+NPM.Dependency.Graph.cycles(adj)     # [] = healthy
 ```
 
 ### Size Analysis (`NPM.Size`)
@@ -52,7 +52,7 @@ NPM.Size.summary(sizes)
 
 ```elixir
 {:ok, lockfile} = NPM.Lockfile.read()
-{:ok, pkg_json} = NPM.PackageJSON.read()
+{:ok, pkg_json} = NPM.Package.JSON.read()
 
 NPM.Why.explain("ws", lockfile, pkg_json)
 # => [%{path: ["ccxt", "ws"], range: "^8.8.1", direct: false}]
@@ -63,52 +63,52 @@ NPM.Why.format_reasons(reasons)
 
 **`NPM.Why.direct?/2` is misleading** — checks lockfile key presence, so transitive deps appearing as top-level lockfile entries report `true`. Use `Map.has_key?(pkg_json, name)` for a real direct check.
 
-### Deduplication (`NPM.Dedupe`)
+### Deduplication (`NPM.Dependency.Dedupe`)
 
 ```elixir
-NPM.Dedupe.find_duplicates(lockfile)       # [%{name:, versions:, ...}]
-NPM.Dedupe.summary(lockfile)               # %{total_packages:, duplicate_groups:, saveable:, unique_packages:}
-NPM.Dedupe.best_shared_version("lodash", lockfile)
-NPM.Dedupe.savings_estimate(lockfile)
+NPM.Dependency.Dedupe.find_duplicates(lockfile)       # [%{name:, versions:, ...}]
+NPM.Dependency.Dedupe.summary(lockfile)               # %{total_packages:, duplicate_groups:, saveable:, unique_packages:}
+NPM.Dependency.Dedupe.best_shared_version("lodash", lockfile)
+NPM.Dependency.Dedupe.savings_estimate(lockfile)
 ```
 
-### Package Quality (`NPM.PackageQuality`)
+### Package Quality (`NPM.Package.Quality`)
 
 Takes a **single lockfile entry**, not the whole lockfile:
 
 ```elixir
 entry = lockfile["ccxt"]
-NPM.PackageQuality.score(entry)            # 0-100
-NPM.PackageQuality.grade(entry)            # "A"-"F"
-NPM.PackageQuality.missing_fields(entry)
-NPM.PackageQuality.rank(lockfile)
-NPM.PackageQuality.average(lockfile)
+NPM.Package.Quality.score(entry)            # 0-100
+NPM.Package.Quality.grade(entry)            # "A"-"F"
+NPM.Package.Quality.missing_fields(entry)
+NPM.Package.Quality.rank(lockfile)
+NPM.Package.Quality.average(lockfile)
 ```
 
 Scores will be low — lockfile metadata is sparse (no description/keywords/engines). More useful as comparison between packages than as absolute score.
 
-### Project Health (`NPM.Health`)
+### Project Health (`NPM.Diagnostics.Health`)
 
-Takes a **checks map**, not just a lockfile:
+Takes a **checks map**, not just a lockfile. Sibling diagnostics live under `NPM.Diagnostics.*` (`Doctor`, `EngineCheck`, `EnvCheck`).
 
 ```elixir
-health = NPM.Health.score(%{
+health = NPM.Diagnostics.Health.score(%{
   lockfile: lockfile, pkg_json: pkg_json, node_modules: "node_modules"
 })
 # => %{score: 25, details: %{has_lockfile:, has_package_json:, has_license:,
 #       integrity_coverage:, no_deprecated:, up_to_date:, no_vulnerabilities:}}
 
-NPM.Health.grade(health)                   # "D"
-NPM.Health.recommendations(health)
+NPM.Diagnostics.Health.grade(health)                   # "D"
+NPM.Diagnostics.Health.recommendations(health)
 ```
 
 ### Gotchas
 
-- `DepGraph`: lockfile → `adjacency_list/1`; adj → everything else. Passing lockfile to `fan_out` crashes `(ArgumentError) not a list`.
+- `Dependency.Graph`: lockfile → `adjacency_list/1`; adj → everything else. Passing lockfile to `fan_out` crashes `(ArgumentError) not a list`.
 - `Size.analyze/1`, `Size.top/2`: path strings, not lists. `top/2` re-analyzes.
-- `PackageQuality.score/1`: single entry (`lockfile["name"]`), not whole lockfile.
+- `Package.Quality.score/1`: single entry (`lockfile["name"]`), not whole lockfile.
 - `Why.direct?/2`: checks lockfile keys — misleading; use `pkg_json`.
-- `Health.score/1`: checks map with `:lockfile`, `:pkg_json`, `:node_modules`.
+- `Diagnostics.Health.score/1`: checks map with `:lockfile`, `:pkg_json`, `:node_modules`.
 
 ### Optimization Playbook
 

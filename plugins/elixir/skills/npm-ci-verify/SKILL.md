@@ -8,6 +8,8 @@ allowed-tools: Read, Bash
 
 ## npm_ex CI/CD & Installation Verification
 
+**Min version: `{:npm, "~> 0.7.4"}`.**
+
 Reproducible builds. The tools form a pipeline — each checks a different layer.
 
 ### Verification Stack
@@ -33,9 +35,9 @@ mix npm.verify     # node_modules ↔ lockfile
 ### Programmatic API
 
 ```elixir
-:ok = NPM.CI.preflight()        # lockfile + package.json exist?
-:ok = NPM.CI.validate()         # full CI validation
-true = NPM.CI.needs_clean?()    # needs rebuild?
+:ok = NPM.Install.CI.preflight()        # lockfile + package.json exist?
+:ok = NPM.Install.CI.validate()         # full CI validation
+true = NPM.Install.CI.needs_clean?()    # needs rebuild?
 
 {:ok, lockfile} = NPM.Lockfile.read()
 [] = NPM.Verify.check("node_modules", lockfile)     # (path, lockfile) — path first
@@ -52,8 +54,11 @@ NPM.Lockfile.has_package?("ccxt", "path/to/npm.lock")
 
 - `Lockfile.read/0` returns `{:ok, map}` — unwrap before passing downstream. #1 mistake.
 - `Verify.check/2` is `(path, lockfile)` — path first. `@spec check(String.t(), map())`.
-- `CI.needs_clean?/0` returning `true` means "reinstall needed," not "broken."
+- `Install.CI.needs_clean?/0` returning `true` means "reinstall needed," not "broken."
 - `npm.install --frozen` and `npm.ci` both fail on stale lockfiles. `npm.ci` additionally wipes `node_modules` first.
+- `mix npm.run` / `mix npm.exec` propagate non-zero exit codes — don't wrap them expecting silent failure.
+- `npm.lock` records the dependency security policy; `--frozen` fails on locks written under a weaker policy. Policy-less lockfiles (no policy section at all) install cleanly.
+- `--frozen` checks `optionalDependencies` for drift alongside regular deps.
 
 ### npm.lock vs npm-shrinkwrap.json
 

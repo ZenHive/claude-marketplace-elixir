@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Builds PDG/SDG from Elixir, Erlang, Gleam, or compiled BEAM. Backward/forward slicing, taint analysis, independence checks, dead-code detection, OTP state-machine analysis, `mix reach` HTML viz.
 
-**Min version: `{:reach, "~> 2.3"}`.** Requires `ex_ast ~> 0.11.2` at the dep level. Optional `:boxart, "~> 0.3.3"` for terminal `--graph` rendering.
+**Min version: `{:reach, "~> 2.4"}`.** Requires `ex_ast ~> 0.11.2` at the dep level. Optional `:boxart, "~> 0.3.3"` for terminal `--graph` rendering.
 
 **Canonical CLI — five commands:** `mix reach.map` (project view), `reach.inspect TARGET` (target-local), `reach.trace` (taint + slicing), `reach.check` (CI gates), `reach.otp` (process / state-machine analysis). `TARGET` accepts `Module.function/arity` or `file:line`.
 
@@ -288,6 +288,34 @@ Start from `examples/reach.exs` in the Reach repo. Reach itself ships a root `.r
 
 Custom pattern checks via the ExAST-backed DSL: `use Reach.Smell.PatternCheck`, `smell ~p[<source pattern>]`. Guarded patterns: `from(~p[...]) |> where(...)`. Pipes, operators, function calls, and module attributes all work with the `~p` sigil; pattern checks share a zipper cache across modules. The `piped()` selector predicate distinguishes form — `where(piped())` matches only `|>` calls, `where(not piped())` matches only direct calls. Useful when a pattern means different things in pipe vs direct form (e.g. `Regex.replace` where the piped subject is the regex argument vs the source string).
 
+### Framework Smell Plugins
+
+`mix reach.check --smells` runs framework-specific checks contributed by plugins. Auto-activate when the host package is in the dep tree (same `Code.ensure_loaded?/1` gate as the other plugin built-ins):
+
+- **Phoenix** — LiveView lifecycle mistakes (e.g. `assign_new` misuse, raw HTML interpolation), socket-assigns shape drift.
+- **Ecto** — query pitfalls (cross-join surfaces, missing pinning), unsafe SQL interpolation in `fragment/1`, money-like `:float` field declarations.
+- **Oban** — `args` shape pitfalls (mixed atom/string keys, non-JSON-encodable values).
+- **Security / source** — unsafe dynamic atom creation (`String.to_atom/1` on untrusted input), unsafe `:erlang.binary_to_term/1`, missing `@external_resource` declarations on macros that read files, conservative Ecto cross-join detection.
+
+Real-world false positives in these checks have been narrowed against open-source Elixir corpora — Phoenix raw HTML, LiveView `assign_new`, and Oban `args` checks are intentionally conservative.
+
+**Source smell DSL.** Define custom checks with `use Reach.Smell.Check.Source` and the `smell/4` macro. AST callback rules with `mode: :ast` cover hot source-shape checks that need custom matching beyond the `~p` sigil. ExAST selectors compile to source prefilters automatically, so hot pattern scans skip unrelated files cheaply; prefilters route through `Reach.Smell.PatternConfig` / `Reach.Smell.SourceRunner`.
+
+**Custom plugin smells.** Plugins register checks via the `Reach.Plugin.smell_checks/0` callback (part of the `Reach.Plugin` behaviour). Projects can also load custom smell modules from `.reach.exs`. Plugin smells run only when their host plugin is active — never auto-discovered as generic built-ins.
+
+### Smell Corpus & Profiling Tooling
+
+For tuning new smell checks against real codebases:
+
+```bash
+mix run scripts/smell_corpus_scan.exs      # repeatable scans across external repos
+                                           # (plugin and kind filters supported)
+mix run scripts/profile_smells.exs         # per-check, per-pattern, per-query profiling
+                                           # against the current project or an external repo
+```
+
+Both live in the Reach repo (not shipped as `mix` tasks) — clone Reach to use them.
+
 ### Advisory Refactoring Candidates
 
 `mix reach.check --candidates` and `mix reach.inspect TARGET --candidates` surface graph-backed suggestions:
@@ -376,6 +404,11 @@ defmodule MyPlugin do
   # Teach the effect classifier about framework calls.
   @impl true
   def classify_effect(_node), do: nil                    # :pure | :read | :write | :io | :send | nil
+
+  # Register framework-specific smell checks. Each module must use
+  # Reach.Smell.Check.Source (or .AST) and is wired into `mix reach.check --smells`.
+  @impl true
+  def smell_checks, do: []
 end
 ```
 
@@ -413,8 +446,8 @@ Limitation: cross-language edges only form when the JS source is a **literal** a
 ### Dependencies
 
 ```elixir
-{:reach, "~> 2.3", only: [:dev, :test], runtime: false},
+{:reach, "~> 2.4", only: [:dev, :test], runtime: false},
 {:boxart, "~> 0.3.3", only: [:dev, :test], runtime: false}   # terminal --graph rendering
 ```
 
-Requires `ex_ast ~> 0.11.2` at the dep level. Pulls in `libgraph`. Optional companion deps: `jason`, `makeup`, `makeup_elixir`, `makeup_js` (HTML viz), `boxart` (terminal). For the JS frontend + cross-language plugin, add `{:quickbeam, "~> 0.10.11"}` — the plugin activates automatically when QuickBEAM is in the dep tree.
+Requires `ex_ast ~> 0.11.2` at the dep level. Pulls in `libgraph`. Optional companion deps: `jason`, `makeup`, `makeup_elixir`, `makeup_js` (HTML viz), `boxart` (terminal). For the JS frontend + cross-language plugin, add `{:quickbeam, "~> 0.10.13"}` — the plugin activates automatically when QuickBEAM is in the dep tree.

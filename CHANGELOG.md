@@ -4,6 +4,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**rmap schema migration to v2 — task-driver v1.3.1 → v1.3.2, elixir v1.29.0 → v1.29.1**
+
+- `roadmap/tasks.toml` migrated to `schema_version = 2`; all 26 done tasks backfilled with `implemented = "as specified in body"` (rmap's documented honest default for tasks where delivery matched the spec).
+- task-driver: `rmap` skill body picked up the bulk-`rmap status N,M done` atomicity clarification from `~/.claude/includes/rmap.md` (whole batch rejected if any task is missing `implemented` and no `--implemented` flag is given on a non-TTY).
+- elixir: skill bodies for `elixir-volt`, `npm-ci-verify`, `npm-dep-analysis`, `npm-security-audit`, `quickbeam`, `reach` resynced from their canonical includes (content drift correction; no new tools).
+
 ### Added
 
 **Phase 8 `hook_scripts` bundle — elixir v1.28.2 → v1.29.0**
