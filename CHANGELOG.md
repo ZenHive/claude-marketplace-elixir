@@ -4,6 +4,14 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Fixed
+
+**`marketplace-hygiene` v0.1.1 — block-skill-edits.sh now works from the installed-plugin location**
+
+- The v0.1.0 hook derived `REPO_ROOT` from `SCRIPT_DIR` via `git rev-parse --show-toplevel`. That works in local development (script inside the marketplace repo) but silently fails at runtime: Claude Code installs the plugin under `~/.claude/plugins/cache/<marketplace>/<plugin>/<ver>/` — outside any git repo — so `git rev-parse` returned non-zero, `REPO_ROOT` was empty, and the hook fell through to `suppressOutput` instead of denying. Net effect: SKILL.md edits were not blocked in any session that installed the plugin from GitHub.
+- Fix: derive `REPO_ROOT` from the *edited file's* directory (`git -C "$(dirname "$FILE_ABS")" rev-parse`). The rule is about the user's working tree anyway — that's where the canonical `scripts/skill-include-map.sh` lives. Also makes the hook a no-op in repos that don't have the auto-sync setup, which is the correct semantic.
+- Regression test added (`block: Regression — script outside repo still denies via edited-file path`) — copies the script to `/tmp` before running so future "simplifications" back to SCRIPT_DIR-based lookup fail loudly. Inlined because `test_hook_json` prefixes `$REPO_ROOT` to hook paths and can't run an arbitrary external path.
+
 ### Added
 
 **`marketplace-hygiene` plugin (v0.1.0) — two marketplace-integrity hooks**

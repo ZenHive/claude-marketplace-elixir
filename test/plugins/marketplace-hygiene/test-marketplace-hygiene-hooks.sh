@@ -70,6 +70,28 @@ test_hook_json \
   0 \
   '.suppressOutput == true'
 
+# Test 7b: Regression — script copied OUTSIDE the repo (simulates the
+# installed-plugin location at ~/.claude/plugins/cache/...) must still deny
+# correctly because REPO_ROOT is now derived from the edited file's directory,
+# not from SCRIPT_DIR. Without this case the v0.1.0 bug (script suppresses
+# whenever it runs from outside any git repo) would re-regress unnoticed.
+# Inlined because test_hook_json prefixes $REPO_ROOT to hook paths.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo -e "${YELLOW}[TEST]${NC} block: Regression — script outside repo still denies via edited-file path"
+SCRIPT_COPY=$(mktemp "/tmp/block-skill-edits.XXXXXX.sh")
+cp "$REPO_ROOT/plugins/marketplace-hygiene/scripts/block-skill-edits.sh" "$SCRIPT_COPY"
+chmod +x "$SCRIPT_COPY"
+regression_out=$(echo "{\"tool_input\":{\"file_path\":\"$REPO_ROOT/plugins/elixir/skills/elixir-setup/SKILL.md\"}}" | bash "$SCRIPT_COPY" 2>&1)
+if echo "$regression_out" | jq -e '.hookSpecificOutput.permissionDecision == "deny" and (.hookSpecificOutput.permissionDecisionReason | contains("elixir-setup.md"))' >/dev/null 2>&1; then
+  echo -e "  ${GREEN}✅ PASS${NC}"
+  TESTS_PASSED=$((TESTS_PASSED + 1))
+else
+  echo -e "  ${RED}❌ FAIL${NC}: external-script case did not deny correctly"
+  echo "$regression_out" | sed 's/^/    /'
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+fi
+rm -f "$SCRIPT_COPY"
+
 # =============================================================================
 # validate-marketplace-json.sh — PostToolUse on Edit|Write|MultiEdit
 # =============================================================================

@@ -28,19 +28,23 @@ INPUT=$(cat)
 FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 [[ -z "$FILE" || "$FILE" == "null" ]] && emit_suppress
 
-# Locate the marketplace repo this hook ships from (this script lives at
-# plugins/marketplace-hygiene/scripts/block-skill-edits.sh, so two levels up
-# from SCRIPT_DIR is the plugin root; one more is the marketplace repo root).
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "")"
+# Derive REPO_ROOT from the EDITED file's directory, NOT from the hook
+# script's own location. The hook ships inside the plugin install (typically
+# ~/.claude/plugins/cache/<marketplace>/<plugin>/<ver>/) which is outside any
+# git repo and has no access to scripts/skill-include-map.sh. The rule is
+# about the user's working tree — that's where the canonical mapping lives.
+FILE_ABS=$(realpath "$FILE" 2>/dev/null || echo "$FILE")
+FILE_DIR=$(dirname "$FILE_ABS")
+REPO_ROOT="$(git -C "$FILE_DIR" rev-parse --show-toplevel 2>/dev/null || echo "")"
 MAP_FILE="$REPO_ROOT/scripts/skill-include-map.sh"
 
 # Without a mapping file we cannot enforce the rule precisely — pass through.
+# (Also true when the user edits a SKILL.md in a different repo that has no
+# auto-sync setup of its own — the rule shouldn't fire there.)
 [[ -z "$REPO_ROOT" || ! -f "$MAP_FILE" ]] && emit_suppress
 
-# Normalize FILE to a path relative to REPO_ROOT when possible (the mapping
-# entries are stored repo-relative).
-FILE_ABS=$(realpath "$FILE" 2>/dev/null || echo "$FILE")
+# Normalize FILE to a path relative to REPO_ROOT (the mapping entries are
+# stored repo-relative).
 REL="$FILE_ABS"
 case "$FILE_ABS" in
   "$REPO_ROOT"/*) REL="${FILE_ABS#"$REPO_ROOT"/}" ;;
