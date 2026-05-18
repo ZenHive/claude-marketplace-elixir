@@ -30,7 +30,7 @@ Group results into:
 - **`In Review` (canonical):** the agent's transition fired correctly
 - **`In Progress` with open PR (non-canonical):** agent opened the PR but didn't flip — surface explicitly so the reviewer/user can flip after review
 
-This is the polling shape `staged-review:commit-review` Step 2 uses. For batch processing of N≥2 PRs, see `flow-review.md`.
+This is the polling shape the cloud-agent review surface uses — `audit-review` Step 4.5 reuses it post-merge to resolve each commit's source PR (squashed `(#NNN)` or `gh search prs --merge-commit <sha>`) when batching the unaudited tail. For batch processing of N≥2 PRs pre-merge (merge-train mode), see `flow-review.md`.
 
 ### Fetch Existing Comments Before Auditing
 
@@ -54,30 +54,30 @@ Use both to **skip** issues already flagged, **cross-reference** with own findin
 
 Bot caveats: Copilot can fabricate verbatim diff citations (verify before acting); Codex's GitHub bot does evidence-based fact-checking with permalinks.
 
-### Review Tiering: When Full Tier 2 Earns Its Cost
+### Review Tiering: When to Hold for Manual Review
 
-`staged-review:commit-review` is expensive. Running it uniformly on every cloud-agent PR over-applies the cost.
+Pre-merge is GH-native auto-merge (`gh pr merge --auto`). Bots + CI gate the merge. The question shifts from "should I run an expensive review skill?" to "should I hold this PR for manual review via `[BLOCK-MERGE]` before letting auto-merge fire?"
 
-**Bots cover the correctness layer.** CodeRabbit, Copilot, and Codex's GitHub bot (3-bot ensemble) catch substantive code-correctness defects at critical tier — wrong arg shapes, missing nil-handling, panic-table swaps. Codex's bot specifically does evidence-based fact-checking with permalinks.
+**Bots cover the correctness layer.** CodeRabbit, Copilot, and Codex's GitHub bot (3-bot ensemble) catch substantive code-correctness defects at critical tier — wrong arg shapes, missing nil-handling, panic-table swaps. Codex's bot specifically does evidence-based fact-checking with permalinks. Post-merge, `audit-review` Step 5d triages bot findings as a third reasoner alongside Claude (Step 5a) and Codex (Step 5b).
 
-**Local Tier 2's unique value at critical tier is NOT second-line code review.** It's the orchestration layer above the bots:
+**Manual-hold's unique value at critical tier is NOT second-line code review.** It's the orchestration layer above the bots, applied pre-merge only when the PR genuinely needs it:
 
 1. **Triage** — turn CodeRabbit "consider this" into a verbatim push-back patch with `@cursor`; defer out-of-scope bot findings instead of letting them dilute push-back.
 2. **Project-specific rule enforcement** — `.sobelow-skips` regen, `TODO(Task N):` markers, ROADMAP/CHANGELOG acceptance bullets, `harness.yml` conventions.
 3. **Procedural orchestration** — merge-conflict surfacing, duplicate-PR closure, CI-red triage, status transitions, push-back-vs-fix routing.
 4. **Deep diagnosis** — test-isolation failures, GenServer state pollution, runtime/compile-time interaction bugs that require reading beyond the diff.
 
-If you're re-finding what CodeRabbit already flagged, you're duplicating bot work — pivot to the four roles above.
+If you're re-finding what CodeRabbit already flagged, you're duplicating bot work — pivot to the four roles above, or let auto-merge fire and trust `audit-review`'s post-merge triage.
 
 | Tier | What it covers | Action |
 |---|---|---|
-| **Critical** | signing, transaction encoding/decoding, ABI codec, RPC client, KMS, anything in the ≥95% coverage tier per `critical-rules.md` § "RAISE COVERAGE BEFORE MUTATING" | Full Tier 2 — role-shifted to triage + project rules + orchestration + diagnosis, not redundant correctness review |
-| **Standard** | type/spec fixes, doc updates, coverage pushes, generator changes, test additions, refactors outside the critical-tier list | `gh pr checks <n>`. If green AND bot reviews clean: merge. If any bot flagged something: 5-min skim. No full Tier 2. |
-| **Ceremony** | close-out PRs, AGENTS.md tweaks, README-only changes, ROADMAP/CHANGELOG-only updates | CI-green check. Merge. No skim. |
+| **Critical** | signing, transaction encoding/decoding, ABI codec, RPC client, KMS, anything in the ≥95% coverage tier per `critical-rules.md` § "RAISE COVERAGE BEFORE MUTATING" | Add `[BLOCK-MERGE]` label to hold; manually review with the four-role framing above; push back via Linear `@cursor` / GH PR review comment; remove label to release. Post-merge, `audit-review` runs the full 5+1 audit. |
+| **Standard** | type/spec fixes, doc updates, coverage pushes, generator changes, test additions, refactors outside the critical-tier list | Let GH-native auto-merge fire on CI green. If a bot flagged something worth pre-merge eyeballs: optional 5-min skim, then merge or hold. `audit-review` catches post-merge. |
+| **Ceremony** | close-out PRs, AGENTS.md tweaks, README-only changes, ROADMAP/CHANGELOG-only updates | Auto-merge fires on CI green. No skim. |
 
 **Touched-files semantic > LOC count.** A 50-LOC change in `lib/<app>/signer/` is critical; a 200-LOC docs change is ceremony.
 
-The push-back-vs-fix matrix below applies to Tier-2 reviews only. Standard/ceremony PRs don't engage the calculus — they merge or fail CI.
+The push-back-vs-fix matrix below applies to critical-tier manual-hold reviews and to `audit-review` post-merge follow-ups. Standard/ceremony PRs don't engage the calculus — auto-merge fires or `[BLOCK-MERGE]` holds.
 
 For batches of 2+ open cloud-agent PRs, `flow-review.md` applies this tier matrix automatically.
 
@@ -192,6 +192,6 @@ Auto-detects `--repo` from current git dir. Use after a cloud-agent PR merges to
 - `flow-review.md` — merge-train mode for 2+ open cloud-agent PRs (applies Review Tiering automatically)
 - `cloud-agent-environments.md` — per-agent env reference; the Push-Back matrix depends on it
 - `delegation-rules.md` § "DON'T AUTO-MERGE PRS", § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH", § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS"
-- `staged-review:commit-review` skill — the pre-merge gate that consumes this review tiering + push-back matrix
-- `staged-review:audit-review` skill — deferred post-merge audit; the Bundled Code-Revisions variant pre-stages into a same-session invocation
+- `staged-review:audit-review` skill — deferred post-merge audit; consumes the tier matrix + push-back framing here (post-merge gaps file as rmap follow-ups per audit-review Step 9 / Step 5d). The Bundled Code-Revisions variant pre-stages into a same-session invocation.
+- `plugins/staged-review/templates/auto-merge.md` — GH-native auto-merge wire-up; `[BLOCK-MERGE]` label is the manual-hold gate the tier matrix above pivots around.
 - `task-prioritization.md` § "Ceremony Floor" — review-time cost-benefit gate

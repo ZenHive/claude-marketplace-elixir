@@ -46,7 +46,7 @@
     "codex_delegation": {
       "phase": 9,
       "order": 1,
-      "description": "Linear-as-queue + Codex delegation workflow — markers, discipline rules, AGENTS.md sync, commit-review skill"
+      "description": "Linear-as-queue + Codex delegation workflow — markers, discipline rules, AGENTS.md sync, cloud-agent PR review tier (superseded by GH-native auto-merge in v2.0 staged-review)"
     },
     "documentation": {
       "phase": 5,
@@ -478,7 +478,7 @@
       "id": 41,
       "phase": 10,
       "bundle": "audit_followups",
-      "status": "pending",
+      "status": "superseded",
       "title": "Auto-merge for self-authored worktree PRs",
       "scores": {
         "d": 4,
@@ -494,7 +494,7 @@
         "Update worktree-workflow.md to document the new auto-merge tail (PR-merge → cleanup)",
         "Test: open a self-authored worktree PR, run audit, verify auto-merge fires only when all preconditions hold"
       ],
-      "body": "Extend the cloud-agent auto-merge (scoped to cursor/* / codex/*) to self-authored PRs from worktrees. Needs separate analysis — self-authored work has different blast-radius than reviewed cloud-agent work: no upstream reviewer signal, no agent-PR template, fewer evaluator-separation layers. Likely requires stricter preconditions (mandatory code-review ✅ before commit, mandatory audit-review ✅ on the PR head, [BLOCK-MERGE] label still honored).\n",
+      "body": "Extend the cloud-agent auto-merge (scoped to cursor/* / codex/*) to self-authored PRs from worktrees. Needs separate analysis — self-authored work has different blast-radius than reviewed cloud-agent work: no upstream reviewer signal, no agent-PR template, fewer evaluator-separation layers. Likely requires stricter preconditions (mandatory code-review ✅ before commit, mandatory audit-review ✅ on the PR head, [BLOCK-MERGE] label still honored).\n\nSuperseded by Task 59 — the GH-native auto-merge model (`gh pr merge <N> --auto --squash --delete-branch` wired at PR-open; branch protection + `[BLOCK-MERGE]` label gate) is now branch-name-agnostic: self-authored worktree PRs and cloud-agent PRs use the same mechanism. No separate self-authored auto-merge path needed.\n",
       "scored_at": "2026-05-14",
       "cross_repo": []
     },
@@ -538,11 +538,11 @@
       "depends_on": [],
       "acceptance_criteria": [
         "Decision document: criteria for re-enabling Codex code-mutation",
-        "Verify auto-merge precondition #3 (cursor/* or codex/*) becomes live for Codex",
+        "Verify the cloud-agent task template wires `gh pr merge <N> --auto --squash --delete-branch` for Codex PRs (per plugins/staged-review/templates/auto-merge.md)",
         "Update agent-dispatch.md and cloud-agent-environments.md to lift the suspension",
         "Run an end-to-end Codex delegation test before declaring re-enabled"
       ],
-      "body": "Codex code-mutation is currently suspended per agent-dispatch.md. Track when/if to re-enable so the auto-merge precondition becomes live for Codex too. Periodic check on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.\n",
+      "body": "Codex code-mutation is currently suspended per agent-dispatch.md. Track when/if to re-enable so the cloud-agent task template wires `gh pr merge --auto` end-to-end for Codex too. Periodic check on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.\n",
       "scored_at": "2026-05-14",
       "cross_repo": []
     },
@@ -661,7 +661,7 @@
         "staged-review skills file ceremony-floor candidates via `rmap new --from-stdin` and mutate roadmap state via `rmap status`",
         "sync-skills-from-includes.sh re-run; no drift"
       ],
-      "body": "Stage D of the rmap-mandate migration only did light cross-ref touch-ups on the periphery includes/skills. This task does the deeper integration deferred from that stage:\n\n- `agent-dispatch.md` — wire `rmap delegate <id> --to codex|cursor` into the delegation flow as the canonical way to render a task into a cloud-agent prompt, replacing the hand-built plan-shaped issue spec where the task already lives in `tasks.toml`.\n- `linear-queue.md` — make `rmap` the full ROADMAP-fallback substrate: the ROADMAP-fallback flow files via `rmap new --from-stdin` and reads queue state via `rmap next` / `rmap list`, not hand-edited markdown rows.\n- `staged-review` skills (`code-review`, `commit-review`, `audit-review`) — ceremony-floor \"ROADMAP candidate\" findings are filed via `rmap new --from-stdin`; `audit-review`'s doc-update step calls `rmap status` / `rmap render` instead of hand-editing `ROADMAP.md`.\n\nEach touched include is canonical (`~/.claude/includes/`) — re-sync skills after editing. The `staged-review` skills are hand-authored — edit directly. Out of scope: changing the rmap CLI itself (tracked in rmap's own roadmap).\n",
+      "body": "Stage D of the rmap-mandate migration only did light cross-ref touch-ups on the periphery includes/skills. This task does the deeper integration deferred from that stage:\n\n- `agent-dispatch.md` — wire `rmap delegate <id> --to codex|cursor` into the delegation flow as the canonical way to render a task into a cloud-agent prompt, replacing the hand-built plan-shaped issue spec where the task already lives in `tasks.toml`.\n- `linear-queue.md` — make `rmap` the full ROADMAP-fallback substrate: the ROADMAP-fallback flow files via `rmap new --from-stdin` and reads queue state via `rmap next` / `rmap list`, not hand-edited markdown rows.\n- `staged-review` skills (`code-review`, `audit-review`) — ceremony-floor \"ROADMAP candidate\" findings are filed via `rmap new --from-stdin`; `audit-review`'s doc-update step calls `rmap status` / `rmap render` instead of hand-editing `ROADMAP.md`.\n\nEach touched include is canonical (`~/.claude/includes/`) — re-sync skills after editing. The `staged-review` skills are hand-authored — edit directly. Out of scope: changing the rmap CLI itself (tracked in rmap's own roadmap).\n",
       "created_at": "2026-05-14",
       "scored_at": "2026-05-14",
       "cross_repo": []
@@ -929,6 +929,42 @@
       "body": "Consolidates tasks 44, 45, 46, 47, 54 — all touch `plugins/staged-review/skills/audit-review/SKILL.md` and most were surfaced by the same first run on the onchain repo (2026-05-09). One PR, one sync, one set of tests.\n\nFive concerns, all on the same skill:\n\n1. **Worktree + clean-tree preconditions (was Task 45):** Refuse to run in the main checkout when worktree-workflow.md is loaded; refuse to run with a dirty working tree. Accept `--allow-dirty` / `--allow-main-checkout` overrides. Surfaced when the first run started in the main checkout with 12 dirty files; user had to interrupt and redirect.\n\n2. **`--report-only` mode (was Task 46):** New flag that dispatches Codex and writes `.audit/<sha>.md` reports but skips all auto-apply. Distinct from `--no-codex` (which gates dispatch); this gates application. Recommended mode for first-run / backfill audits where Codex reviews already covered the commits. Surfaced when user wanted reports but no auto-apply because Codex had already reviewed every commit.\n\n3. **Per-commit Codex output capture (was Task 47):** Codex outputs land in a session-scoped tmp dir today — durable in-session, lost after compaction. Write the raw output to `.audit/<sha>-codex.md` (or inline as a fenced block); the main report cross-references it. Format must be consistent enough for the cross-repo aggregation in Task 40.\n\n4. **Replace zsh-incompatible classification script (was Task 44):** The classification step shells out a one-liner using `paste -sd+ | bc` for LOC summing. On zsh (default macOS shell) it cascades into \"command not found\" errors and produces empty output. Replace with a portable bash function or a small `scripts/classify.sh` shipped with the skill.\n\n5. **Align checkpoint vocabulary with canonical ⏸ CHECKPOINT (was Task 54):** Audit-review's existing `_in_progress_<range>.md` STOP-checkpoint predates the canonical Batched Execution rule. Ensure SKILL.md uses the ⏸ CHECKPOINT glyph as the rendered marker (the on-disk filename stays — it's the resume artifact). Add cross-reference from `flow-review.md` to `workflow-philosophy.md` § Batched Execution where appropriate.\n\nAll edits target the same SKILL.md plus (potentially) a sibling `scripts/classify.sh` and a one-paragraph touch on `flow-review.md`. Re-sync skills after editing canonical includes.\n",
       "created_at": "2026-05-18",
       "scored_at": "2026-05-18",
+      "cross_repo": []
+    },
+    {
+      "id": 59,
+      "phase": 10,
+      "bundle": "audit_followups",
+      "status": "done",
+      "title": "Merge commit-review into audit-review; pre-merge becomes GitHub-native auto-merge",
+      "scores": {
+        "d": 5,
+        "b": 9,
+        "u": 9
+      },
+      "eff": 1.8,
+      "markers": [],
+      "depends_on": [],
+      "acceptance_criteria": [
+        "plugins/staged-review/skills/commit-review/ removed",
+        "audit-review SKILL.md has Steps 4.5, 5d, 9-extension, 12.5",
+        "plugins/staged-review/templates/auto-merge.md exists with gh pr merge --auto + block-merge-gate.yml content",
+        "grep -rn commit-review over repo + canonical includes returns zero load-bearing hits (CHANGELOG.md prose + historical-task bodies + plugin description changelog mentions allowed)",
+        "marketplace.json staged-review description rewritten to two-tier; metadata.version 1.4.0 → 1.5.0",
+        "Five-phase lifecycle in CLAUDE.md, SKILLS.md, README.md, dev-lifecycle skill (synced from include)",
+        "Task 41 status = 'superseded'",
+        "CHANGELOG.md [Unreleased] entry present"
+      ],
+      "out_of_scope": [
+        "Task 41 (folded into this task — Task 41 status superseded; see this body)",
+        "Designing a tiny watcher script instead of GH-native (rejected; GH-native is one flag)",
+        "Re-enabling Codex code-mutation (Task 43 — orthogonal)"
+      ],
+      "body": "Delete commit-review skill (901 LOC). Pre-merge phase becomes zero-Claude: bot ensemble + CI gate the merge; `gh pr merge --auto --squash --delete-branch` set when PR opens. Bot-comment triage, Linear close-out, acceptance-criteria verification, push-back-default fold into audit-review post-merge. Six-phase lifecycle collapses to five.\n\nRationale: commit-review's harness ceremony (~100k tokens/PR) paid premium for marginal incremental signal over CodeRabbit + Copilot + Codex GH bot + CI. Cloud-agent wake-up loops just relocate the bill (sandbox spin-up + their harness). Both shapes are unjustifiable.\n\nThe `[BLOCK-MERGE]` label remains the manual escape hatch for critical-tier PRs that need pre-merge human review.\n\nSupersedes Task 41 — the GH-native auto-merge mechanism is branch-name-agnostic, so self-authored worktree PRs and cloud-agent PRs use the same path. Task 41's separate \"auto-merge for self-authored worktree PRs\" investigation is no longer needed.\n\nAffected files: plan at ~/.claude/plans/vectorized-seeking-jellyfish.md.\n",
+      "created_at": "2026-05-18",
+      "done_at": "2026-05-18",
+      "scored_at": "2026-05-18",
+      "implemented": "Deleted plugins/staged-review/skills/commit-review/ (901 LOC). Extended audit-review SKILL.md with Step 4.5 (PR+Linear comment resolution), Step 5a bot-as-input integration, Step 5d (3-reasoner bot-finding triage table), Step 9 acceptance-criteria extension, Step 12.5 (Linear close-out). Created plugins/staged-review/templates/auto-merge.md. Updated marketplace.json (1.4.0→1.5.0; staged-review desc three-tier→two-tier; dev-lifecycle desc six-phase→five-phase). 11 canonical includes purged of commit-review refs; delegation-rules.md § Commit-Review Header section deleted. Repo catalogs: CLAUDE.md (skill count 41→40), SKILLS.md, README.md, plugins/staged-review/README.md (commit-review section replaced with GH-native pointer), plugins/dev-lifecycle/README.md + commands + plugin.json (1.0.2→1.1.0), plugins/staged-review/.claude-plugin/plugin.json (1.20.0→2.0.0 major bump for skill deletion). Non-synced skill bodies patched: code-review (Phase Awareness table 6→5), task-driver (six-phase chain + Step 3.5 router refs), elixir-ci-harness (commit-review CI-as-gate → GH-native auto-merge). ROADMAP.md Phase 9 + Phase 10 methodology preambles updated; Future Scope rows referencing commit-review removed. CHANGELOG.md [Unreleased] entry. Task 41 superseded. Tasks 43, 48 bodies refined.",
       "cross_repo": []
     }
   ]

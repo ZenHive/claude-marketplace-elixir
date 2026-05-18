@@ -39,7 +39,7 @@ Even setting aside the suspended-delegation policy above, Codex Cloud's env has 
 
 #### What to ship in the PR (when delegation is restored)
 
-When the runtime gap is fixed and `[CX]` code-mutation delegation resumes, Codex PRs may still ship without full local test evidence depending on what's been restored — the local reviewer (via `staged-review:commit-review`) runs the harness Codex couldn't. Make the reviewer's job easier:
+When the runtime gap is fixed and `[CX]` code-mutation delegation resumes, Codex PRs may still ship without full local test evidence depending on what's been restored — CI runs the harness Codex couldn't, and `audit-review` (deferred, post-merge) does the 5+1-category audit. To hold a PR for pre-merge manual review, add the `[BLOCK-MERGE]` label per `agent-pr-review.md` § "Review Tiering". Make the reviewer's job easier:
 
 - **List acceptance criteria you addressed** in the PR description (one bullet per criterion).
 - **Flag uncertainty explicitly** — "I'm assuming `assert_receive/3` here based on training-data recall; please verify against ExUnit's hex docs."
@@ -139,7 +139,7 @@ The shift this enables:
 - **Push-back becomes the default for harness drift.** When CI flags a format / credo / dialyzer / coverage issue, the reviewer's job is to point the agent at the failing check — not to fix it locally. The cloud agent (Cursor especially, since it has hex.pm + can run mix) iterates against the same CI signal the reviewer sees
 - **Local fix shrinks to the env-constraint exception cases.** Per `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent", local-fix is reserved for items the agent fundamentally can't verify — hex.pm for Codex, Tidewave for Codex (Cursor reaches it via curl), external specs for Codex. CI handles everything else
 
-`staged-review:commit-review` defers to CI status when present (Step 6 reads `gh pr checks` and treats green as the harness-gate signal). When CI is absent, it falls back to running the local harness inline and surfaces a `TODO(setup-ci)` finding pointing at this skill so the next iteration of the PR has CI.
+GH-native auto-merge requires CI status checks to gate against (per `plugins/staged-review/templates/auto-merge.md` § 1 "Branch protection"). When CI is absent, auto-merge cannot fire — the merge falls back to manual `gh pr merge`. File a `TODO(setup-ci)` rmap follow-up pointing at this skill so the next iteration of the PR has CI; `audit-review` Step 9 will surface the gap if it persists.
 
 **Adoption path for delegation-target repos without CI:** copy `templates/harness.yml` from the `elixir-ci-harness` skill into the target repo's `.github/workflows/`, customize the four marked points (branch, MIX_ENV, coverage threshold, integration tag), commit. The next PR push gets the harness check.
 

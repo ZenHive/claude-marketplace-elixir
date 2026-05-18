@@ -51,9 +51,9 @@ Apply these filters **in order** when picking ROADMAP tasks to delegate. The fir
 
 ### Codex Delegation (`[CX]`)
 
-> **🚨 Suspended (Elixir projects).** Codex Cloud can't run `mix` tasks — Erlang/Elixir are pre-installed but off-PATH and `hex.pm` returns 403 through the proxy, so no harness evidence is possible. Tier-2 review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
+> **🚨 Suspended (Elixir projects).** Codex Cloud can't run `mix` tasks — Erlang/Elixir are pre-installed but off-PATH and `hex.pm` returns 403 through the proxy, so no harness evidence is possible. Review-only `[CX]` is also disabled (polling-race failure mode; bot ensemble already covers correctness). Do not create new `[CX]` issues of either flavor — route to `[CSR]` (Cursor). See `cloud-agent-environments.md` § "Codex Cloud → Code-mutation delegation SUSPENDED" for the path back. Criteria below describe what `[CX]` *would* mean if/when delegation resumes.
 
-**When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Local Claude invokes `staged-review:commit-review`; auto-merge fires when 5 preconditions hold (see `delegation-rules.md` § "DON'T AUTO-MERGE PRS"); `audit-review` runs deferred (SessionStart hook flags it).
+**When restored:** flow mirrors the Cursor Delegation Flow below — `team` / `project` / `labels: ["cx-eligible", "<org>/<repo>"]` / `delegate: "Codex"` / status `Todo` / body-as-prompt. Agent wires GH-native auto-merge at PR-open (`gh pr merge <N> --auto --squash --delete-branch`); GitHub gates the merge against branch protection (CI green + no requested-changes + no `[BLOCK-MERGE]` label — see `delegation-rules.md` § "DON'T AUTO-MERGE PRS"); `audit-review` runs deferred (SessionStart hook flags it).
 
 **Marker semantics.** Mark ROADMAP tasks suitable for Codex delegation with `[CX]`. **Default: tasks meeting all criteria are `[CX]` unless there's a stated reason otherwise.** Claude's bias is to grab work; this default is a counterweight.
 
@@ -83,11 +83,13 @@ Same shape as the Codex flow with **broader eligibility** — Cursor's cloud env
 
 2. **Cursor picks it up.** Background Agent transitions `Todo` → `In Progress`, opens a non-draft PR, transitions to `In Review`. Status often stays at `In Progress` (partial-transition failure mode) — don't rely on `In Review` as the readiness signal; PR attachment is authoritative (`agent-pr-review.md` § "Polling for 'Ready for Review'"). **Canonical fix:** `linear-queue.md` § "Status Transitions". **Required:** Cursor's `gh pr create` should NOT use `--draft` — the AI-Guidance "PR opened non-draft → In Review" rule (`linear-queue.md` § "Status Transitions") only fires for non-draft PRs. State this in the issue body's `## Reviewer note`.
 
-3. **Cursor self-validates** — `mix test.json --quiet`, `mix credo --strict`, `mix format --check-formatted`, targeted `mix test test/...`. PRs ship harness-green from Cursor's side. Local `commit-review`'s job is the 5-category audit + acceptance-criteria cross-reference, not "did the harness pass."
+   **Same step also wires up auto-merge.** Immediately after `gh pr create`, the agent runs `gh pr merge <N> --auto --squash --delete-branch`. GitHub queues the merge for when all required checks pass + no `[BLOCK-MERGE]` label. Pre-merge phase is zero-Claude / zero-cloud-agent (see `plugins/staged-review/templates/auto-merge.md`). State this in the issue body's `## Reviewer note`.
+
+3. **Cursor self-validates** — `mix test.json --quiet`, `mix credo --strict`, `mix format --check-formatted`, targeted `mix test test/...`. PRs ship harness-green from Cursor's side. CI re-runs the same checks; `audit-review` (deferred, post-merge) does the 5+1-category audit + acceptance-criteria cross-reference. Pre-merge is zero-Claude.
 
 4. **Push back via Linear comment with `@cursor` mention.** Cursor picks up `@cursor` mentions within ~5 min, amends the PR with a fresh commit, posts confirmation, reruns the harness. See `agent-pr-review.md` § "Wake-Mention Discipline" for placement rules.
 
-5. **Auto-merge on ✅ + green CI** (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"). When all 5 preconditions hold (✅ verdict, green CI, feature branch — not the repo's default, no requested-changes, no `[BLOCK-MERGE]` label), `commit-review` runs `gh pr merge --squash --delete-branch`. Tail ends at branch cleanup; `audit-review` runs deferred (SessionStart hook surfaces unaudited tails; next session batch-clears via `Skill(audit-review) <range>`). If any precondition fails, surface the verdict and stop — user merges manually.
+5. **GH-native auto-merge** (preconditions in `delegation-rules.md` § "DON'T AUTO-MERGE PRS"). `--auto` was wired in step 2; GitHub merges when all required checks pass (CI green + `block-merge-gate / gate` clean) AND no requested-changes review state. Tail ends at branch cleanup; `audit-review` runs deferred (SessionStart hook surfaces unaudited tails; next session batch-clears via `Skill(audit-review) <range>`). To hold a PR for manual review, add the `[BLOCK-MERGE]` label.
 
 ### Plan-Shaped Linear Task Specs
 
@@ -103,8 +105,8 @@ Cloud agents do NOT carry context across sessions. Each pickup is a fresh sessio
 - `test/foo/bar_test.exs` — assert success path + 2 error paths (`:invalid_input`, `:not_found`)
 
 ## Files to NOT modify
-- `ROADMAP.md`, `CHANGELOG.md`, `README.md` (commit-review handles post-merge)
-- `.sobelow-skips` (auto-regenerated; commit-review applies regen at merge)
+- `ROADMAP.md`, `CHANGELOG.md`, `README.md` (`audit-review` updates these post-merge in one `audit(...)` commit)
+- `.sobelow-skips` (auto-regenerated; `audit-review` applies regen in the same `audit(...)` commit)
 
 ## Env constraints
 - Codex Cloud: no hex.pm, no Tidewave, no internet. Use stdlib + already-installed deps.
@@ -213,7 +215,7 @@ The four paths:
 1. **Wait** — keep the queue empty until ROADMAP gets new candidates or in-flight PRs land (often unblocks dependents).
 2. **Pivot LOCAL** — pull the next-highest-Eff ROADMAP task into the local session. Often correct when filter 2 (env constraint) drained the queue.
 3. **Cross-repo** — check sibling-repo ROADMAPs for delegatable tasks. The user's queue is broader than one repo.
-4. **Review-mode** — switch to `staged-review:commit-review` on any in-flight cloud-agent PRs instead of opening more.
+4. **Review-mode** — inspect in-flight cloud-agent PRs via `gh pr view` / `gh pr diff`; if any warrant a manual hold, add the `[BLOCK-MERGE]` label and review per `agent-pr-review.md` § "Review Tiering". Audit-review picks up the rest post-merge.
 
 Same shape as `critical-rules.md` § "NO EVASION — SIT WITH THE HARD THING": when the easy path violates a constraint, sit with it, name it, ask. The failure mode this prevents: reaching past the eligibility filter to backfill the queue with tasks that violate filter 2 or 3 — e.g. delegating a dialyzer-required task to a cloud agent whose VM OOMs on dialyzer "because nothing else is available."
 
@@ -227,6 +229,7 @@ Same shape as `critical-rules.md` § "NO EVASION — SIT WITH THE HARD THING": w
 - `flow-review.md` — merge-train mode for 2+ open cloud-agent PRs
 - `cloud-agent-environments.md` — per-agent env reference (hex.pm, mix tasks, Tidewave, HTTP)
 - `delegation-rules.md` § "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS", § "DON'T AUTO-MERGE PRS"
+- `plugins/staged-review/templates/auto-merge.md` — GH-native auto-merge adoption guide (branch protection, `block-merge-gate.yml`, optional auto-undraft action); the canonical reference for the `gh pr merge --auto` step in the Cursor Delegation Flow
 - `task-writing.md` — body-as-prompt; plan-shape vs roadmap-shape distinction
 - `task-prioritization.md` § "Ceremony Floor" — review-time cost-benefit gate; § "Pre-Flight Conflict Detection" here is the delegation-time analogue
 - `critical-rules.md` § "NO EVASION — SIT WITH THE HARD THING" — the discipline Honest-Gap mirrors

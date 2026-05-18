@@ -4,7 +4,7 @@
 > Humans setting up the marketplace: see [README.md](README.md).
 
 This is the agent-facing catalog of every skill: **what it gives you** and **when to invoke it**.
-41 skills across 8 plugins.
+40 skills across 8 plugins.
 
 ## How skills work
 
@@ -31,7 +31,7 @@ This is the agent-facing catalog of every skill: **what it gives you** and **whe
 | Picking up + implementing a roadmap task | `task-driver` |
 | Orienting around the dev lifecycle ("which phase am I in?") | `dev-lifecycle` |
 | Reviewing staged changes before commit | `code-review` |
-| Gating a PR before merge | `commit-review` |
+| Gating a PR before merge | GitHub-native `gh pr merge <N> --auto --squash --delete-branch` + `[BLOCK-MERGE]` label (no skill — see `plugins/staged-review/templates/auto-merge.md`) |
 | Auditing committed code post-merge | `audit-review` |
 | Delegating a task to Codex/Cursor | `agent-dispatch` (start at `linear-workflow` if unsure) |
 | Reviewing a cloud-agent's open PR | `agent-pr-review` |
@@ -73,19 +73,18 @@ This is the agent-facing catalog of every skill: **what it gives you** and **whe
 | [`roadmap-planning`](plugins/elixir/skills/roadmap-planning/SKILL.md) | D/B/U (Difficulty/Benefit/Usefulness) scoring, ROI-based ordering, phase organization, status/marker vocabulary — the framework `rmap` executes | Planning features, organizing refactors, structuring multi-task work |
 | [`rmap`](plugins/task-driver/skills/rmap/SKILL.md) | The roadmap substrate — `roadmap/tasks.toml` is canonical, `ROADMAP.md` + `roadmap/data.json` are rendered. Command surface by intent, D/B/U → `scores` mapping, status/marker vocabulary, migration procedure for hand-edited roadmaps | Picking work (`rmap next`), scoring, changing status/markers, creating tasks (`rmap new`), rendering, or migrating a legacy `ROADMAP.md` |
 | [`task-driver`](plugins/task-driver/skills/task-driver/SKILL.md) | Reads roadmap state via `rmap` (`list` / `next` / `show`), selects by efficiency, implements with TodoWrite tracking, updates all project docs. Two modes: Pickup and Plan-and-File | Starting a work session, picking/implementing roadmap items |
-| [`dev-lifecycle`](plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md) | Canonical six-phase chain reference (task-driver → worktree → bots → commit-review → merge → audit-review) — answers "which phase?", "which skill owns this?" | Orienting around the lifecycle, explaining phase handoffs |
+| [`dev-lifecycle`](plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md) | Canonical five-phase chain reference (task-driver → worktree → bots → merge → audit-review) — answers "which phase?", "which skill owns this?" | Orienting around the lifecycle, explaining phase handoffs |
 | [`portfolio-strategy`](plugins/portfolio-strategy/skills/portfolio-strategy/SKILL.md) | Power-law portfolio rule for **cross-repo** decisions — start/continue/kill a project, where to spend attention | Evaluating portfolio health, deciding the next bet. NOT for within-project prioritization (use `roadmap-planning`) |
 | [`workflow-generator`](plugins/elixir-workflows/skills/workflow-generator/SKILL.md) | Generates customized workflow slash commands (research, plan, implement, qa) for an Elixir project | Setting up a new project's development workflow |
 
 ### Code review chain
 
-Three sibling skills covering pre-commit → pre-merge → post-merge. Same review categories; layers differ in scope, reviewer count, and autonomy. Implementer/reviewer separation is preserved — no agent grades its own work.
+Two sibling skills covering pre-commit and post-merge. Pre-merge is GitHub-native (`gh pr merge --auto` + `[BLOCK-MERGE]` label gate — see `plugins/staged-review/templates/auto-merge.md`). Same review categories across both skills; layers differ in scope, reviewer count, and autonomy. Implementer/reviewer separation is preserved — no agent grades its own work.
 
 | Skill | What it gives you | Invoke when |
 |---|---|---|
 | [`code-review`](plugins/staged-review/skills/code-review/SKILL.md) | Single-reviewer **pre-commit** triage of `git diff --staged` — bugs, missing extractions, TODO markers, abstraction opportunities, doc gaps. Auto-applies rated fixes | Reviewing staged files before committing |
-| [`commit-review`](plugins/staged-review/skills/commit-review/SKILL.md) | **Pre-merge** correctness gate for cloud-agent / self-authored PRs — CI-as-gate, asymmetric push-back, auto-merges feature-branch PRs on ✅ + green CI + preconditions; tail ends at branch cleanup | A PR touches critical-tier paths, or a Tier-1 bot flagged ambiguity |
-| [`audit-review`](plugins/staged-review/skills/audit-review/SKILL.md) | **Post-merge** full audit on committed code — mandatory parallel Codex second opinion, auto-applies hygiene fixes, writes `.audit/<sha>.md`, commits as `audit(...)`. Fully autonomous. **Deferred** — SessionStart hook surfaces unaudited tail (≥3); user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>` | Running post-commit/post-merge review against a commit range |
+| [`audit-review`](plugins/staged-review/skills/audit-review/SKILL.md) | **Post-merge** full audit on committed code — mandatory parallel Codex second opinion, 3-reasoner merge (Claude / Codex / bots), absorbs bot-comment triage + Linear close-out + acceptance-criteria verification, auto-applies hygiene fixes, writes `.audit/<sha>.md`, commits as `audit(...)`. Fully autonomous. **Deferred** — SessionStart hook surfaces unaudited tail (≥3); user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>` | Running post-commit/post-merge review against a commit range |
 
 ### Cloud-agent delegation
 
@@ -164,7 +163,7 @@ A few skills also have slash-command entry points (Claude Code only):
 /plugin marketplace add ZenHive/claude-marketplace-elixir
 /plugin install elixir@deltahedge          # 24 skills + hooks
 /plugin install cloud-delegation@deltahedge # 7 delegation skills
-/plugin install staged-review@deltahedge   # 3-skill review chain
+/plugin install staged-review@deltahedge   # 2-skill review chain (pre-commit + post-merge; pre-merge is GH-native)
 /plugin install task-driver@deltahedge     # task-driver + rmap skills
 # …see README.md for the full plugin list
 ```

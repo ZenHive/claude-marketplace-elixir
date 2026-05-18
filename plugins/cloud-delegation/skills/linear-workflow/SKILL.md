@@ -40,5 +40,5 @@ The Linear-as-queue + cloud-agent delegation workflow is split into four **compo
 
 - `delegation-rules.md` — the hard rules (no-steal, no-auto-merge, comment-posting permission, force-push scope)
 - `cloud-agent-environments.md` — per-agent env reference (hex.pm, mix tasks, Tidewave, external HTTP)
-- `dev-lifecycle.md` — the six-phase development lifecycle this workflow composes into
+- `dev-lifecycle.md` — the five-phase development lifecycle this workflow composes into
 - `worktree-workflow.md` — worktree mechanics the self-authored flow rides on

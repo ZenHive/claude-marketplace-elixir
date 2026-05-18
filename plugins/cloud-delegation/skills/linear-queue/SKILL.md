@@ -92,7 +92,7 @@ Anchor file:line references — reviewer's starting points.
 Anything the local-review session needs — known gotchas, prior context, env caveats.
 ```
 
-`Acceptance criteria` and `Reviewer note` are what make the issue reviewable. Without them, `staged-review:commit-review` can't form a verdict. For cloud-agent-delegated issues, the plan-shaped extension of this template (`Files to modify` / `Files to NOT modify` / `Env constraints` / `Success criteria`) lives in `agent-dispatch.md` § "Plan-Shaped Linear Task Specs".
+`Acceptance criteria` and `Reviewer note` are what make the issue reviewable. `audit-review`'s Step 9 cross-references the acceptance criteria post-merge and files unmet criteria as rmap follow-ups; without them, the post-merge audit can't verify the work shipped what the issue asked for. For cloud-agent-delegated issues, the plan-shaped extension of this template (`Files to modify` / `Files to NOT modify` / `Env constraints` / `Success criteria`) lives in `agent-dispatch.md` § "Plan-Shaped Linear Task Specs".
 
 ### Status Transitions
 
@@ -121,7 +121,7 @@ Cursor (and any other agent reading workspace guidance) picks this up. Codex's b
 **Drafts.** The "PR opened non-draft → In Review" guidance excludes drafts. If agents open PRs with `gh pr create --draft`, the transition doesn't fire until undrafted. Two complementary fixes:
 
 - Agents stop opening drafts (set in issue body's `## Reviewer note`; `agent-dispatch.md` Cursor Delegation Flow Step 2).
-- `commit-review` Step 4 auto-undrafts via `gh pr ready` when CI is green AND the PR is still draft.
+- Optional `auto-undraft.yml` GH Action marks draft PRs ready when the check suite reports success — see `plugins/staged-review/templates/auto-merge.md` § 3.
 
 **Polling as safety net.** Both mechanisms can fail to fire (agent didn't read guidance; GH event arrived during a Linear outage). `agent-pr-review.md` § "Polling for 'Ready for Review'" treats the PR attachment as the authoritative signal — agnostic to status — and is the safety net for both.
 
@@ -134,15 +134,14 @@ Local Claude implementing a Linear-tracked task in a worktree (no cloud-agent di
 | 1. Plan-mode → Linear issue | `task-driver` `ExitPlanMode` approval | `save_issue(team, project, status: Todo, title, body: <plan>)` — no `[CX]`/`[CSR]` marker | (initial issue body) |
 | 2. Pickup (worktree created) | Fresh implementer session creates worktree | `save_comment(issueId, "Picked up — worktree at ~/_DATA/worktrees/<repo>/<id>/")` + status → `In Progress` | One short line, includes the worktree path |
 | 3. PR open | `gh pr create` returns | `save_comment(issueId, "PR #<n> opened: <url>")` + status → `In Review` (or rely on Linear AI Guidance) | One line, includes the PR URL |
-| 4. Pre-merge verdict | `commit-review` reaches verdict | `save_comment(issueId, <verdict summary + decision>)` | Reuses commit-review's verdict-comment shape |
-| 5. Merge | Auto-merge or manual `gh pr merge` | `save_comment(issueId, "Merged at <sha>")` + status → `Done` (or rely on native GH workflow rule) | One line |
-| 6. Audit | Next session runs `Skill(audit-review) <range>` off the SessionStart-hook signal (deferred — next session, not chained off merge); skill writes `.audit/<sha>.md` per merge SHA in range | `save_comment(issueId, "Audited at <audit-sha>: <one-line summary>")` (optional — only post if findings, otherwise the audit commit + `.audit/<sha>.md` is the trail) | One line |
+| 4. Merge | GH-native auto-merge fires (wired at PR-open via `gh pr merge --auto`) when CI green + no requested-changes + no `[BLOCK-MERGE]` label; or user removes `[BLOCK-MERGE]` to release a held PR | `save_comment(issueId, "Merged at <sha>")` + status → `Done` (or rely on native GH workflow rule) | One line |
+| 5. Audit | Next session runs `Skill(audit-review) <range>` off the SessionStart-hook signal (deferred — next session, not chained off merge); skill writes `.audit/<sha>.md` per merge SHA in range; Step 12.5 posts the canonical close-out comment | `save_comment(issueId, "Merged PR #<N>: <title>. audit(<short-sha>) landed. Acceptance criteria: N/N met. Reports: .audit/<short-sha>-<slug>.md.")` (handled by audit-review Step 12.5) | One line (audit-review writes it) |
 
-**Posting permission:** all six rides on `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — DEFAULT-DO during an active delegation flow. No per-comment user gates.
+**Posting permission:** all five rides on `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING DURING DELEGATION FLOWS" — DEFAULT-DO during an active delegation flow. No per-comment user gates.
 
-**Status transitions:** Phase 2 (`In Progress`) and Phase 3 (`In Review`) can be driven by either explicit `save_issue(stateId)` calls or Linear's native AI Guidance + GH integration if configured (§ "Status Transitions"). Phase 5 (`Done`) is owned by Linear's native GH workflow rule when configured; explicit `save_issue` only when the rule didn't fire.
+**Status transitions:** Phase 2 (`In Progress`) and Phase 3 (`In Review`) can be driven by either explicit `save_issue(stateId)` calls or Linear's native AI Guidance + GH integration if configured (§ "Status Transitions"). Phase 4 (`Done`) is owned by Linear's native GH workflow rule when configured; explicit `save_issue` only when the rule didn't fire (audit-review Step 12.5 verifies and transitions explicitly if needed).
 
-**ROADMAP-fallback equivalent.** When Linear is absent, the same six transitions land in the worktree session's commits/PR/audit artifacts: ROADMAP row marker `⬜` → `🔄 task-N` (worktree path in row) → ✅ in the post-merge `audit(<sha>): ...` commit. No `save_comment` calls; the audit commit + `.audit/<sha>.md` is the durable trail.
+**ROADMAP-fallback equivalent.** When Linear is absent, the same five transitions land in the worktree session's commits/PR/audit artifacts: ROADMAP row marker `⬜` → `🔄 task-N` (worktree path in row) → ✅ in the post-merge `audit(<sha>): ...` commit. No `save_comment` calls; the audit commit + `.audit/<sha>.md` is the durable trail.
 
 ### Cross-Repo Coordination
 
@@ -160,7 +159,7 @@ If cross-repo coordination becomes regular (3+ linked issues per month), promote
 
 **Changes vs Linear-backed:** no `mcp__linear-server__*` calls; skip the Linear close-out step (audit-review writes `.audit/<sha>.md` as the durable trail). No Linear `@cursor` / `@codex` push-back channel — push-back goes on the GitHub PR review (line-level findings + scope paragraph in one PR comment), wake-mention discipline adapted to PR-only. No issue body — the ROADMAP row's prompt + the project's CLAUDE.md is the agent's full context, which pushes more weight onto plan-shaped ROADMAP rows.
 
-**Identical:** code-only PRs, plan-shaped specs, deferred post-merge `audit(...)` commit on the repo's default branch (next session runs `Skill(audit-review)` over a range off the SessionStart-hook signal), draft-PR handling, bot ensemble integration in commit-review.
+**Identical:** code-only PRs, plan-shaped specs, deferred post-merge `audit(...)` commit on the repo's default branch (next session runs `Skill(audit-review)` over a range off the SessionStart-hook signal), draft-PR handling, GH-native auto-merge wire-up, bot-finding triage in audit-review Step 5d.
 
 Use this fallback when the project hasn't onboarded Linear, when Linear is intentionally out-of-scope, or as a safety net during MCP outages. Linear is an upgrade-path, not a hard dependency.
 

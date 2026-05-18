@@ -1,6 +1,6 @@
 ---
 name: audit-review
-description: Use when running post-commit or post-merge review against committed (not staged) code. Audits a commit range, applies the 5 review categories + doc-gap category, dispatches mandatory Codex second-opinion in parallel, auto-applies hygiene fixes, writes .audit/<sha>.md reports, and commits as audit(...). Complements code-review (pre-commit) and commit-review (pre-merge cloud PR gate). Language-agnostic. Fully autonomous — zero user gates.
+description: Use when running post-commit or post-merge review against committed (not staged) code. Audits a commit range, resolves each commit's source PR (fetches bot + Linear comments), applies the 5 review categories + doc-gap category, dispatches mandatory Codex second-opinion in parallel, runs 3-reasoner merge (Claude + Codex + bots), auto-applies rated hygiene fixes, cross-references Linear acceptance criteria, performs Linear close-out per linked issue, writes .audit/<sha>.md reports, and commits as audit(...). Complements code-review (pre-commit). Pre-merge is GH-native auto-merge (no skill). Language-agnostic. Fully autonomous — zero user gates.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write, MultiEdit, TaskCreate, Agent, ExitPlanMode
 ---
 
@@ -10,20 +10,20 @@ Walk a commit range. Audit each commit. Auto-apply hygiene fixes. Write a `.audi
 
 ## Phase Awareness
 
-**This skill runs in Phase 6 of 6 (terminal)** in the development lifecycle:
+**This skill runs in Phase 5 of 5 (terminal)** in the development lifecycle:
 
-`task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)`
+`task-driver(1) → worktree(2) → bots(3) → merge(4) → audit-review(5)`
 
-- **Predecessor:** merge (Phase 5) — auto-merge tail of `commit-review` OR user manual `gh pr merge`. The audit pass is deferred — the merge tail ends at branch cleanup; this skill runs separately.
+- **Predecessor:** merge (Phase 4) — GH-native `gh pr merge --auto --squash --delete-branch` (set when PR opens; fires on required checks green + no requested-changes + no `[BLOCK-MERGE]` label). Pre-merge phase is zero-Claude.
 - **Successor:** (terminal — audit commit lands on default branch)
-- **Linear status on entry:** any (typically already `Done` because the deferred audit runs after merge has flipped status)
-- **Linear status on exit:** `Done` confirmed; explicit transition only if not already set
+- **Linear status on entry:** any (typically already `Done` because the deferred audit runs after merge has flipped status); this skill performs the close-out (Step 12.5) when it didn't fire automatically.
+- **Linear status on exit:** `Done` confirmed; one closing comment per Linear-linked PR in the batch.
 
 | Layer | Skill | Input | Trigger | Human gates |
 |---|---|---|---|---|
 | Pre-commit (Phase 2 sub-phase) | `code-review` | `git diff --staged` | Implementer about to commit | One: exit-plan-to-apply |
-| Pre-merge (Phase 4) | `commit-review` | `gh pr diff <n>` | Linear queue / `gh pr list` + open PR | Zero (feature-branch PRs auto-merge on ✅ + green CI + 5 preconditions) |
-| Post-merge (Phase 6, this skill) | **`audit-review`** | `git log <range>` | Deferred — `staged-review` SessionStart hook surfaces unaudited tails (≥3 commits past last `audit(...)` ancestor); user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>` | **Zero** |
+| Pre-merge (Phase 4) | none — GH-native | `gh pr merge --auto` set at PR open | Required checks green + no requested-changes + no `[BLOCK-MERGE]` | Zero (manual hold via `[BLOCK-MERGE]` label) |
+| Post-merge (Phase 5, this skill) | **`audit-review`** | `git log <range>` + each commit's PR + Linear context | Deferred — `staged-review` SessionStart hook surfaces unaudited tails (≥3 commits past last `audit(...)` ancestor); user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>` | **Zero** |
 
 `audit-review` shares Categories 1-6 and the Codex dispatch payload with `code-review`. The differences are:
 
@@ -39,20 +39,25 @@ Walk a commit range. Audit each commit. Auto-apply hygiene fixes. Write a `.audi
 
 WHAT THIS SKILL DOES:
   - Walk a commit range (default: HEAD back to the last `audit(...)` commit)
-  - Per commit, apply the 5 review categories + Category 6 (doc gaps)
+  - Per commit, **resolve source PR** (squashed `(#NNN)` in subject OR `gh search prs --merge-commit <sha>`) and fetch PR + Linear comments (Step 4.5)
+  - Per commit, apply the 5 review categories + Category 6 (doc gaps), **with bot review comments (CodeRabbit / Copilot / Codex GH bot) treated as third-reasoner inputs to Cat 1 + Cat 6**
   - Dispatch `codex:codex-rescue` in parallel for second-opinion findings
+  - **3-reasoner merge** (Claude + Codex + bots) with corroboration-count = confidence; ≥2-reasoner agreement auto-applies, single-bot bugs file as rmap follow-ups (Step 5d)
   - Auto-apply rated 3-10 + actionable + `discuss-trivial` findings
+  - **Cross-reference Linear acceptance criteria** for each PR; unmet criteria file as rmap follow-ups (Step 9 extension)
   - Auto-resolve `discuss-design` via Claude+Codex dialogue: convergence applies, divergence drops the finding from auto-apply and files it as a ROADMAP candidate
   - Write `.audit/<short-sha>-<slug>.md` per audited commit
   - Auto-commit one `audit(...)` covering the batch
-  - Tiny-commit fast path (≤100 LOC + no `lib/`): 3-line audit, no Codex dispatch
+  - **Linear close-out** at batch tail (Step 12.5): verify Done state for each Linear-linked PR, post ONE closing comment per issue
+  - Tiny-commit fast path (≤100 LOC + no `lib/`): 3-line audit, no PR resolve, no Codex dispatch
 
 WHAT THIS SKILL DOES NOT DO:
   - Review staged or in-flight code (use `code-review`)
-  - Review unmerged cloud-agent PRs (use `commit-review`)
+  - **Pre-merge review** — pre-merge phase is GH-native auto-merge only (`gh pr merge --auto`); audit-review runs post-merge exclusively. Manual hold via `[BLOCK-MERGE]` label on the PR
   - Ask the user for per-finding approval (the audit commit IS the approval surface — revert to disagree)
   - Escalate `discuss-design` divergence to the user mid-run (drop + file as ROADMAP follow-up, surface in summary)
   - Push the audit commit (the user pushes when ready, same as any other commit)
+  - Push back to the cloud agent (no live channel post-merge; correctness gaps file as rmap follow-ups for the next iteration)
 
 **The audit commit is the inspectable artifact.** Every fix, every doc edit, every `.audit/` report lands in one commit. `git show <audit-sha>` shows exactly what the audit changed. `git revert <audit-sha>` undoes the whole batch in one step. This is the load-bearing reason there's no plan-mode gate — the user audits *after* the fact, with full diff + report context, instead of reviewing edit-by-edit before they apply.
 
@@ -63,25 +68,31 @@ digraph audit_review {
   rankdir=TB;
   node [shape=box];
 
-  resolve  [label="1. Resolve range\n`git log <range>` → list of commits\nDefault: HEAD..last-audit() exclusive"];
-  classify [label="2. Per commit, classify\nTiny? (≤100 LOC + no lib/)\n→ fast path\nElse → full audit"];
-  diff     [label="3. Read full diff\n`git show <sha>` for each non-tiny commit"];
-  roadmap  [label="4. Read ROADMAP.md once\nfor the whole batch"];
-  cats     [label="5a. Apply Categories 1-6\nidentical to code-review"];
-  codex    [label="5b. Dispatch codex:codex-rescue\nin parallel for each non-tiny commit"];
-  merge    [label="6. Merge findings\n(Codex-only items default to discuss\nuntil verified)"];
-  rate     [label="7. Rate findings\n1-10 / discuss-trivial / discuss-design"];
-  table    [label="8. Present per-commit findings\n(informational, no plan mode)"];
-  apply    [label="9. Auto-apply\nrated 3-10 + actionable + discuss-trivial\n(no exit-plan gate)"];
-  dialogue [label="10. Auto-resolve discuss-design\nClaude+Codex dialogue\nConvergence → apply\nDivergence → drop + file ROADMAP"];
-  report   [label="11. Write .audit/<sha>.md per commit"];
-  commit   [label="12. Auto-commit `audit(...)`\nbatch of fixes + reports"];
-  summary  [label="13. Summary\nper-commit verdict\n+ ROADMAP-filed divergence findings"];
+  resolve   [label="1. Resolve range\n`git log <range>` → list of commits\nDefault: HEAD..last-audit() exclusive"];
+  classify  [label="2. Per commit, classify\nTiny? (≤100 LOC + no lib/)\n→ fast path\nElse → full audit"];
+  diff      [label="3. Read full diff\n`git show <sha>` for each non-tiny commit"];
+  roadmap   [label="4. Read ROADMAP.md once\nfor the whole batch"];
+  pr_ctx    [label="4.5. Per commit, resolve source PR\n+ fetch PR + Linear comments\n(bot reviews → Step 5a inputs;\nacceptance criteria → Step 9 extension)"];
+  cats      [label="5a. Apply Categories 1-6\n(bots as 3rd reasoner for Cat 1 + Cat 6)"];
+  codex     [label="5b. Dispatch codex:codex-rescue\nin parallel for each non-tiny commit"];
+  triage    [label="5d. Bot-finding triage\n(uncorroborated bot findings →\napply / rmap follow-up / drop)"];
+  merge     [label="6. 3-reasoner merge\nClaude + Codex + bots\n(corroboration-count = confidence)"];
+  rate      [label="7. Rate findings\n1-10 / discuss-trivial / discuss-design"];
+  table     [label="8. Present per-commit findings\n(informational, no plan mode)"];
+  apply     [label="9. Auto-apply\nrated 3-10 + actionable + discuss-trivial\n+ acceptance-criteria check\n(unmet → rmap follow-up)"];
+  dialogue  [label="10. Auto-resolve discuss-design\nClaude+Codex dialogue\nConvergence → apply\nDivergence → drop + file ROADMAP"];
+  report    [label="11. Write .audit/<sha>.md per commit\n(per-PR bot triage + Linear context recorded)"];
+  commit    [label="12. Auto-commit `audit(...)`\nbatch of fixes + reports"];
+  closeout  [label="12.5. Linear close-out\nverify Done, post 1 closing comment\nper Linear-linked PR"];
+  summary   [label="13. Summary\nper-commit verdict\n+ ROADMAP-filed divergence findings\n+ Linear close-out result"];
 
-  resolve -> classify -> diff -> roadmap -> cats -> merge;
+  resolve -> classify -> diff -> roadmap -> pr_ctx -> cats -> merge;
   roadmap -> codex -> merge;
+  pr_ctx -> codex [label="bots in payload"];
+  pr_ctx -> triage;
+  triage -> merge;
   classify -> report [label="fast-path"];
-  merge -> rate -> table -> apply -> dialogue -> report -> commit -> summary;
+  merge -> rate -> table -> apply -> dialogue -> report -> commit -> closeout -> summary;
 }
 ```
 
@@ -137,7 +148,7 @@ PROD_FILES=$(git show --name-only --format='' "$SHA" | grep -cE '^(lib|src)/')
 
 **Override:** the user can force full audit on a tiny commit via `/staged-review:audit-review --full HEAD~1..HEAD` (treat the `--full` flag as a directive to skip the fast-path classification). Default is fast-path; full is opt-in.
 
-**Why `lib/`:** changes to docs, configs, tests, READMEs don't ship code to runtime. The 5+1 categories deliver value on production-code paths (control flow, abstractions, TODO discipline, doc drift). Skipping audit on non-production paths = skipping an audit that wouldn't have found anything. Mirrors `commit-review` Step 5.5's identical heuristic.
+**Why `lib/`:** changes to docs, configs, tests, READMEs don't ship code to runtime. The 5+1 categories deliver value on production-code paths (control flow, abstractions, TODO discipline, doc drift). Skipping audit on non-production paths = skipping an audit that wouldn't have found anything.
 
 ### Step 3: Read the Full Diff (Non-Tiny Commits)
 
@@ -157,6 +168,68 @@ Read `ROADMAP.md` (or the project's equivalent task doc) **once at the start of 
 - Which tasks are still ⬜ (so a commit that completes one and doesn't flip ROADMAP becomes a Category 6 finding)
 
 If the project has no ROADMAP.md (per `linear-queue.md` § "ROADMAP-Fallback Flow"), proceed without it — Category 6 still catches CHANGELOG / CLAUDE.md / README drift; only the ROADMAP-status-flip findings are absent.
+
+### Step 4.5: Resolve Source PR + Fetch PR + Linear Comments (Per Non-Tiny Commit)
+
+For each non-tiny commit in the range, resolve its source PR and pull bot + Linear context. Bot review comments (CodeRabbit / Copilot / Codex GH bot) become third-reasoner inputs to Step 5a (Cat 1 + Cat 6). Linear acceptance criteria drive Step 9's extension.
+
+**Resolve the PR number:**
+
+```bash
+# 1) Squashed-merge convention: "(#NNN)" in commit subject
+PR_NUM=$(git log -1 --format=%s "$SHA" | grep -oE '\(#[0-9]+\)' | tr -d '(#)')
+
+# 2) Fallback: ask GitHub which PR this merge SHA closed
+[ -z "$PR_NUM" ] && PR_NUM=$(gh search prs --merge-commit "$SHA" --json number --jq '.[0].number // empty')
+
+# 3) Direct push to default branch (no PR) — file a Cat 6 finding (priority 4):
+#    "direct-push, no PR review trail" — skip the rest of Step 4.5 for this commit
+```
+
+**When a PR is found, fetch PR + Linear surfaces in one batch:**
+
+```bash
+OWNER_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+
+# GitHub PR — title, body, reviews (Copilot/CodeRabbit summary + state), labels, top-level comments
+gh pr view "$PR_NUM" --json title,body,headRefName,reviews,comments,labels,statusCheckRollup
+
+# Line-level review comments (inline bot + human comments on diff lines)
+gh api "repos/${OWNER_REPO}/pulls/${PR_NUM}/comments"
+
+# Linear issue link, if PR body or branch name contains an identifier (e.g., MW-247)
+ISSUE_ID=$(gh pr view "$PR_NUM" --json body,headRefName \
+  --jq '.body + " " + .headRefName' | grep -oE '[A-Z]+-[0-9]+' | head -1)
+
+if [ -n "$ISSUE_ID" ] && have_linear_mcp; then
+  # Linear issue body has acceptance criteria; comments have user clarifications / scope amendments
+  mcp__linear-server__get_issue with id="$ISSUE_ID"
+  mcp__linear-server__list_comments with issueId="$ISSUE_ID"
+fi
+```
+
+**Cache per PR.** If the batch has multiple commits per PR (rebase-merge), one fetch per PR number. Squash-merge is one commit ↔ one PR — no caching needed.
+
+**Per-commit context object** (carry into Steps 5a, 5d, 9, 12.5):
+
+```
+{
+  pr_num:                 int | null,
+  pr_title:               string,
+  pr_body:                string,
+  pr_labels:              [string],
+  bot_reviews:            [{author, state, body}],          # PR-level
+  bot_inline_comments:    [{author, path, line, body}],     # line-level
+  linear_issue_id:        string | null,
+  linear_state:           string | null,
+  linear_acceptance:      [string] | null,                  # parsed from issue body
+  linear_comments:        [{author, body}] | null,
+}
+```
+
+**Bot identification.** Treat as bot any author matching `coderabbit`, `copilot`, `codex`, `github-actions[bot]`, `<botname>[bot]`. Human reviewers' comments feed Step 5a like any other reviewer note — but their findings are NOT subject to Step 5d's bot triage (humans aren't reasoners in the corroboration count).
+
+**No-PR commits.** Direct pushes to the default branch (no PR), or commits the search can't resolve, get a Cat 6 finding `priority: 4` in `.audit/<sha>.md`: "direct-push commit; no PR review trail recorded — consider PR workflow per worktree-workflow.md".
 
 ### Step 5a: Apply Review Categories (Claude)
 
@@ -191,6 +264,16 @@ For each non-tiny commit, walk the 5+1 categories from `code-review` Step 3a. Id
 - Cosmetic doc nit → **1-2** (skip unless trivial)
 
 **Don't invent activity.** If the commit doesn't clearly complete a tracked task, don't flip ROADMAP. If you can't summarize the commit in one CHANGELOG line without speculation, mark `discuss` instead of fabricating.
+
+**Bot review comments as Cat 1 / Cat 6 inputs.** From Step 4.5, the per-commit context has `bot_reviews[]` and `bot_inline_comments[]`. Treat each as a candidate finding:
+
+- **Line-level bot comment on a code-path file:** candidate Cat 1 (bug / logic) or Cat 2 (extraction) depending on body text.
+- **Line-level bot comment on a doc file or `@doc`/`@spec`:** candidate Cat 6 (doc gap).
+- **PR-level bot review summary:** scan for itemized findings; each maps to a category by content.
+
+**Cite-and-skip dedupe** (same shape as `code-review` Step 5 cite-and-skip): when Claude's own audit and a bot agree on a finding, surface ONE row with attribution `also flagged by <bot>`. Don't double-count. When Claude disagrees with a bot, mark `discuss-trivial` and record both positions in `.audit/<sha>.md`. Bot findings without Claude OR Codex corroboration drop through to **Step 5d** for triage (don't auto-apply, don't drop silently).
+
+**Forbidden:** silently dropping a bot-flagged bug because Claude's confidence filter didn't trigger on the same input. The whole reason bots are reasoners here is that they catch what Claude's confidence filter under-flags. If a bot flagged it as a bug and Claude can't reproduce, Step 5d files it as an rmap follow-up — never drop.
 
 ### Step 5b: Dispatch Codex Second-Opinion (Required, Parallel with 5a)
 
@@ -248,13 +331,66 @@ Identical structure to `code-review`'s "Dispatch Payload" (search `staged-review
 
 This is load-bearing. Without the inventory, Codex's over-flagging surge dominates and the audit corpus fills with noise.
 
-### Step 6: Merge Claude + Codex Findings
+### Step 5d: Bot-Finding Triage (Uncorroborated Bot Findings Only)
 
-Per commit, combine both result sets into a single findings list:
+After Steps 5a + 5b complete, partition `bot_reviews[]` + `bot_inline_comments[]` from Step 4.5 into:
 
-- **Corroborated** (both raised it) — collapse to one row. Highest-confidence findings.
-- **Claude-only** — keep as-is with the rating Claude assigned.
-- **Codex-only** — tag the description with `(codex)`. Default priority to `discuss` until verified against the actual code. Verification means open the file, confirm the claimed symbol / invariant / behavior exists. Per `critical-rules.md`: Codex findings frequently cite nonexistent functions, wrong imports, or mis-stated invariants — treat as suggestions to investigate, never facts to accept.
+- **Corroborated** — at least one of {Claude (Step 5a), Codex (Step 5b)} raised the same finding. Already handled by Step 6's merge — collapse with `also flagged by <bot>` attribution.
+- **Uncorroborated** — only the bot raised it. Apply the triage table below.
+
+| Bot finding shape | Corroboration | Action |
+|---|---|---|
+| Bug / correctness flagged by **≥2 bots** | bot+bot | **Auto-apply** (rated 7; high-confidence corroboration is structurally identical to Claude+Codex agreement) |
+| Bug / correctness flagged by **1 bot**, Claude+Codex agree it's real on verification | post-dispatch | **Auto-apply** (rate by severity per Step 7 scale) |
+| Bug / correctness flagged by **1 bot**, Claude+Codex disagree | single | **File as rmap follow-up** — could be false positive; next iteration cycle picks up. NEVER drop silently |
+| Hygiene / doc gap flagged by **any bot** | any | **Auto-apply** (rated 3-5; low risk, mechanical fix) |
+| Cosmetic / nit flagged by **1 bot** (style, wording, formatting) | single | **Drop** with one-line rationale in `.audit/<sha>.md` |
+| Bot finding on a file outside the commit diff | n/a | **Drop** — not this audit's scope |
+
+**Corroboration count = confidence.** Two bots agreeing is the same shape as Claude+Codex agreement; the merge pipeline (Step 6) treats them uniformly. The two principles:
+
+1. **Bugs are never silently dropped.** Single-bot bug → rmap follow-up. Always.
+2. **Cosmetic single-bot findings drop.** Bots over-flag nits; auto-applying every bot suggestion bloats the audit commit.
+
+**rmap follow-up filing.** When this step files a follow-up:
+
+```
+rmap new --from-stdin <<TOML
+[[task]]
+phase = <project's audit_followups phase or current phase>
+bundle = <audit_followups bundle>
+status = "pending"
+title = "Audit-surfaced: <bot finding title>"
+scores = { d = ?, b = ?, u = ? }   # leave for user's next prioritization pass
+body = """
+<bot name> flagged in PR #<N>: <verbatim quote of bot comment>.
+Claude+Codex did not corroborate; filed as rmap follow-up pending verification.
+Filed by audit-review against commit <short-sha> on <YYYY-MM-DD>; see .audit/<short-sha>-<slug>.md.
+"""
+TOML
+```
+
+The follow-up filing happens inside the same audit commit (Step 12) — `roadmap/tasks.toml`, `ROADMAP.md`, `roadmap/data.json` all land together. Same shape as `discuss-design` divergence filing.
+
+### Step 6: Merge Claude + Codex Findings (Now 3-Reasoner)
+
+Per commit, combine findings from **three reasoners** — Claude (5a), Codex (5b), and bots (Step 4.5 + 5d). The reasoners are treated uniformly in the merge: corroboration count = confidence.
+
+**Merge rules:**
+
+| Source mix | Action |
+|---|---|
+| Corroborated by **≥2 reasoners** (any two of Claude / Codex / ≥1 bot) | Collapse to one row. Highest confidence. Pick the most specific description. Tag attribution: `also flagged by <other reasoners>` |
+| **Claude-only** | Keep with Claude's rating |
+| **Codex-only** | Tag `(codex)`. Default priority to `discuss` until verified against actual code (open file, confirm claimed symbol/invariant exists). Per `critical-rules.md`: Codex frequently cites nonexistent functions / wrong imports — treat as suggestions, never facts |
+| **Single-bot bug, no Claude/Codex agreement** | Routed through Step 5d triage — file as rmap follow-up (don't auto-apply, don't drop) |
+| **Single-bot hygiene** | Routed through Step 5d triage — auto-apply (low risk) |
+| **Single-bot cosmetic** | Routed through Step 5d triage — drop with one-line rationale |
+| **Bot + Claude/Codex agreement** | Treated as corroborated (≥2 reasoners); collapse |
+
+**Why bots count as reasoners.** CodeRabbit, Copilot, and Codex's GH bot run on every PR for free and produce high-signal Cat 1 + Cat 6 findings (cartouche audit observation: the 3-bot ensemble caught every substantive code-correctness defect Tier-2 review independently caught at critical tier). Treating them as reasoners — instead of a separate triage pass — keeps the merge logic uniform and lets corroboration-count drive auto-apply confidence.
+
+**Codex-only override on bot agreement.** If a bot agrees with a Codex-only finding (and Claude didn't raise it), promote from `(codex) discuss` to **corroborated** — the bot agreement is independent verification.
 
 ### Step 7: Rate Each Finding
 
@@ -316,6 +452,38 @@ Applies in this order, deterministic across runs:
 Skip priority 1-2 cosmetic findings unless the fix is a single-line trivial edit (typo in a doc string, wrong word in an error message). Cosmetic noise dilutes the audit corpus.
 
 ROADMAP status flips go through `rmap status <id> done` (rmap re-renders `ROADMAP.md` + `roadmap/data.json`) — never a hand-edit to `ROADMAP.md`. Delegation markers (`cx` / `csr`) live on the `[[task]]` entry in `roadmap/tasks.toml` and persist across the status change automatically; the rendered `[CX]` / `[CSR]` notation is preserved by construction. See `rmap.md`.
+
+**Acceptance-criteria cross-reference** (per commit with a Linear-linked PR from Step 4.5). For each criterion in `linear_acceptance[]`:
+
+| Result | Action |
+|---|---|
+| ✅ Met by the merged code | Record in `.audit/<sha>.md` (Findings table — category `acceptance`, no fix needed) |
+| ❌ Not met (verifiable gap) | **File as rmap follow-up** — task title `Audit-surfaced: PR #<N> — unmet criterion <N>`, body quotes the criterion verbatim + the gap + filed-by line. No auto-fix attempt — the next iteration cycle picks it up |
+| ❓ Ambiguous criterion (wording unclear or scope drift) | Record in `.audit/<sha>.md` only. No rmap task — avoid speculation |
+
+**rmap filing shape** (same envelope as Step 5d's filings):
+
+```
+rmap new --from-stdin <<TOML
+[[task]]
+phase = <project's audit_followups phase>
+bundle = <audit_followups bundle>
+status = "pending"
+title = "Audit-surfaced: PR #<N> — unmet criterion <short summary>"
+scores = { d = ?, b = ?, u = ? }   # leave for user
+body = """
+PR #<N> (<title>) merged with this acceptance criterion unmet:
+
+> <verbatim criterion>
+
+Gap: <one sentence on what's missing or wrong>.
+
+Filed by audit-review against commit <short-sha> on <YYYY-MM-DD>; see .audit/<short-sha>-<slug>.md.
+"""
+TOML
+```
+
+Skip the entire acceptance-criteria check for commits without `linear_issue_id` (no Linear link) or without parseable `linear_acceptance[]` (issue body had no criteria section).
 
 ### Step 10: Auto-Resolve `discuss-design` via Claude+Codex Dialogue
 
@@ -453,6 +621,44 @@ Dropped to ROADMAP (discuss-design divergence):
 
 **Don't skip git hooks (`--no-verify`).** If the project has a pre-commit hook that flags something in the staged audit files, fix the underlying issue and recommit (a NEW commit, not `--amend`). Per `critical-rules.md` § "🚨 FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH".
 
+### Step 12.5: Linear Close-Out (Batch Tail)
+
+After the `audit(...)` commit lands, post one closing comment per Linear-linked PR in the batch. Skip this step entirely when **either** holds:
+
+- No Linear MCP available (gh-only mode — same detection as Step 4.5)
+- No PRs in the batch had a resolved `linear_issue_id`
+
+**Collect unique Linear issue IDs** from Step 4.5's per-commit contexts. For each:
+
+```
+mcp__linear-server__get_issue with id=$ISSUE_ID
+```
+
+Branch on current state:
+
+| `linear_state` | Action |
+|---|---|
+| `Done` | Skip transition; post closing comment |
+| `In Review` | Transition to `Done` via `save_issue` (look up Done state-id once via `list_issue_statuses` filtered by team); then post closing comment |
+| `In Progress` | Transition to `Done`; post closing comment with a note `(state was In Progress — cloud-agent auto-transition didn't fire; transitioned by audit-review)` |
+| Anything else | Don't transition; post comment as-is and surface in Step 13 summary |
+
+**Closing comment shape** (one comment per Linear issue, regardless of how many commits in the batch touched it):
+
+```
+Audit complete — PR #<N> merged.
+
+audit(<short-sha>) landed; reports: .audit/<short-sha>-<slug>.md.
+Acceptance criteria: <N>/<M> met. <if gaps:> Filed as rmap follow-ups: <list of new task IDs>.
+Bot findings triaged: <K> auto-applied, <J> filed as rmap follow-ups, <I> dropped.
+
+This issue is now Done.
+```
+
+**Auto-post per `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING".** Surface in one short line ("Posting close-out to MW-247"), then `mcp__linear-server__save_comment` immediately. Don't gate on user approval.
+
+**If `save_comment` fails** (Linear API hiccup, missing permissions), surface the failure in Step 13's summary with the issue ID + the comment body so the user can post manually. Don't retry indefinitely.
+
 ### Step 13: Summarize
 
 After the audit commit, output a summary block. Honest verdict per commit, no embellishment:
@@ -495,7 +701,7 @@ For projects still on a hand-edited `ROADMAP.md` (pre-rmap migration), fall back
 
 ## Tiny-Commit Fast Path
 
-Mirrors `commit-review`'s tiny-PR fast path. Triggered when **both** hold:
+Triggered when **both** hold:
 - LOC < 100 (additions + deletions)
 - 0 files under `lib/` (or `src/`, language equivalent — configurable per-repo via `.audit-review.toml` `production_paths` if present)
 
@@ -534,13 +740,20 @@ The skill runs deferred — it is NOT chained synchronously off any merge or PR-
 | Inventing `.audit/` entries when the commit doesn't actually need them | Every commit in the range gets a `.audit/<sha>.md` (full or fast-path stub). Don't skip "boring" commits to keep the corpus clean — completeness is the corpus's value |
 | Forgetting the closing line on Codex unreachability | Always close with `dual-reviewer pass` or `Codex unreachable — single-reviewer pass [for N of M commits]`. Silent dropping looks like success |
 | Confirming the user before applying findings | The only confirmation gate in this skill is range-too-wide (>50 commits). Per-finding gates contradict the autonomy-first lens — the audit commit is the surface |
+| Treating a single-bot finding as auto-apply candidate | Apply Step 5d triage. Auto-apply requires ≥2-reasoner corroboration (bot+bot, or bot+Claude, or bot+Codex). Single-bot bug → rmap follow-up. Single-bot cosmetic → drop |
+| Silently dropping a bot-flagged bug when Claude's confidence filter didn't trigger | Bugs are never silently dropped. Step 5d routes uncorroborated bot bugs to rmap follow-up. Drop is only for cosmetic single-bot findings |
+| Skipping Linear close-out (Step 12.5) when PRs in batch had Linear issues | Step 12.5 is mandatory whenever Step 4.5 resolved ≥1 `linear_issue_id`. Skip only when no Linear MCP OR no Linear-linked PR in batch |
+| Re-fetching PR comments per commit when batch has multiple commits per PR | Step 4.5 caches by PR number. Rebase-merge can produce multiple commits per PR; squash-merge is 1:1 (no caching needed for squash) |
+| Re-litigating bot findings in Step 5a output | Cite-and-skip dedupe: when Claude agrees with a bot, surface ONE row with `also flagged by <bot>` attribution. Don't double-count |
+| Filing an rmap follow-up for an unmet acceptance criterion AND auto-applying a partial fix in the same audit | Acceptance-criteria gaps are NEVER auto-fixed in audit-review (avoids speculation on user intent). File the follow-up; let the next iteration cycle pick it up |
+| Pre-merge invocation of audit-review | Audit-review is post-merge only. Pre-merge phase is GH-native `gh pr merge --auto` + `[BLOCK-MERGE]` label for manual hold. See `plugins/staged-review/templates/auto-merge.md` |
 
 ## Cross-References
 
 Closely related includes and skills:
 
 - `staged-review:code-review` — pre-commit local-work counterpart. Source of truth for Categories 1-6 prose, Codex dispatch payload, rating scale. Audit-review reuses these by reference; consult `code-review` SKILL.md when an edge case is unclear
-- `staged-review:commit-review` — pre-merge cloud-agent PR gate. Tiny-PR fast path mirrors that skill's Step 5.5 heuristic
+- `plugins/staged-review/templates/auto-merge.md` — GH-native pre-merge replacement (`gh pr merge --auto --squash --delete-branch` + `[BLOCK-MERGE]` label). Pre-merge phase carries zero Claude tokens; this skill absorbs the post-merge work (bot triage, Linear close-out, acceptance-criteria check)
 - `~/.claude/includes/critical-rules.md` § GIT COMMIT / PUSH / PR-CREATE — `audit(...)` commits are auto-allowed inside tracked worktrees AND on `main` (post-merge audit lands on `main` by design, scoped to commits matching `^audit\(`)
 - `~/.claude/includes/critical-rules.md` § "🚨 FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH" — pre-commit hook flags during the audit commit get fixed in a new commit, not bypassed
 - `~/.claude/includes/worktree-workflow.md` § "After PR Merge — `audit-review` Is Deferred" — the deferred trigger model

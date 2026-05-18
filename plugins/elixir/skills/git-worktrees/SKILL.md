@@ -85,11 +85,26 @@ Skill(audit-review) <range>        # batched audit over the accumulated range
 
 **Why deferred, not chained.** Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge, so auditing pre-bot risks re-auditing. The audit commit lands on the default branch where it's durable. Batching N merges into one pass is strictly cheaper than N synchronous passes, and `.audit/<sha>.md` artifacts indexed off merge SHAs in default-branch history remain the canonical inspection surface.
 
+## PR Auto-Merge — Set It When You Open
+
+When opening a PR from a worktree, immediately wire up GitHub-native auto-merge:
+
+```bash
+gh pr create --title "..." --body "..."
+gh pr merge <N> --auto --squash --delete-branch
+```
+
+GitHub holds the merge until all required checks pass (CI green + `block-merge-gate / gate` clean — i.e. no `[BLOCK-MERGE]` label present) AND no requested-changes review state. No Claude / cloud-agent invocation pre-merge — the gate is GH-native.
+
+**To hold a PR for manual review before merging:** `gh pr edit <N> --add-label "BLOCK-MERGE"`. Remove the label to release.
+
+Full adoption guide: `plugins/staged-review/templates/auto-merge.md` (branch protection setup, `block-merge-gate.yml`, optional auto-undraft action).
+
 ## Lifecycle — Cleanup Is Part of Completion
 
 **The work isn't done until the worktree is gone.**
 
-Cleanup trigger: PR merged to base, or feature branch deleted from remote.
+Cleanup trigger: PR merged to base (auto-merge fires from § "PR Auto-Merge"), or feature branch deleted from remote.
 
 ```bash
 # Same session that completes the PR merge:

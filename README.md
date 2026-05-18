@@ -53,22 +53,22 @@ Each phase runs in a **fresh session** with file-based handoffs (`.thoughts/` di
 1. **Plan** → implementation plan with acceptance criteria (`task-driver`)
 2. **Implement** → code + ROADMAP updates (`task-driver`)
 3. **Code Review** → `staged-review:code-review` (pre-commit, any language) → commit
-4. **Pre-merge gate** → `staged-review:commit-review` (cloud-agent PRs only — Cursor / Codex)
+4. **Merge** → GitHub-native `gh pr merge <N> --auto --squash --delete-branch` wired at PR-open; GitHub holds until required checks + no `requested-changes` + no `[BLOCK-MERGE]` label. See `plugins/staged-review/templates/auto-merge.md`
 5. **Post-merge audit** → `staged-review:audit-review` (deferred — SessionStart hook surfaces unaudited tail at ≥3 threshold; user invokes `/staged-review:audit-status` or `Skill(audit-review) <range>`)
 
-### Three-Tier Code Review Chain
+### Two-Tier Code Review Chain
 
-The `staged-review` plugin covers the full pre-commit → pre-merge → post-merge axis with three sibling skills. Same 5+1 categories across all three; layers differ in **scope**, **reviewer count**, and **autonomy**:
+The `staged-review` plugin covers pre-commit and post-merge with two sibling skills. Pre-merge is GitHub-native (`gh pr merge <N> --auto --squash --delete-branch` wired at PR-open; branch protection + `[BLOCK-MERGE]` label gate the merge — zero Claude/cloud-agent tokens). Same 5+1 categories across both skills; layers differ in **scope**, **reviewer count**, and **autonomy**:
 
 | Layer | Skill | When | Scope | Reviewer |
 |---|---|---|---|---|
 | Pre-commit | `code-review` | `git diff --staged` | All 5+1 categories | Single (Claude) — fast triage with auto-apply |
-| Pre-merge | `commit-review` | Cloud-agent PR before merge | Cat 1 + thin slice of Cat 6 | Single (Claude) — narrow correctness gate, auto-merges on ✅ + green CI + 5 preconditions |
-| Post-merge | `audit-review` | Deferred — SessionStart hook surfaces unaudited tail (≥3) / manual `Skill(audit-review) <range>` | All 5+1 categories | **Dual (Claude + mandatory parallel Codex)**, with Claude+Codex dialogue on `discuss-design` — fully autonomous |
+| Pre-merge | _none — GH-native_ | PR open → CI + bots + branch protection | n/a — CI status checks + `[BLOCK-MERGE]` label gate | n/a — humans + bots via `[BLOCK-MERGE]` hold |
+| Post-merge | `audit-review` | Deferred — SessionStart hook surfaces unaudited tail (≥3) / manual `Skill(audit-review) <range>` | All 5+1 categories + bot-finding triage + Linear close-out + acceptance-criteria verification | **Dual (Claude + mandatory parallel Codex) + bots as 3rd reasoner**, with Claude+Codex dialogue on `discuss-design` — fully autonomous |
 
-The expensive dual-reviewer work (parallel Codex dispatch + Claude+Codex dialogue) lives only in `audit-review`. Pre-commit and pre-merge stay fast and single-reviewer. Every commit reaches the dual-reviewer pass eventually — the SessionStart hook flags accumulated tails, batched audit passes cover the range — so duplicating it pre-commit would be redundant work on the same code.
+The expensive dual-reviewer work (parallel Codex dispatch + Claude+Codex dialogue) lives only in `audit-review`. Pre-commit stays fast and single-reviewer. Every commit reaches the dual-reviewer pass eventually — the SessionStart hook flags accumulated tails, batched audit passes cover the range.
 
-Implementer / reviewer separation is preserved across the chain: each layer is a different session, no agent grades its own work.
+Implementer / reviewer separation is preserved across the chain: each layer is a different session, no agent grades its own work. See `plugins/staged-review/templates/auto-merge.md` for branch-protection + `[BLOCK-MERGE]` setup.
 
 ## Available Plugins (10)
 
@@ -82,7 +82,7 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 | [git-commit](./plugins/git-commit/README.md) | Intelligent git commit workflow with AI-powered file grouping |
 | [portfolio-strategy](./plugins/portfolio-strategy) | Power-law portfolio rule — cross-repo decision framework |
 | [cloud-delegation](./plugins/cloud-delegation/README.md) | Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow |
-| [dev-lifecycle](./plugins/dev-lifecycle/README.md) | Canonical reference for the six-phase development lifecycle |
+| [dev-lifecycle](./plugins/dev-lifecycle/README.md) | Canonical reference for the five-phase development lifecycle |
 
 **Elixir/Phoenix plugins**:
 
@@ -92,18 +92,18 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns — setup and Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Workflow-command generator for other Elixir projects |
 
-## Skills (41)
+## Skills (40)
 
-41 skills across 8 plugins. For the full **agent-facing catalog** — what each skill does and when to invoke it — see **[SKILLS.md](SKILLS.md)**.
+40 skills across 8 plugins. For the full **agent-facing catalog** — what each skill does and when to invoke it — see **[SKILLS.md](SKILLS.md)**.
 
 | Plugin | Skills | Focus |
 |--------|--------|-------|
 | [elixir](./plugins/elixir/README.md) | 24 | Setup & tooling, research, testing, JS-on-BEAM, static analysis, API design |
 | [cloud-delegation](./plugins/cloud-delegation/README.md) | 7 | Linear-as-queue + cloud-agent (Codex/Cursor) delegation chain |
-| [staged-review](./plugins/staged-review/README.md) | 3 | Pre-commit → pre-merge → post-merge review chain |
+| [staged-review](./plugins/staged-review/README.md) | 2 | Pre-commit + post-merge review chain (pre-merge is GH-native) |
 | [phoenix](./plugins/phoenix/README.md) | 2 | Phoenix setup + Nexus admin template |
 | [task-driver](./plugins/task-driver/README.md) | 2 | Roadmap-driven task execution + the `rmap` roadmap substrate |
-| [dev-lifecycle](./plugins/dev-lifecycle/README.md) | 1 | Six-phase development lifecycle reference |
+| [dev-lifecycle](./plugins/dev-lifecycle/README.md) | 1 | Five-phase development lifecycle reference |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | 1 | Workflow-command generator |
 | [portfolio-strategy](./plugins/portfolio-strategy) | 1 | Cross-repo power-law portfolio rule |
 

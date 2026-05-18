@@ -511,11 +511,26 @@ Skill(audit-review) <range>        # batched audit over the accumulated range
 
 **Why deferred, not chained.** Bots (CodeRabbit, Copilot, Codex's GitHub bot) run between PR-open and merge, so auditing pre-bot risks re-auditing. The audit commit lands on the default branch where it's durable. Batching N merges into one pass is strictly cheaper than N synchronous passes, and `.audit/<sha>.md` artifacts indexed off merge SHAs in default-branch history remain the canonical inspection surface.
 
+## PR Auto-Merge — Set It When You Open
+
+When opening a PR from a worktree, immediately wire up GitHub-native auto-merge:
+
+```bash
+gh pr create --title "..." --body "..."
+gh pr merge <N> --auto --squash --delete-branch
+```
+
+GitHub holds the merge until all required checks pass (CI green + `block-merge-gate / gate` clean — i.e. no `[BLOCK-MERGE]` label present) AND no requested-changes review state. No Claude / cloud-agent invocation pre-merge — the gate is GH-native.
+
+**To hold a PR for manual review before merging:** `gh pr edit <N> --add-label "BLOCK-MERGE"`. Remove the label to release.
+
+Full adoption guide: `plugins/staged-review/templates/auto-merge.md` (branch protection setup, `block-merge-gate.yml`, optional auto-undraft action).
+
 ## Lifecycle — Cleanup Is Part of Completion
 
 **The work isn't done until the worktree is gone.**
 
-Cleanup trigger: PR merged to base, or feature branch deleted from remote.
+Cleanup trigger: PR merged to base (auto-merge fires from § "PR Auto-Merge"), or feature branch deleted from remote.
 
 ```bash
 # Same session that completes the PR merge:
@@ -579,7 +594,7 @@ A delegation marker means the task is queued for a specific cloud agent's pickup
 - Breaks the at-a-glance promise: another session that opens ROADMAP and sees `[CX]` / `[CSR]` trusts the marker is load-bearing
 
 **How to apply:**
-1. When picking from ROADMAP.md, skip every cloud-agent-delegated row (`[CX]`, `[CSR]`, etc.) unless it's already `🔄 in-review` (those need `commit-review`, not implementation).
+1. When picking from ROADMAP.md, skip every cloud-agent-delegated row (`[CX]`, `[CSR]`, etc.) unless it's already `🔄 in-review` (those need GH-native auto-merge to fire — `gh pr merge --auto` was set when the PR opened — or manual `[BLOCK-MERGE]` review; not local re-implementation).
 2. If you genuinely think a delegated task should be local instead, ask: "Task N is marked `[CX]` (or `[CSR]`) — are you sure you want me to do this rather than delegate?" Don't just execute.
 3. Same discipline shape as `NEVER COMMIT WITHOUT EXPLICIT REQUEST` — the marker is a fence; explicit user override is the gate.
 4. **Per-marker eligibility differs.** Cursor (`[CSR]`) can do strictly more than Codex (`[CX]`) — hex.pm, mix tasks, internet — so the user may have intentionally chosen one over the other. Don't second-guess the marker by reasoning "but Cursor could've done this — let me redirect."
@@ -588,48 +603,48 @@ The marker is load-bearing across every cloud agent in the lineup; adding more a
 
 ## 🚨 DON'T AUTO-MERGE PRS
 
-**Default: never run `gh pr merge` or click-merge equivalents.** Surface the verdict and stop.
+**Default: never run `gh pr merge` synchronously or click-merge in the GitHub UI.** The merge step is GitHub-native via the `--auto` flag, set when the PR opens; preconditions are enforced by branch protection.
 
-### Narrow exception — auto-merge feature-branch PRs when ALL preconditions hold
+### The GH-native auto-merge model
 
-After `staged-review:commit-review` reaches verdict ✅ on a feature-branch PR (any branch that isn't the repo's default — worktree branches, `cursor/*`, `codex/*` all qualify), auto-merge is allowed when ALL FIVE preconditions hold:
-
-1. **✅ verdict** from `commit-review` (no blocker-tier findings).
-2. **Green CI** — `gh pr checks <n>` shows all required checks green.
-3. **Feature branch** — PR head is NOT the repo's default branch (`main` / `master` / `development` — resolve via `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`). Worktree branches, `cursor/*`, `codex/*` all qualify; only PRs whose head IS the default branch are out of scope (which gh wouldn't accept anyway, but stated explicitly).
-4. **No requested-changes** review state from a human reviewer.
-5. **No `[BLOCK-MERGE]` label** on the PR.
-
-If any precondition fails, fall back to surfacing the verdict — user merges manually.
-
-**`[BLOCK-MERGE]` label is the user's manual override.** Add the label to any PR (cloud-agent or self-authored worktree) to pause auto-merge — useful when the verdict reads ✅ but the user wants to inspect manually before shipping (uncertainty, late-arriving context, holding for a coordination batch). Remove the label and re-run `commit-review` (or just `gh pr merge` manually) to ship.
-
-**On auto-merge, end at branch cleanup. Do NOT chain `audit-review`.** The full tail is one command:
+When opening a feature-branch PR (any branch that isn't the repo's default — worktree branches, `cursor/*`, `codex/*` all qualify), the same step runs:
 
 ```
-gh pr merge <n> --squash --delete-branch    # no follow-up — audit-review is deferred
+gh pr create --title "..." --body "..."
+gh pr merge <N> --auto --squash --delete-branch
 ```
 
-`audit-review` runs deferred — the `staged-review` SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold) surfaces accumulated tails next session. Clear via `/staged-review:audit-status` (snapshot) or `Skill(audit-review) <range>` (batched audit).
+GitHub holds the merge until ALL FOUR preconditions are met:
+
+1. **All required status checks green** — including `harness` (or your equivalent CI job) AND `block-merge-gate / gate` (a tiny GH Action that fails when the `[BLOCK-MERGE]` label is present). Configure via branch protection — see `plugins/staged-review/templates/auto-merge.md`.
+2. **No requested-changes** review state from a human reviewer.
+3. **Feature branch** — PR head is NOT the repo's default branch (`main` / `master` / `development`). gh rejects same-branch merges anyway; stated for completeness.
+4. **No `[BLOCK-MERGE]` label** on the PR — this is the manual override, enforced via the `block-merge-gate / gate` required status check.
+
+When all four hold, GitHub merges automatically. Zero Claude / zero cloud-agent invocation pre-merge. Pre-merge phase is GH-native.
+
+**`[BLOCK-MERGE]` label is the manual override.** Add via `gh pr edit <N> --add-label "BLOCK-MERGE"` to pause auto-merge on any PR (cloud-agent or self-authored worktree) — useful when the user wants to inspect manually before shipping (uncertainty, late-arriving context, holding for a coordination batch). Remove via `gh pr edit <N> --remove-label "BLOCK-MERGE"` and auto-merge fires when remaining checks stay green.
+
+**Auto-merge tail ends at branch cleanup.** GitHub's `--auto --delete-branch` deletes the feature branch on merge. Do NOT chain `audit-review` — it runs deferred via the `staged-review` SessionStart hook (`check-unaudited-commits.sh`, ≥3 unaudited threshold). Clear via `/staged-review:audit-status` (snapshot) or `Skill(audit-review) <range>` (batched audit).
 
 ### Forbidden under any condition
 
-- **Force-merge over red CI** — preconditions are non-negotiable.
-- **Merging without `commit-review` running first** — no implicit "looks fine" merges.
+- **Force-merge bypassing branch protection** — preconditions are non-negotiable.
+- **Synchronous `gh pr merge <N>` (without `--auto`)** for cloud-agent PRs or self-authored worktree PRs — wire `--auto` at PR-open time; let GitHub gate it. Synchronous merge is reserved for cases where the user explicitly authorizes it (e.g. removing a `[BLOCK-MERGE]` hold and immediately shipping).
 - **Any human-reviewer `requested-changes` state** — reviewer must explicitly resolve first.
-- **Auto-merge on a different PR after a per-PR approval** — approval is scope-bound to the one PR; preconditions re-run for each.
-- **PRs targeting the default branch from the default branch** — out of scope by definition (and gh wouldn't accept anyway).
+- **Merging a PR whose head IS the default branch** — out of scope by definition (gh rejects).
 
-The six-phase chain (pre-commit `code-review` + bots + pre-merge `commit-review` + deferred post-merge `audit-review`) covers what a manual merge gate previously caught; the five preconditions plus `[BLOCK-MERGE]` are the safety net. Self-authored worktree PRs and cloud-agent PRs follow the same rule — the cloud-agent-vs-self-authored axis is no longer load-bearing under autonomy-first; `.audit/<sha>.md` reports plus `audit(...)` commits are the durable post-merge inspection surface.
+The five-phase chain (pre-commit `code-review` + bots + GH-native merge + deferred post-merge `audit-review`) covers what a synchronous merge gate previously caught. Self-authored worktree PRs and cloud-agent PRs follow the same rule. `.audit/<sha>.md` reports plus `audit(...)` commits are the durable post-merge inspection surface.
 
 ### How to apply
 
-- **After `commit-review` reaches ✅ on a feature-branch PR:** run the 5-precondition check. All hold → `gh pr merge --squash --delete-branch`. Tail ends at branch cleanup; `audit-review` runs deferred (SessionStart hook flags it). One short status line per step. Applies to worktree branches, `cursor/*`, and `codex/*` alike.
-- **If any precondition fails:** surface the merge command and the failing precondition, then stop. User merges (or addresses the failure first — fix CI, resolve requested-changes, remove `[BLOCK-MERGE]`).
-- **Subagents reviewing PRs inherit the preconditions** — explicitly include "auto-merge allowed only when all 5 preconditions hold; otherwise surface verdict" in delegation prompts.
+- **When opening any feature-branch PR:** run `gh pr create` and immediately follow with `gh pr merge <N> --auto --squash --delete-branch`. One short status line per step. Applies to worktree branches, `cursor/*`, and `codex/*` alike.
+- **When the user wants to hold a PR for manual review:** add the `[BLOCK-MERGE]` label. Remove the label when ready to ship.
+- **Subagents opening PRs inherit the auto-merge wire-up** — explicitly include "wire up GH-native auto-merge via `gh pr merge <N> --auto --squash --delete-branch` immediately after `gh pr create`" in delegation prompts.
 
 ### Cross-references
 
+- `plugins/staged-review/templates/auto-merge.md` — GH-native auto-merge adoption guide (branch protection setup, `block-merge-gate.yml`, optional auto-undraft action).
 - `~/.claude/includes/critical-rules.md` § "GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE" — `audit(...)` commits are auto-allowed on the repo's default branch.
 - `~/.claude/includes/delegation-rules.md` § "Force-Push to `cursor/*` Is One-Shot Scope Authorization" — companion autonomy-first loosening for the iteration loop.
 - `staged-review:audit-review` skill — deferred post-merge hygiene + bookkeeping pass; surfaced by `staged-review`'s SessionStart hook, next session runs `Skill(audit-review) <range>` off that signal (`/staged-review:audit-status` is a read-only snapshot the user can run if they want a peek).
@@ -641,7 +656,7 @@ The six-phase chain (pre-commit `code-review` + bots + pre-merge `commit-review`
 **In scope (default DO, no permission ask):**
 - Linear issue comments — `@cursor` / `@codex` summon mentions, push-back paragraphs, evidence-tier asks (Tidewave findings, hex-docs lookups), status-transition narration
 - PR review comments on cloud-agent PRs (`codex/...`, `cursor/...`, future agent branches) — line-level findings, verbatim paste-as-comment fix proposals
-- Linear issue status transitions tied to the flow (`Todo` → `In Progress` on pickup, `In Progress` → `In Review` on PR open, `In Review` → `Done` after merge — user-driven or auto-merge per § "DON'T AUTO-MERGE PRS")
+- Linear issue status transitions tied to the flow (`Todo` → `In Progress` on pickup, `In Progress` → `In Review` on PR open, `In Review` → `Done` after merge — GH-native auto-merge per § "DON'T AUTO-MERGE PRS", or audit-review Step 12.5 close-out)
 
 **Out of scope (still ask first):**
 - Comments on third-party / open-source PRs not in your delegation queue
@@ -662,13 +677,13 @@ Comment-posting must be friction-free for the asymmetric push-back model (`agent
 | Action                                                                        | During active delegation flow |
 |-------------------------------------------------------------------------------|-------------------------------|
 | `git commit` / `git push` (your own branch, outside a tracked worktree)       | ❌ ask first                  |
-| `gh pr merge` — preconditions fail                                            | ❌ ask first                  |
-| `gh pr merge` on a feature-branch PR — all 5 preconditions hold               | ✅ default DO (auto-merge)    |
+| Synchronous `gh pr merge <N>` (without `--auto`)                              | ❌ ask first                  |
+| `gh pr merge <N> --auto --squash --delete-branch` at PR-open time             | ✅ default DO (wire up GH-native auto-merge) |
 | `git push` to `codex/*` branch                                                | ❌ ask first                  |
 | `git push` (incl. `--force`) to `cursor/*` branch                             | 🟡 ask once per branch, then default DO |
 | Linear / cloud-agent-PR comments                                              | ✅ default DO                 |
 
-Commits outside tracked worktrees / `codex/*` branch-pushes / merges with failed preconditions are irreversible-by-default; comments are reversible and ARE the workflow. `cursor/*` force-pushes and feature-branch auto-merge sit between — gated on preconditions, but once preconditions hold, re-asking per-call defeats the loop. The asymmetry is deliberate.
+Commits outside tracked worktrees / `codex/*` branch-pushes / synchronous merges are irreversible-by-default; comments are reversible and ARE the workflow. `cursor/*` force-pushes and GH-native auto-merge wire-up sit between — once authorized (cursor branch in this session; PR opened in a tracked worktree), re-asking per-call defeats the loop. The asymmetry is deliberate.
 
 ## 🚨 NEVER PUSH TO A CLOUD-AGENT'S BRANCH
 
@@ -699,7 +714,7 @@ This is the same shape as the worktree rule in `critical-rules.md` § "GIT COMMI
 
 **Why `cursor/*` and not `codex/*`:** Cursor PRs commonly need local force-pushes to land review fixes on the same branch — Cursor's iteration shape rewards this. Codex PRs follow a different flow where pushing to `codex/*` is rare and risky. Keep Codex strict; loosen Cursor.
 
-**Companion autonomy-first loosening:** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" allows auto-merge on any feature-branch PR (worktree branches, `cursor/*`, `codex/*`) when all 5 preconditions hold — same scope-bound autonomy-first lens. The two loosenings are complementary: cursor-force-push handles the iteration loop, auto-merge handles the merge step.
+**Companion autonomy-first loosening:** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" wires GH-native auto-merge on any feature-branch PR (worktree branches, `cursor/*`, `codex/*`) at PR-open time; GitHub gates the merge against branch protection (CI green + no requested-changes + no `[BLOCK-MERGE]` label). Same scope-bound autonomy-first lens. The two loosenings are complementary: cursor-force-push handles the iteration loop, GH-native auto-merge handles the merge step.
 
 ### In scope (after one-shot authorization for `cursor/<name>`)
 
@@ -722,32 +737,6 @@ This is the same shape as the worktree rule in `critical-rules.md` § "GIT COMMI
 3. **New `cursor/<other>` branch:** treat as fresh scope — ask once, then loosen for that branch.
 4. **Subagents inherit the scope.** When dispatching a subagent that may push to a cursor branch the user already authorized, name the branch in the prompt: *"Force-pushing to `cursor/foo` is pre-authorized for this session; proceed without re-asking."*
 
-## Commit-Review Header
-
-**The rule:** during any `staged-review:commit-review` flow, every assistant reply opens with a one-line bracket header showing the Linear task ID and PR number — the user juggles multiple cloud-agent PRs in parallel and uses chat as a working ledger. Format:
-
-```
-[MW-247 · PR #84] <rest of the reply>
-```
-
-Multiple PRs / tasks in scope:
-```
-[MW-247 · PR #84, MW-251 · PR #87] …
-```
-
-Linear task not yet fetched:
-```
-[task-tbd · PR #84] …
-```
-…and resolve the task ID on the next turn.
-
-**How to apply:**
-- Triggers when the active flow is `staged-review:commit-review` OR when the user is iterating on a specific cloud-agent PR (`codex/...`, `cursor/...`, future agent branches).
-- Header on the FIRST line, before any tool calls or summary text. Tool-call-only turns (no user-facing prose) skip the header.
-- Doesn't apply to general delegation discussion ("which PRs are open?") — only to per-PR review interactions.
-- Compatible with terse mode: header counts as the lead-in, not a preamble violation.
-
-**Override:** user says "stop the headers" or "drop the prefix" → comply, but ask once whether to retire the rule or just suspend for the session.
 
 
 <!-- @-import: ~/.claude/includes/task-prioritization.md -->
@@ -814,7 +803,7 @@ Mark independent tasks with the `parallel` marker (`rmap mark <id> +parallel`, o
 
 ### Ceremony Floor — When NOT to Open a Task
 
-**Scope:** applies to **review-surface findings** (`staged-review:commit-review`, `staged-review:code-review`). Discoveries during `/research`, `/plan`, or implementation follow the discovery-capture rules (file via `rmap new`) — not this floor.
+**Scope:** applies to **review-surface findings** (`staged-review:code-review` pre-commit; `staged-review:audit-review` post-merge). Discoveries during `/research`, `/plan`, or implementation follow the discovery-capture rules (file via `rmap new`) — not this floor.
 
 Findings during code review or PR review have a ceremony floor below which they are NEVER tracked as `rmap` tasks. The roadmap-as-queue earns its overhead only when work spans sessions; an inline `defp` extraction does not.
 
@@ -996,10 +985,11 @@ This file is the **decision layer** — *which* command, *when*. The authoritati
 
 | Intent | Command |
 |---|---|
-| Read one task / many | `rmap show <id> [--json]` · `rmap list --status\|--phase\|--marker\|--bundle [--json]` |
-| Pick the next task | `rmap next [--marker M] [--bundle B] [--count N] [--json]` |
+| Read one task / many | `rmap show <id> [--json]` · `rmap list --status\|--phase\|--marker\|--bundle\|--milestone [--json]` |
+| Pick the next task | `rmap next [--marker M] [--bundle B] [--milestone V] [--count N] [--json]` |
 | Pick a session-sized bundle | `rmap next-bundle [--json]` · `rmap bundles` to discover them |
-| Change status | `rmap status <id> <pending\|in_progress\|blocked\|done\|superseded>` (bulk `1,2,3` atomic) |
+| List release lines / pin to a release | `rmap milestones [--has-next\|--status\|--json]` · `rmap milestone <id> <name\|none>` |
+| Change status | `rmap status <id> <pending\|in_progress\|blocked\|done\|superseded> [--implemented "..."]` (bulk `1,2,3` atomic; `done` requires `implemented`) |
 | Toggle a marker | `rmap mark <id> +parallel -cx` |
 | Add a dependency | `rmap depend <id> on <id>` |
 | Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch) — see `task-writing.md` |
@@ -1011,6 +1001,10 @@ This file is the **decision layer** — *which* command, *when*. The authoritati
 | Render after editing tasks.toml directly | `rmap render` (or `rmap watch` for live re-render) |
 
 All mutators **validate-then-write**: an invalid mutation leaves `tasks.toml` byte-equal to its prior state. `--json` envelopes on the read commands are append-only stable surfaces.
+
+### Batches are derived, not declared
+
+`rmap next-bundle` returns a session-sized **bundle** — a set of related pending tasks. A *batch* is a finer-grained slice of that bundle: the executor groups bundle tasks by `depends_on` into successive layers of disjoint work (per `workflow-philosophy.md` § "Batched Execution"). There is no `rmap batch` command — batch derivation is the executor's job, not the source-of-truth's. Hierarchy: phase ⊇ bundle ⊇ batch ⊇ task.
 
 ### D/B/U mapping
 
@@ -1024,8 +1018,25 @@ Set scores in `tasks.toml` (via `rmap new` or editing the file); never hand-form
 
 ### Status & marker vocabulary
 
-- **status:** `pending | in_progress | blocked | done | superseded` — transitions go through `rmap status`. `blocked` requires a `blocked_reason`.
+- **status:** `pending | in_progress | blocked | done | superseded` — transitions go through `rmap status`. `blocked` requires a `blocked_reason`; `done` requires `implemented` (set inline via `--implemented "..."`, or pre-populated in `tasks.toml`; on a TTY without the flag, `rmap status` prompts). For bulk `rmap status 1,2,3 done`: the mutation is atomic — if any task is missing `implemented` AND no `--implemented` flag is given AND we're not on a TTY, the whole batch is rejected; `--implemented "..."` applies the same string to every task in the batch.
 - **markers:** `parallel | cx | csr | bug | security | docs` — `parallel` is the old `[P]`; `cx` / `csr` are the Codex / Cursor delegation markers.
+- **milestone status:** `pending | active | done` — distinct vocabulary from task status. Flip by hand-editing `[milestones.<name>].status` (no mutator yet); `active` milestones sort first in `rmap milestones` and are the load-bearing affordance for the "what release am I cutting next?" query.
+
+### Milestones — first-class release lines
+
+`[milestones.<name>]` is a fourth top-level concept alongside phases / bundles / markers. **Phase** orders work, **bundle** groups topically, **markers** modify execution, **milestone** pins a task to a release line. Milestones cross phases by design: a `v1.0` cut typically pulls from several phases.
+
+- Author the table in `tasks.toml`: `[milestones.v0_1] name = "..." order = N status = "active" target_version = "0.1.0"`. `target_version` is optional free-text.
+- Pin a task: `rmap milestone <id> v0_1` (or set `milestone = "v0_1"` directly). Unpin: `rmap milestone <id> none`. One milestone per task.
+- Discovery: `rmap milestones` (table view with done/total counts + next-task glyph + active-first sort); `rmap milestones --json` for the agent envelope.
+- Drive a release line: `rmap next --milestone v0_1` returns the next pending task in that release; composes with `--bundle`, `--phase`, `--marker`.
+- `rmap delegate` surfaces the milestone in `## Context` as `- Milestone: v0_1 (target=0.1.0)` so the target agent knows which release ships their work.
+- `rmap render` adds a conditional `🚀 **<milestone>** ·` segment to the task row in `ROADMAP.md` — rows without a milestone render byte-identically to before.
+
+### `body` vs `implemented`
+
+- `body` = original task definition / intent (never mutated after creation — the spec at scoping time).
+- `implemented` = what was actually built and why (required when `status = "done"`; `rmap show` renders both side-by-side as `body (original intent):` / `implemented (what shipped):` when present together). For trivial tasks where delivery matched the spec, `implemented = "as specified in body"` is honest and durable.
 
 ### Pinning an LLM model per task
 
@@ -1039,6 +1050,7 @@ Run `rmap import` — it emits a paste-ready prompt that walks an agent through 
 
 - `task-prioritization.md` — the D/B/U framework, tiers, ceremony floor, exclusions that rmap executes
 - `task-writing.md` — how to write a task's `body` / `acceptance_criteria`; the `rmap new --from-stdin` shape
+- `workflow-philosophy.md` § "Batched Execution" — canonical rule for the batch derivation referenced in § "Batches are derived, not declared"
 
 
 <!-- @-import: ~/.claude/includes/workflow-philosophy.md -->
@@ -2045,7 +2057,7 @@ plugins/
 ├── staged-review/            # Universal code review workflow
 │   ├── .claude-plugin/
 │   │   └── plugin.json
-│   └── skills/               # code-review skill
+│   └── skills/               # code-review, audit-review skills
 ├── task-driver/              # Roadmap-driven task execution
 │   ├── .claude-plugin/
 │   │   └── plugin.json
@@ -2091,7 +2103,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (41 total)
+### Skills (40 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance. The agent-facing catalog (what each does, when to invoke) lives in `SKILLS.md` at the repo root — keep it in sync when adding or removing skills.
 
@@ -2137,13 +2149,12 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands (research, plan, implement, qa) |
 
-**Staged-review plugin** (3 skills):
+**Staged-review plugin** (2 skills):
 
 | Skill | Description |
 |-------|-------------|
 | code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` (deferred). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
-| commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + feature branch + no `requested-changes` + no `[BLOCK-MERGE]` label**; tail ends at branch cleanup |
-| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** **Deferred/batched** — SessionStart hook (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tail; manual `/staged-review:audit-status` for snapshot; manual `Skill(audit-review) <range>` to clear |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, absorbs bot-comment triage (Step 5d, 3-reasoner merge), Linear close-out (Step 12.5), acceptance-criteria verification (Step 9 extension); auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** **Deferred/batched** — SessionStart hook (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tail; manual `/staged-review:audit-status` for snapshot; manual `Skill(audit-review) <range>` to clear |
 
 **Task-driver plugin** (2 skills):
 
@@ -2170,7 +2181,7 @@ The Linear-as-queue + cloud-agent delegation workflow is split into four composa
 
 | Skill | Description |
 |-------|-------------|
-| dev-lifecycle | Canonical six-phase chain reference — answers "which phase am I in?", "which skill owns this?", "what's the handoff?". Pure documentation |
+| dev-lifecycle | Canonical five-phase chain reference — answers "which phase am I in?", "which skill owns this?", "what's the handoff?". Pure documentation |
 
 **Portfolio-strategy plugin** (1 skill):
 
@@ -2424,10 +2435,10 @@ When using TodoWrite in slash commands and workflows:
 
 **Elixir-workflows Plugin**: The `elixir-workflows` plugin can generate customized workflow commands for other Elixir projects via `/elixir-workflows:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
 
-### Six-Phase Development Lifecycle
+### Five-Phase Development Lifecycle
 
 ```
-task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)
+task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5)
 ```
 
 | Phase | Skill / Actor |
@@ -2435,9 +2446,8 @@ task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) →
 | 1 — Plan-and-File | `task-driver:task-driver` (Plan-and-File mode) |
 | 2 — Implement | implementer session + `staged-review:code-review` (pre-commit sub-phase) |
 | 3 — Bots | external (CodeRabbit, Copilot, Codex's GitHub bot) |
-| 4 — Pre-merge gate | `staged-review:commit-review` |
-| 5 — Merge | `commit-review` auto-merge tail OR user manual `gh pr merge` |
-| 6 — Post-merge audit | `staged-review:audit-review` |
+| 4 — Merge | GitHub-native `gh pr merge <N> --auto --squash --delete-branch` wired at PR-open; GitHub holds until required checks pass + no `requested-changes` + no `[BLOCK-MERGE]` label |
+| 5 — Post-merge audit | `staged-review:audit-review` (deferred — SessionStart hook surfaces unaudited tail at ≥3) |
 
 Canonical reference (full phase descriptions, Linear-status transitions, handoff rules, end-to-end narrative): **`Skill(dev-lifecycle)`** or `~/.claude/includes/dev-lifecycle.md` / `plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md`. The chain is language-agnostic and composes only the already-language-agnostic `task-driver`, `staged-review`, and `cloud-delegation` plugins. Auto-merge preconditions: `delegation-rules.md` § "DON'T AUTO-MERGE PRS". Worktree scoping: `worktree-workflow.md`.
 

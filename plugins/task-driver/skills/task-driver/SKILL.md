@@ -12,9 +12,9 @@ The roadmap lives in `roadmap/tasks.toml`, managed by `rmap` — `ROADMAP.md` is
 
 ## Phase Awareness
 
-**This skill runs in Phase 1 of 6** in the development lifecycle:
+**This skill runs in Phase 1 of 5** in the development lifecycle:
 
-`task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)`
+`task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5)`
 
 - **Predecessor:** (user)
 - **Successor:** implementer session (Phase 2 — `worktree-workflow.md`)
@@ -190,7 +190,7 @@ digraph task_driver {
   read     [label="1. Read roadmap\n(rmap next/list/show)"];
   shortlist[label="2. Present scored shortlist\n(plain text — NOT plan mode)"];
   select   [label="3. User picks task(s)"];
-  route    [label="3.5. cloud-agent router\n— cx/csr + in_progress → commit-review\n— cx/csr + pending → halt + ask\n— otherwise → continue"];
+  route    [label="3.5. cloud-agent router\n— cx/csr + in_progress → inspect PR via gh\n— cx/csr + pending → halt + ask\n— otherwise → continue"];
   plan     [label="4. Enter plan mode\nDesign the implementation"];
   exit     [label="5. ExitPlanMode\nrmap status in_progress + TodoWrite"];
   implement[label="6. Implement"];
@@ -266,20 +266,20 @@ Wait for the user to pick. Do NOT proceed without approval.
 
 Before entering plan mode, read the selected task's markers with `rmap show <id> --json` — markers are `cx` for Codex, `csr` for Cursor (see `agent-dispatch.md` § "Codex Delegation" / "Cursor Delegation Flow" and `cloud-agent-environments.md`):
 
-- **Task has a `cx` / `csr` marker and status `in_progress`** → already delegated; the cloud agent's PR is (or will be) open and awaiting review. Invoke `staged-review:commit-review` and exit normally — that skill polls Linear, runs the harness, presents a verdict. Do NOT proceed to plan mode (no local implementation).
+- **Task has a `cx` / `csr` marker and status `in_progress`** → already delegated; the cloud agent's PR is (or will be) open. The PR auto-merges via GitHub-native `gh pr merge --auto` once required checks pass + no `requested-changes` + no `[BLOCK-MERGE]` label (see `plugins/staged-review/templates/auto-merge.md`). To hold for manual review, `gh pr edit <N> --add-label "BLOCK-MERGE"`. Exit normally — do NOT proceed to plan mode (no local implementation).
 
 - **Task has a `cx` marker and status `pending`** → not yet delegated. Halt. Per `critical-rules.md` § "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS", Claude does not silently execute marker-labeled work locally. Ask the user:
 
   > "Task N is marked `cx`, queued for Codex. Want me to create the Linear issue and delegate (default path), or are you redirecting this one to local execution?"
 
-  - If "delegate" → use `mcp__linear-server__save_issue` with `delegate: "Codex"`, label `cx-eligible`, body = full prompt (`rmap delegate <id> --to codex` renders a paste-ready prompt). Then `rmap status <id> in_progress` so future sessions know it's queued. Stop — Codex picks it up and opens a PR; the user runs `commit-review` later.
+  - If "delegate" → use `mcp__linear-server__save_issue` with `delegate: "Codex"`, label `cx-eligible`, body = full prompt (`rmap delegate <id> --to codex` renders a paste-ready prompt). Then `rmap status <id> in_progress` so future sessions know it's queued. Stop — Codex picks it up, opens a PR, and wires GH-native auto-merge per `plugins/staged-review/templates/auto-merge.md`.
   - If "redirect to local" → `rmap mark <id> -cx` to drop the marker, then continue to Step 4 (plan mode).
 
 - **Task has a `csr` marker and status `pending`** → not yet delegated. Halt. Same rule. Ask the user:
 
   > "Task N is marked `csr`, queued for Cursor. Want me to create the Linear issue and delegate (default path), or are you redirecting this one to local execution?"
 
-  - If "delegate" → use `mcp__linear-server__save_issue` with `delegate: "Cursor"`, label `cursor-eligible`, body = full prompt (`rmap delegate <id> --to cursor`). Cursor's eligibility is broader than Codex (hex.pm, mix tasks, internet — see `cloud-agent-environments.md` § "Cursor Cloud" for what's reachable), so don't second-guess the marker. Then `rmap status <id> in_progress`. Stop — Cursor picks it up via Linear, opens a PR; the user runs `commit-review` later.
+  - If "delegate" → use `mcp__linear-server__save_issue` with `delegate: "Cursor"`, label `cursor-eligible`, body = full prompt (`rmap delegate <id> --to cursor`). Cursor's eligibility is broader than Codex (hex.pm, mix tasks, internet — see `cloud-agent-environments.md` § "Cursor Cloud" for what's reachable), so don't second-guess the marker. Then `rmap status <id> in_progress`. Stop — Cursor picks it up via Linear, opens a PR, and wires GH-native auto-merge per `plugins/staged-review/templates/auto-merge.md`.
   - If "redirect to local" → `rmap mark <id> -csr`, then continue to Step 4 (plan mode).
 
 - **Task has any other future cloud-agent marker** → halt. Same discipline shape — ask the user before silently executing locally. The marker convention is in flight (see `cloud-agent-environments.md` for the agents currently documented); when in doubt, treat any delegation-shaped marker on a task as a delegation signal and ask.
@@ -411,7 +411,7 @@ When choosing which tasks to recommend:
 | Starting blocked tasks | Check dependencies before recommending |
 | Forgetting to mark the task in_progress before starting | Run `rmap status <id> in_progress` before the first code change |
 | Silently executing a `cx` / `csr` (or any cloud-agent-marked) task locally | Step 3.5 routes every cloud-agent delegation marker. Per `critical-rules.md` § "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS", halt and ask before redirecting to local. The marker is a fence; user override is the gate. Don't reason "but Cursor could've done what Codex was given" — that's second-guessing the marker, not respecting it |
-| Skipping `commit-review` on a `cx` / `csr` task already `in_progress` | Step 3.5 invokes `staged-review:commit-review` for those — don't try to plan-mode an already-delegated cloud-agent PR |
+| Trying to plan-mode an already-delegated `cx` / `csr` task | Step 3.5 routes already-`in_progress` cloud-agent tasks to GH-native auto-merge inspection (`gh pr view`, `[BLOCK-MERGE]` label) — don't try to plan-mode an already-delegated cloud-agent PR |
 | Implementing in the same session in Plan-and-File mode | Plan-and-File's contract is the filed issue. After P5 lands the issue, STOP. Fresh-session implementation is what makes the plan cold-readable; same-session implementation lets unstated assumptions slide |
 | Saving the plan to Linear / rmap before user approval | The `save_issue` / `rmap new` write fires in P5 ONLY after `ExitPlanMode` returns approval. Rejected or amended plans never write durable state |
 | Picking the wrong mode | If the user named a specific task, Pickup. If they asked to plan something new with no task ID, Plan-and-File. Ask once if ambiguous — don't guess |

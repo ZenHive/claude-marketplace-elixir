@@ -10,7 +10,7 @@ allowed-tools: Read, Grep, Glob, Bash
 
 `flow-review` is **merge-train mode** — batch orchestration for 2+ open cloud-agent PRs.
 
-It composes `agent-pr-review.md` (per-PR Tier-2 handoff, the polling shape, the tier matrix) on top of `linear-queue.md` (the substrate) and `agent-dispatch.md` (how the PRs in the train got delegated).
+It composes `agent-pr-review.md` (per-PR manual-hold review, the polling shape, the tier matrix) on top of `linear-queue.md` (the substrate) and `agent-dispatch.md` (how the PRs in the train got delegated).
 
 ### Invocation
 
@@ -19,7 +19,7 @@ Workflow-only — no CLI, no skill wrapper beyond this one. Triggered by user re
 ### What `flow-review` does
 
 1. **Polls** all open cloud-agent PRs in the current repo (filter from `agent-pr-review.md` § "Polling for 'Ready for Review'", scoped to current repo + extended to include `mergeStateStatus`).
-2. **Classifies** each PR by tier (per `agent-pr-review.md` § "Review Tiering: When Full Tier 2 Earns Its Cost") and mergeability (CI green | red | conflicting | bot-flagged).
+2. **Classifies** each PR by tier (per `agent-pr-review.md` § "Review Tiering: When to Hold for Manual Review") and mergeability (CI green | red | conflicting | bot-flagged).
 3. **Dependency-sorts** the queue from a directed graph built on file-overlap (parsed from `## Files to modify` of each PR's source issue) + Linear `blockedBy` / `relatedTo`. PRs touching only their own files merge first; coordination-file PRs last. Sort by PR age within each layer.
 4. **Surfaces** the ordered queue with per-PR action recommendations.
 5. **Executes** the rebase cascade between merges. User owns merges; reviewer owns rebases.
@@ -28,9 +28,9 @@ Workflow-only — no CLI, no skill wrapper beyond this one. Triggered by user re
 
 | Tier | CI | Bots | Conflicts | Action |
 |---|---|---|---|---|
-| Ceremony | green | clean | none | Auto-merge if preconditions hold (cloud-agent PR); audit-review is deferred (runs once at end of train). Otherwise surface as "ready, awaiting `gh pr merge`" |
-| Standard | green | clean | none | Same as ceremony, plus 5-min skim if any bot finding |
-| Critical | green | clean | none | Hand off to `staged-review:commit-review` (single-PR Tier 2), back to queue |
+| Ceremony | green | clean | none | GH-native auto-merge (wired at PR-open via `gh pr merge --auto`) fires; audit-review is deferred (runs once at end of train) |
+| Standard | green | clean | none | Same as ceremony, plus optional 5-min skim if any bot finding |
+| Critical | green | clean | none | Add `[BLOCK-MERGE]` label to hold; manually review per `agent-pr-review.md` § "Review Tiering" (four-role framing); push back inline; remove label when ready to ship |
 | Any | red | — | — | Surface for human triage; skip in current pass |
 | Any | — | — | conflicting/behind | Trigger rebase cascade (below) |
 | Any | — | flagged | — | Surface bot finding for triage (push-back vs. defer) |
@@ -65,22 +65,22 @@ for each remaining PR in dependency order:
 - **Forbidden:** semantic conflict resolution, any logic edit, function-body changes during rebase, any push without `--force-with-lease`, any push to a non-cloud-agent branch under this carve-out.
 - **Abort path:** if mechanical resolution doesn't apply cleanly, `git rebase --abort` and post a Linear `@cursor` / `@codex` comment with conflict context. Agent picks up the rebase.
 
-**Auto-merge per PR (preconditions hold).** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" loosens for cloud-agent PRs that meet all 5 preconditions — merge-train auto-merges each PR in dependency order, then rebases the next PR onto the new tip. `audit-review` is NOT chained per merge; one batched `Skill(audit-review) <train-base>..<default-branch-HEAD>` runs at the end of the cascade (same session) covering every merge SHA in a single pass. This is the end-of-cascade variant of the deferred model — solo-PR sessions defer to next-session via the SessionStart hook; merge-trains batch within-session at cascade end. PRs failing preconditions surface with the `gh pr merge` command for the user.
+**GH-native auto-merge per PR (preconditions hold).** `delegation-rules.md` § "DON'T AUTO-MERGE PRS" — each PR in the train already has `gh pr merge --auto` wired at PR-open time; GitHub fires the merge when CI is green + no requested-changes + no `[BLOCK-MERGE]` label. Merge-train's job is rebasing each remaining PR onto the new default-branch tip after each merge fires; GitHub handles the merge itself. `audit-review` is NOT chained per merge; one batched `Skill(audit-review) <train-base>..<default-branch-HEAD>` runs at the end of the cascade (same session) covering every merge SHA in a single pass. This is the end-of-cascade variant of the deferred model — solo-PR sessions defer to next-session via the SessionStart hook; merge-trains batch within-session at cascade end. PRs with `[BLOCK-MERGE]` labels stay held until manually reviewed and released.
 
 ### When to use
 
 | Situation | Use |
 |---|---|
-| 1 PR, critical tier | `staged-review:commit-review` |
-| 1 PR, standard or ceremony | Either; merge-train is overhead-equivalent at N=1 |
-| 2+ PRs, mixed tiers | **Merge-train.** Cascades, sorts, hands critical-tier off to `commit-review` inline |
-| 2+ PRs, all ceremony/standard | **Merge-train.** Maximum gain — no per-PR Tier 2 cost, just cascade + user-confirm |
+| 1 PR, critical tier | Add `[BLOCK-MERGE]` label, review manually per `agent-pr-review.md` § "Review Tiering"; release the label when ready |
+| 1 PR, standard or ceremony | Let GH-native auto-merge fire; merge-train is overhead-equivalent at N=1 |
+| 2+ PRs, mixed tiers | **Merge-train.** Cascades, sorts; critical-tier PRs get `[BLOCK-MERGE]` inline for manual review |
+| 2+ PRs, all ceremony/standard | **Merge-train.** Maximum gain — GH-native auto-merge fires per PR, reviewer rebases between merges |
 
 ### `/batch` → flow-review handoff
 
 `/batch` (per `workflow-philosophy.md` § "Batched Execution" Rule 1) fans a uniform mechanical batch out to worktree-isolated subagents and opens one PR per item. When the batch's PR count crosses 2, the resulting queue is exactly what `flow-review` orchestrates — pick up from here as the merge-train substrate. The dependency sort (§ "What `flow-review` does" step 3) consumes the same `## Files to modify` blocks `/batch` writes into each PR's source issue.
 
-**`/batch` does not bypass `commit-review`.** Each `/batch`-produced PR routes through the same pre-commit gate as any other cloud-agent PR — the 5-precondition auto-merge gate in `delegation-rules.md` § "DON'T AUTO-MERGE PRS" applies unchanged. `/batch` shortens the *implementation* loop, not the *review* loop.
+**`/batch` does not bypass the merge gate.** Each `/batch`-produced PR routes through the same GH-native auto-merge gate as any other cloud-agent PR — `--auto` wired at PR-open, branch protection enforcing CI green + no requested-changes + no `[BLOCK-MERGE]` label (`delegation-rules.md` § "DON'T AUTO-MERGE PRS"). `/batch` shortens the *implementation* loop, not the *review* loop.
 
 ### Bookkeeping commits
 
@@ -89,9 +89,9 @@ Post-merge ROADMAP/CHANGELOG/README updates land in a single deferred `audit-rev
 ### Cross-References
 
 - `workflow-philosophy.md` § "Batched Execution" — canonical rule under which `/batch` produces the 2+ PRs that feed merge-train (§ "`/batch` → flow-review handoff")
-- `agent-pr-review.md` — the per-PR review layer this composes; § "Polling for 'Ready for Review'", § "Review Tiering: When Full Tier 2 Earns Its Cost"
+- `agent-pr-review.md` — the per-PR review layer this composes; § "Polling for 'Ready for Review'", § "Review Tiering: When to Hold for Manual Review"
 - `agent-dispatch.md` — how the PRs in the train got delegated
 - `linear-queue.md` — the Linear-as-queue substrate
-- `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — the base rule this carve-out is an authorized exception to; § "DON'T AUTO-MERGE PRS" — the 5-precondition auto-merge gate
-- `staged-review:commit-review` skill — single-PR Tier-2 handoff target for critical-tier PRs
+- `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH" — the base rule this carve-out is an authorized exception to; § "DON'T AUTO-MERGE PRS" — the GH-native auto-merge gate
+- `plugins/staged-review/templates/auto-merge.md` — GH-native auto-merge wire-up; `[BLOCK-MERGE]` label is the manual-hold path for critical-tier PRs in the train
 - `staged-review:audit-review` skill — deferred; invoke once over `<train-base>..<default-branch-HEAD>` after the cascade completes

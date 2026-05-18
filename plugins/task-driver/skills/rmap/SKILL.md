@@ -35,7 +35,7 @@ This file is the **decision layer** — *which* command, *when*. The authoritati
 | Change status | `rmap status <id> <pending\|in_progress\|blocked\|done\|superseded> [--implemented "..."]` (bulk `1,2,3` atomic; `done` requires `implemented`) |
 | Toggle a marker | `rmap mark <id> +parallel -cx` |
 | Add a dependency | `rmap depend <id> on <id>` |
-| Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch) — see `task-writing.md` |
+| Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch, full field set per `rmap schema`) — see `task-writing.md`. Interactive `rmap new` covers the common subset; reach for `--from-stdin` when interactive doesn't prompt for a field you need. |
 | Format a task as a cloud-agent prompt | `rmap delegate <id> --to claude\|codex\|cursor` |
 | Migrate a hand-edited ROADMAP.md | `rmap import` |
 | See what changed vs a git ref | `rmap diff [--verbose] [--json]` |

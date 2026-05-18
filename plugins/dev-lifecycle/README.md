@@ -1,9 +1,9 @@
 # dev-lifecycle
 
-Canonical, marketplace-discoverable reference for the **six-phase development lifecycle** that emerges from composing this marketplace's already-language-agnostic plugins.
+Canonical, marketplace-discoverable reference for the **five-phase development lifecycle** that emerges from composing this marketplace's already-language-agnostic plugins.
 
 ```
-task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)
+task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5)
 ```
 
 | Phase | Skill / Actor |
@@ -11,9 +11,8 @@ task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) →
 | 1. Plan-and-File | `task-driver:task-driver` (Plan-and-File mode) |
 | 2. Implement | implementer session + `staged-review:code-review` (pre-commit sub-phase) |
 | 3. Bots | CodeRabbit / Copilot / Codex's GitHub bot |
-| 4. Pre-merge gate | `staged-review:commit-review` |
-| 5. Merge | `commit-review` auto-merge tail OR user `gh pr merge` |
-| 6. Post-merge audit | `staged-review:audit-review` |
+| 4. Merge | GitHub-native `gh pr merge <N> --auto --squash --delete-branch` wired at PR-open; branch protection + `[BLOCK-MERGE]` label gate the merge (see `plugins/staged-review/templates/auto-merge.md`) |
+| 5. Post-merge audit | `staged-review:audit-review` (deferred — SessionStart hook surfaces unaudited tail at ≥3) |
 
 ## What's in this plugin
 
@@ -26,8 +25,8 @@ No hooks, no agents, no automation. This plugin is **pure documentation/orchestr
 ## What it composes (not bundled — referenced by name)
 
 - [`task-driver`](../task-driver/) — Phase 1 (Plan-and-File) and the general task-pickup loop
-- [`staged-review`](../staged-review/) — Phase 2 sub-phase (`code-review`), Phase 4 (`commit-review`), Phase 6 (`audit-review`)
-- [`cloud-delegation`](../cloud-delegation/) — Linear-as-queue mechanics consumed by Phases 1, 2, 4, 5, 6
+- [`staged-review`](../staged-review/) — Phase 2 sub-phase (`code-review`), Phase 5 (`audit-review`). Phase 4 is GitHub-native (no skill — see `plugins/staged-review/templates/auto-merge.md`)
+- [`cloud-delegation`](../cloud-delegation/) — Linear-as-queue mechanics consumed by Phases 1, 2, 4, 5
 - `~/.claude/includes/worktree-workflow.md` — Phase 2 worktree mechanics + git auto-allow scoping
 
 This plugin does **not** depend on or reference the `elixir` / `phoenix` / `code-quality` plugins. The chain is language-agnostic by design.

@@ -125,7 +125,7 @@ plugins/
 ├── staged-review/            # Universal code review workflow
 │   ├── .claude-plugin/
 │   │   └── plugin.json
-│   └── skills/               # code-review skill
+│   └── skills/               # code-review, audit-review skills
 ├── task-driver/              # Roadmap-driven task execution
 │   ├── .claude-plugin/
 │   │   └── plugin.json
@@ -171,7 +171,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (41 total)
+### Skills (40 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance. The agent-facing catalog (what each does, when to invoke) lives in `SKILLS.md` at the repo root — keep it in sync when adding or removing skills.
 
@@ -217,13 +217,12 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 |-------|-------------|
 | workflow-generator | Generate customized workflow commands (research, plan, implement, qa) |
 
-**Staged-review plugin** (3 skills):
+**Staged-review plugin** (2 skills):
 
 | Skill | Description |
 |-------|-------------|
 | code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` (deferred). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
-| commit-review | Pre-merge cloud-agent PR gate (Cursor / Codex when re-enabled) — narrowed Cat-1-only correctness audit, CI-as-gate via `gh pr checks`, asymmetric push-back channels (PR=line-level / Linear=scope), **auto-merges on ✅ + green CI + feature branch + no `requested-changes` + no `[BLOCK-MERGE]` label**; tail ends at branch cleanup |
-| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** **Deferred/batched** — SessionStart hook (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tail; manual `/staged-review:audit-status` for snapshot; manual `Skill(audit-review) <range>` to clear |
+| audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, absorbs bot-comment triage (Step 5d, 3-reasoner merge), Linear close-out (Step 12.5), acceptance-criteria verification (Step 9 extension); auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** **Deferred/batched** — SessionStart hook (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tail; manual `/staged-review:audit-status` for snapshot; manual `Skill(audit-review) <range>` to clear |
 
 **Task-driver plugin** (2 skills):
 
@@ -250,7 +249,7 @@ The Linear-as-queue + cloud-agent delegation workflow is split into four composa
 
 | Skill | Description |
 |-------|-------------|
-| dev-lifecycle | Canonical six-phase chain reference — answers "which phase am I in?", "which skill owns this?", "what's the handoff?". Pure documentation |
+| dev-lifecycle | Canonical five-phase chain reference — answers "which phase am I in?", "which skill owns this?", "what's the handoff?". Pure documentation |
 
 **Portfolio-strategy plugin** (1 skill):
 
@@ -504,10 +503,10 @@ When using TodoWrite in slash commands and workflows:
 
 **Elixir-workflows Plugin**: The `elixir-workflows` plugin can generate customized workflow commands for other Elixir projects via `/elixir-workflows:workflow-generator`. Templates use `{{DOCS_LOCATION}}` variable (default: `.thoughts`) for configurability.
 
-### Six-Phase Development Lifecycle
+### Five-Phase Development Lifecycle
 
 ```
-task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6)
+task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5)
 ```
 
 | Phase | Skill / Actor |
@@ -515,9 +514,8 @@ task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) →
 | 1 — Plan-and-File | `task-driver:task-driver` (Plan-and-File mode) |
 | 2 — Implement | implementer session + `staged-review:code-review` (pre-commit sub-phase) |
 | 3 — Bots | external (CodeRabbit, Copilot, Codex's GitHub bot) |
-| 4 — Pre-merge gate | `staged-review:commit-review` |
-| 5 — Merge | `commit-review` auto-merge tail OR user manual `gh pr merge` |
-| 6 — Post-merge audit | `staged-review:audit-review` |
+| 4 — Merge | GitHub-native `gh pr merge <N> --auto --squash --delete-branch` wired at PR-open; GitHub holds until required checks pass + no `requested-changes` + no `[BLOCK-MERGE]` label |
+| 5 — Post-merge audit | `staged-review:audit-review` (deferred — SessionStart hook surfaces unaudited tail at ≥3) |
 
 Canonical reference (full phase descriptions, Linear-status transitions, handoff rules, end-to-end narrative): **`Skill(dev-lifecycle)`** or `~/.claude/includes/dev-lifecycle.md` / `plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md`. The chain is language-agnostic and composes only the already-language-agnostic `task-driver`, `staged-review`, and `cloud-delegation` plugins. Auto-merge preconditions: `delegation-rules.md` § "DON'T AUTO-MERGE PRS". Worktree scoping: `worktree-workflow.md`.
 

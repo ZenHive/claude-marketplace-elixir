@@ -59,7 +59,7 @@ description = "New PreToolUse/PostToolUse hook scripts in plugins/elixir — blo
 [bundles.codex_delegation]
 phase = 9
 order = 1
-description = "Linear-as-queue + Codex delegation workflow — markers, discipline rules, AGENTS.md sync, commit-review skill"
+description = "Linear-as-queue + Codex delegation workflow — markers, discipline rules, AGENTS.md sync, cloud-agent PR review tier (superseded by GH-native auto-merge in v2.0 staged-review)"
 
 [bundles.audit_followups]
 phase = 10
@@ -360,12 +360,14 @@ acceptance_criteria = [
 id = 41
 phase = 10
 bundle = "audit_followups"
-status = "pending"
+status = "superseded"
 title = "Auto-merge for self-authored worktree PRs"
 scores = { d = 4, b = 6, u = 5 }
 scored_at = "2026-05-14"
 body = """
 Extend the cloud-agent auto-merge (scoped to cursor/* / codex/*) to self-authored PRs from worktrees. Needs separate analysis — self-authored work has different blast-radius than reviewed cloud-agent work: no upstream reviewer signal, no agent-PR template, fewer evaluator-separation layers. Likely requires stricter preconditions (mandatory code-review ✅ before commit, mandatory audit-review ✅ on the PR head, [BLOCK-MERGE] label still honored).
+
+Superseded by Task 59 — the GH-native auto-merge model (`gh pr merge <N> --auto --squash --delete-branch` wired at PR-open; branch protection + `[BLOCK-MERGE]` label gate) is now branch-name-agnostic: self-authored worktree PRs and cloud-agent PRs use the same mechanism. No separate self-authored auto-merge path needed.
 """
 acceptance_criteria = [
   "Decision document: which preconditions apply to self-authored vs cloud-agent",
@@ -401,11 +403,11 @@ title = "Codex code-mutation re-enablement check"
 scores = { d = 2, b = 3, u = 4 }
 scored_at = "2026-05-14"
 body = """
-Codex code-mutation is currently suspended per agent-dispatch.md. Track when/if to re-enable so the auto-merge precondition becomes live for Codex too. Periodic check on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.
+Codex code-mutation is currently suspended per agent-dispatch.md. Track when/if to re-enable so the cloud-agent task template wires `gh pr merge --auto` end-to-end for Codex too. Periodic check on Codex environment improvements (hex.pm reach, mix task availability, Tidewave) — when those change, the suspension's load-bearing reason dissolves.
 """
 acceptance_criteria = [
   "Decision document: criteria for re-enabling Codex code-mutation",
-  "Verify auto-merge precondition #3 (cursor/* or codex/*) becomes live for Codex",
+  "Verify the cloud-agent task template wires `gh pr merge <N> --auto --squash --delete-branch` for Codex PRs (per plugins/staged-review/templates/auto-merge.md)",
   "Update agent-dispatch.md and cloud-agent-environments.md to lift the suspension",
   "Run an end-to-end Codex delegation test before declaring re-enabled",
 ]
@@ -502,7 +504,7 @@ Stage D of the rmap-mandate migration only did light cross-ref touch-ups on the 
 
 - `agent-dispatch.md` — wire `rmap delegate <id> --to codex|cursor` into the delegation flow as the canonical way to render a task into a cloud-agent prompt, replacing the hand-built plan-shaped issue spec where the task already lives in `tasks.toml`.
 - `linear-queue.md` — make `rmap` the full ROADMAP-fallback substrate: the ROADMAP-fallback flow files via `rmap new --from-stdin` and reads queue state via `rmap next` / `rmap list`, not hand-edited markdown rows.
-- `staged-review` skills (`code-review`, `commit-review`, `audit-review`) — ceremony-floor "ROADMAP candidate" findings are filed via `rmap new --from-stdin`; `audit-review`'s doc-update step calls `rmap status` / `rmap render` instead of hand-editing `ROADMAP.md`.
+- `staged-review` skills (`code-review`, `audit-review`) — ceremony-floor "ROADMAP candidate" findings are filed via `rmap new --from-stdin`; `audit-review`'s doc-update step calls `rmap status` / `rmap render` instead of hand-editing `ROADMAP.md`.
 
 Each touched include is canonical (`~/.claude/includes/`) — re-sync skills after editing. The `staged-review` skills are hand-authored — edit directly. Out of scope: changing the rmap CLI itself (tracked in rmap's own roadmap).
 """
@@ -672,3 +674,28 @@ All edits target the same SKILL.md plus (potentially) a sibling `scripts/classif
 """
 created_at = "2026-05-18"
 scored_at = "2026-05-18"
+
+[[task]]
+id = 59
+phase = 10
+bundle = "audit_followups"
+status = "done"
+title = "Merge commit-review into audit-review; pre-merge becomes GitHub-native auto-merge"
+scores = { d = 5, b = 9, u = 9 }
+acceptance_criteria = ["plugins/staged-review/skills/commit-review/ removed", "audit-review SKILL.md has Steps 4.5, 5d, 9-extension, 12.5", "plugins/staged-review/templates/auto-merge.md exists with gh pr merge --auto + block-merge-gate.yml content", "grep -rn commit-review over repo + canonical includes returns zero load-bearing hits (CHANGELOG.md prose + historical-task bodies + plugin description changelog mentions allowed)", "marketplace.json staged-review description rewritten to two-tier; metadata.version 1.4.0 → 1.5.0", "Five-phase lifecycle in CLAUDE.md, SKILLS.md, README.md, dev-lifecycle skill (synced from include)", "Task 41 status = 'superseded'", "CHANGELOG.md [Unreleased] entry present"]
+out_of_scope = ["Task 41 (folded into this task — Task 41 status superseded; see this body)", "Designing a tiny watcher script instead of GH-native (rejected; GH-native is one flag)", "Re-enabling Codex code-mutation (Task 43 — orthogonal)"]
+body = """
+Delete commit-review skill (901 LOC). Pre-merge phase becomes zero-Claude: bot ensemble + CI gate the merge; `gh pr merge --auto --squash --delete-branch` set when PR opens. Bot-comment triage, Linear close-out, acceptance-criteria verification, push-back-default fold into audit-review post-merge. Six-phase lifecycle collapses to five.
+
+Rationale: commit-review's harness ceremony (~100k tokens/PR) paid premium for marginal incremental signal over CodeRabbit + Copilot + Codex GH bot + CI. Cloud-agent wake-up loops just relocate the bill (sandbox spin-up + their harness). Both shapes are unjustifiable.
+
+The `[BLOCK-MERGE]` label remains the manual escape hatch for critical-tier PRs that need pre-merge human review.
+
+Supersedes Task 41 — the GH-native auto-merge mechanism is branch-name-agnostic, so self-authored worktree PRs and cloud-agent PRs use the same path. Task 41's separate "auto-merge for self-authored worktree PRs" investigation is no longer needed.
+
+Affected files: plan at ~/.claude/plans/vectorized-seeking-jellyfish.md.
+"""
+implemented = "Deleted plugins/staged-review/skills/commit-review/ (901 LOC). Extended audit-review SKILL.md with Step 4.5 (PR+Linear comment resolution), Step 5a bot-as-input integration, Step 5d (3-reasoner bot-finding triage table), Step 9 acceptance-criteria extension, Step 12.5 (Linear close-out). Created plugins/staged-review/templates/auto-merge.md. Updated marketplace.json (1.4.0→1.5.0; staged-review desc three-tier→two-tier; dev-lifecycle desc six-phase→five-phase). 11 canonical includes purged of commit-review refs; delegation-rules.md § Commit-Review Header section deleted. Repo catalogs: CLAUDE.md (skill count 41→40), SKILLS.md, README.md, plugins/staged-review/README.md (commit-review section replaced with GH-native pointer), plugins/dev-lifecycle/README.md + commands + plugin.json (1.0.2→1.1.0), plugins/staged-review/.claude-plugin/plugin.json (1.20.0→2.0.0 major bump for skill deletion). Non-synced skill bodies patched: code-review (Phase Awareness table 6→5), task-driver (six-phase chain + Step 3.5 router refs), elixir-ci-harness (commit-review CI-as-gate → GH-native auto-merge). ROADMAP.md Phase 9 + Phase 10 methodology preambles updated; Future Scope rows referencing commit-review removed. CHANGELOG.md [Unreleased] entry. Task 41 superseded. Tasks 43, 48 bodies refined."
+created_at = "2026-05-18"
+scored_at = "2026-05-18"
+done_at = "2026-05-18"

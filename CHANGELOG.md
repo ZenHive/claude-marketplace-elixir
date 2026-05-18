@@ -4,6 +4,26 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Removed
+
+**`staged-review:commit-review` skill (901 LOC) — pre-merge phase becomes GitHub-native**
+
+Pre-merge Claude/cloud-agent ceremony (harness boot, compile, test, comment fetch, optional Codex dispatch, push-back drafting) was paying ~100k tokens per PR for marginal incremental signal over CodeRabbit + Copilot + Codex's GH bot + CI. Cloud-agent wake-up loops would have just relocated the bill (sandbox spin-up + their harness). Both shapes were unjustifiable. Bot-comment triage, Linear close-out, and acceptance-criteria verification absorb into `audit-review` (post-merge, deferred, batched, fully autonomous). Six-phase development lifecycle collapses to five.
+
+### Added
+
+- **`plugins/staged-review/templates/auto-merge.md`** — adoption guide for GitHub-native auto-merge (`gh pr merge <N> --auto --squash --delete-branch` wired at PR-open) + branch-protection-gated `[BLOCK-MERGE]` label as the manual hold escape hatch + optional `auto-undraft.yml` GH Action for cloud-agent draft PRs.
+- **`audit-review` Step 4.5** — per-commit PR + Linear comment resolution: `git log` → `(#NNN)` → `gh search prs --merge-commit` fallback → fetch PR reviews/comments + linked Linear issue + Linear comments. Captured into a per-commit context object consumed by Step 5a and Step 5d.
+- **`audit-review` Step 5d** — bot-finding triage table (3-reasoner merge: Claude / Codex / bots). Corroboration count = confidence; ≥2-reasoner bugs auto-apply, single-bot bugs file as rmap follow-ups, single-bot hygiene applies low-risk, single-bot cosmetic nits drop with one-line rationale.
+- **`audit-review` Step 9 extension** — Linear acceptance-criteria cross-reference; unmet criteria file as `rmap new` follow-up tasks (title `Audit-surfaced: <PR title> — unmet criterion N`).
+- **`audit-review` Step 12.5** — Linear close-out at the batch tail: verify `Done` state (or transition explicitly), post one closing comment per issue linking PR + audit SHA + acceptance criteria summary + reports path. Auto-posts per `delegation-rules.md` § "POST LINEAR / PR COMMENTS WITHOUT ASKING".
+
+### Changed
+
+- **`.claude-plugin/marketplace.json`** — `staged-review` description: "three-tier" → "two-tier" (pre-commit + post-merge; pre-merge is GH-native); `dev-lifecycle` description: "six-phase" → "five-phase"; marketplace `metadata.version` 1.4.0 → 1.5.0.
+- **Canonical includes purged of `commit-review` refs** — `dev-lifecycle.md` (chain + phase table + narrative), `delegation-rules.md` (§ "DON'T AUTO-MERGE PRS" reframed GH-native; § "Commit-Review Header" deleted; § "DON'T STEAL CLOUD-AGENT-DELEGATED TASKS" + five-rule asymmetry table + § "Force-Push to `cursor/*`" updated), `agent-pr-review.md` (§ "Review Tiering" reframed as "When to Hold for Manual Review" via `[BLOCK-MERGE]`), `agent-dispatch.md` (Codex/Cursor task templates wire `gh pr merge --auto`), `flow-review.md` (tier matrix + auto-merge model + `/batch` rule), `linear-queue.md` (status table + Identical paragraph + draft handling), `worktree-workflow.md` (auto-merge subsection), `task-prioritization.md`, `onchain-stack-workspace.md`, `sprite-claude-code.md`, `cloud-agent-environments.md`. Skill bodies auto-propagated via `./scripts/sync-skills-from-includes.sh` (9 skills synced).
+- **Five-phase lifecycle propagated** across `CLAUDE.md`, `SKILLS.md`, `README.md`, `plugins/staged-review/README.md`, and `dev-lifecycle` skill. New chain: `task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5)`. Skill count 41 → 40.
+
 ### Changed
 
 **rmap schema migration to v2 — task-driver v1.3.1 → v1.3.2, elixir v1.29.0 → v1.29.1**

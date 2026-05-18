@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Elixir and BEAM ecosystem development tools for Claude Code",
-    "version": "1.4.0"
+    "version": "1.5.0"
   },
   "pluginRoot": "../plugins",
   "plugins": [
@@ -52,7 +52,7 @@
     {
       "name": "staged-review",
       "source": "./plugins/staged-review",
-      "description": "Universal three-tier code review workflow — pre-commit single-reviewer triage (code-review), pre-merge cloud-agent PR gate (commit-review with auto-merge), post-commit/post-merge dual-reviewer audit (audit-review with mandatory parallel Codex + Claude+Codex dialogue). Fully autonomous post-merge chain.",
+      "description": "Two-tier code review workflow — pre-commit single-reviewer triage (code-review), post-commit/post-merge dual-reviewer audit (audit-review with mandatory parallel Codex + Claude+Codex dialogue; absorbs bot-comment triage, Linear close-out, acceptance-criteria verification). Pre-merge is GitHub-native auto-merge (gh pr merge --auto). Fully autonomous post-merge chain.",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
@@ -84,7 +84,7 @@
     {
       "name": "dev-lifecycle",
       "source": "./plugins/dev-lifecycle",
-      "description": "Canonical reference for the six-phase development lifecycle — task-driver(1) → worktree(2) → bots(3) → commit-review(4) → merge(5) → audit-review(6). Composes the task-driver, staged-review, and cloud-delegation plugins into one named chain. Pure documentation/orchestration; language-agnostic; standalone-extractable.",
+      "description": "Canonical reference for the five-phase development lifecycle — task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5). Composes the task-driver, staged-review, and cloud-delegation plugins into one named chain. Pure documentation/orchestration; language-agnostic; standalone-extractable.",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
