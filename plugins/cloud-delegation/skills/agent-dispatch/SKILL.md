@@ -142,6 +142,8 @@ Before submitting a batch of N≥2 plan-shaped issues, run § "Pre-Flight Confli
 
 ### Batch Sizing and Pacing
 
+This section is the delegation-specific instance of `workflow-philosophy.md` § "Batched Execution" — the general form covers in-session subagent fan-out too. Vocabulary ("batch") originates here; the canonical rule generalizes the discipline (disjoint work fans out; `⏸ CHECKPOINT` / `/compact` is the inter-batch STOP marker).
+
 How to shape a delegation batch upstream of pre-flight conflict detection. Pre-flight checks file-scope collision; this section answers what should be in the batch.
 
 **2+1+1 splits over single mega-batches.** When in doubt about whether 4-5 issues are too much, prefer two smaller batches. Smaller batches reduce review surface, reduce file-scope collision risk, let the user `/compact` between firings.
@@ -219,6 +221,7 @@ Same shape as `critical-rules.md` § "NO EVASION — SIT WITH THE HARD THING": w
 
 ### Cross-References
 
+- `workflow-philosophy.md` § "Batched Execution" — the canonical generalization of § "Batch Sizing and Pacing"; covers in-session subagent fan-out batches too
 - `linear-queue.md` — the substrate this builds on (MCP setup, workspace shape, issue-body template, status transitions)
 - `agent-pr-review.md` — the return path: reviewing the PRs cloud agents open
 - `flow-review.md` — merge-train mode for 2+ open cloud-agent PRs

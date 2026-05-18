@@ -673,7 +673,7 @@
       "id": 50,
       "phase": 11,
       "bundle": "rmap_integration",
-      "status": "pending",
+      "status": "done",
       "title": "Propagate batched-execution rule into task-driver skill",
       "scores": {
         "d": 3,
@@ -723,7 +723,7 @@
       "id": 52,
       "phase": 11,
       "bundle": "rmap_integration",
-      "status": "pending",
+      "status": "done",
       "title": "Generalize agent-dispatch /compact section as instance of canonical rule",
       "scores": {
         "d": 2,
@@ -747,7 +747,7 @@
       "id": 53,
       "phase": 11,
       "bundle": "rmap_integration",
-      "status": "pending",
+      "status": "done",
       "title": "Document /batch + rmap next-bundle integration with Batched Execution",
       "scores": {
         "d": 3,

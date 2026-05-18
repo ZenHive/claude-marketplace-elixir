@@ -76,12 +76,19 @@ for each remaining PR in dependency order:
 | 2+ PRs, mixed tiers | **Merge-train.** Cascades, sorts, hands critical-tier off to `commit-review` inline |
 | 2+ PRs, all ceremony/standard | **Merge-train.** Maximum gain — no per-PR Tier 2 cost, just cascade + user-confirm |
 
+### `/batch` → flow-review handoff
+
+`/batch` (per `workflow-philosophy.md` § "Batched Execution" Rule 1) fans a uniform mechanical batch out to worktree-isolated subagents and opens one PR per item. When the batch's PR count crosses 2, the resulting queue is exactly what `flow-review` orchestrates — pick up from here as the merge-train substrate. The dependency sort (§ "What `flow-review` does" step 3) consumes the same `## Files to modify` blocks `/batch` writes into each PR's source issue.
+
+**`/batch` does not bypass `commit-review`.** Each `/batch`-produced PR routes through the same pre-commit gate as any other cloud-agent PR — the 5-precondition auto-merge gate in `delegation-rules.md` § "DON'T AUTO-MERGE PRS" applies unchanged. `/batch` shortens the *implementation* loop, not the *review* loop.
+
 ### Bookkeeping commits
 
 Post-merge ROADMAP/CHANGELOG/README updates land in a single deferred `audit-review` `audit(<sha>): ...` commit on the repo's default branch (`main` / `master` / `development`) covering the whole train. Run `Skill(audit-review) <train-base>..<default-branch-HEAD>` once after the cascade completes. Reviewer rebases each remaining PR onto the new default tip in parallel during the cascade, force-with-leases, CI re-runs. The audit commit IS the bookkeeping; no separate `Update docs for PR #N` commit per merge.
 
 ### Cross-References
 
+- `workflow-philosophy.md` § "Batched Execution" — canonical rule under which `/batch` produces the 2+ PRs that feed merge-train (§ "`/batch` → flow-review handoff")
 - `agent-pr-review.md` — the per-PR review layer this composes; § "Polling for 'Ready for Review'", § "Review Tiering: When Full Tier 2 Earns Its Cost"
 - `agent-dispatch.md` — how the PRs in the train got delegated
 - `linear-queue.md` — the Linear-as-queue substrate
