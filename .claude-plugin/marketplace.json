@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Elixir and BEAM ecosystem development tools for Claude Code",
-    "version": "1.5.0"
+    "version": "1.6.0"
   },
   "pluginRoot": "../plugins",
   "plugins": [
@@ -85,6 +85,14 @@
       "name": "dev-lifecycle",
       "source": "./plugins/dev-lifecycle",
       "description": "Canonical reference for the five-phase development lifecycle — task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5). Composes the task-driver, staged-review, and cloud-delegation plugins into one named chain. Pure documentation/orchestration; language-agnostic; standalone-extractable.",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+      "license": "MIT",
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
+    },
+    {
+      "name": "marketplace-hygiene",
+      "source": "./plugins/marketplace-hygiene",
+      "description": "Marketplace-integrity hooks: blocks direct edits to auto-synced SKILL.md files (redirecting to the canonical ~/.claude/includes/*.md source via the shared scripts/skill-include-map.sh), and validates marketplace/plugin/hooks JSON on every edit so parse errors surface immediately. Self-contained, no plugin-internal dependencies.",
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"

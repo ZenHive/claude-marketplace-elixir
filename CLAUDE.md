@@ -130,10 +130,16 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   └── skills/               # task-driver, rmap (roadmap substrate)
-└── cloud-delegation/         # Linear-as-queue + cloud-agent (Codex/Cursor) delegation
+├── cloud-delegation/         # Linear-as-queue + cloud-agent (Codex/Cursor) delegation
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   └── skills/               # linear-queue, agent-dispatch, agent-pr-review, flow-review, linear-workflow hub, cloud-agent-environments, sprite-claude-code
+└── marketplace-hygiene/      # Marketplace-integrity hooks (block SKILL.md edits, validate manifest JSON)
     ├── .claude-plugin/
     │   └── plugin.json
-    └── skills/               # linear-queue, agent-dispatch, agent-pr-review, flow-review, linear-workflow hub, cloud-agent-environments, sprite-claude-code
+    ├── hooks/
+    │   └── hooks.json
+    └── scripts/              # block-skill-edits.sh, validate-marketplace-json.sh
 ```
 
 ### Key Concepts
@@ -168,6 +174,12 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 **Staged-review plugin** - Audit-tail detection:
 1. **check-unaudited-commits.sh** (non-blocking, SessionStart): Walks `git log --grep '^audit('` to find the last audit ancestor; emits `additionalContext` recommending `/staged-review:audit-status` or `Skill(audit-review)` when ≥3 commits sit past it. Silent below threshold or outside any git repo. Shares `unaudited-commits.sh` helper with the `/audit-status` slash command (Tasks 38 + 39).
+
+**Marketplace-hygiene plugin** - Marketplace-integrity hooks for deltahedge plugin development:
+1. **block-skill-edits.sh** (blocking, PreToolUse): Before `Edit|Write|MultiEdit`, denies edits to any of the 30 auto-synced `plugins/*/skills/*/SKILL.md` paths registered in `scripts/skill-include-map.sh`. Deny message names the canonical `~/.claude/includes/<name>.md` and the sync command. Unmapped SKILL.md files (`workflow-generator`, `tidewave-guide`, etc.) pass through. Sources the shared mapping file at runtime via `git rev-parse --show-toplevel` so a single edit point covers both this hook and the sync script.
+2. **validate-marketplace-json.sh** (non-blocking, PostToolUse): After `Edit|Write|MultiEdit` on any file basenamed `marketplace.json`, `plugin.json`, or `hooks.json`, runs `jq -e . "$FILE" >/dev/null 2>&1` and surfaces parse errors as `additionalContext` (with the literal `jq:` error message). Silent on valid JSON and non-matching files. Replaces the manual `cat … | jq .` step documented earlier in this file as a one-shot Bash command.
+
+Self-contained — no `_shared/lib.sh` sourcing, inline `jq` envelopes, follows the `cloud-delegation/agents-md-sync.sh` precedent.
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 

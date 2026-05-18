@@ -70,7 +70,7 @@ The expensive dual-reviewer work (parallel Codex dispatch + Claude+Codex dialogu
 
 Implementer / reviewer separation is preserved across the chain: each layer is a different session, no agent grades its own work. See `plugins/staged-review/templates/auto-merge.md` for branch-protection + `[BLOCK-MERGE]` setup.
 
-## Available Plugins (10)
+## Available Plugins (11)
 
 **Universal plugins** (language-agnostic):
 
@@ -83,6 +83,7 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 | [portfolio-strategy](./plugins/portfolio-strategy) | Power-law portfolio rule — cross-repo decision framework |
 | [cloud-delegation](./plugins/cloud-delegation/README.md) | Linear-as-queue + cloud-agent (Codex, Cursor) delegation workflow |
 | [dev-lifecycle](./plugins/dev-lifecycle/README.md) | Canonical reference for the five-phase development lifecycle |
+| [marketplace-hygiene](./plugins/marketplace-hygiene/README.md) | Marketplace-integrity hooks — blocks direct SKILL.md edits, validates marketplace/plugin/hooks JSON |
 
 **Elixir/Phoenix plugins**:
 

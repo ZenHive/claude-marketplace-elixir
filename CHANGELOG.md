@@ -4,6 +4,17 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**`marketplace-hygiene` plugin (v0.1.0) — two marketplace-integrity hooks**
+
+- **`block-skill-edits.sh` (PreToolUse / Edit|Write|MultiEdit)** — denies direct edits to any of the 30 auto-synced `plugins/*/skills/*/SKILL.md` files registered in `scripts/skill-include-map.sh`. Deny message names the canonical `~/.claude/includes/<name>.md` and the sync command. Unmapped SKILL.md files (e.g. `workflow-generator`, `tidewave-guide`) pass through.
+- **`validate-marketplace-json.sh` (PostToolUse / Edit|Write|MultiEdit)** — runs `jq -e .` on every edit to a file basenamed `marketplace.json`, `plugin.json`, or `hooks.json`. Parse errors surface as `additionalContext` immediately instead of at marketplace-load time. Silent on valid JSON and non-matching files.
+- **`scripts/skill-include-map.sh` (new)** — single source of truth for the SKILL.md ↔ include mapping; sourced by both `sync-skills-from-includes.sh` (which loses its inline `MAPPINGS` array) and the block hook. One edit point for new auto-synced skills.
+- Self-contained plugin — no `_shared/lib.sh` sourcing, inline `jq` envelopes (matches `cloud-delegation/agents-md-sync.sh` precedent).
+- 15 tests in `test/plugins/marketplace-hygiene/test-marketplace-hygiene-hooks.sh` (7 block-skill-edits cases, 8 validate-marketplace-json cases).
+- Marketplace `metadata.version` 1.5.0 → 1.6.0 (catalog-shape change: new plugin entry).
+
 ### Removed
 
 **`staged-review:commit-review` skill (901 LOC) — pre-merge phase becomes GitHub-native**
