@@ -90,11 +90,9 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.permissionDecisionReason | contains("Missing Required Dependency: credo")'
 
-# Test 9: Pre-commit uses -C flag directory instead of CWD
-# cwd must NOT be a worktree root (pre-commit-unified.sh:50-53 suppresses
-# when HOOK_CWD's .git is a file — true for any git worktree). Use the
-# test parent dir as a non-worktree, non-Elixir cwd; -C still routes to
-# the broken fixture and produces the expected deny.
+# Test 9: Pre-commit uses -C flag directory instead of CWD.
+# cwd is the test parent (non-Elixir); -C still routes to the broken
+# fixture and produces the expected deny.
 test_hook_json \
   "Pre-commit: Uses git -C directory instead of CWD" \
   "plugins/elixir/scripts/pre-commit-unified.sh" \
@@ -117,6 +115,34 @@ test_hook_json \
   "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"/tmp\"}" \
   0 \
   ".suppressOutput == true"
+
+# -----------------------------------------------------------------------------
+# Worktree fixture setup: simulate a git worktree by writing .git as a file
+# (gitdir pointer). The fixture's .git is intentionally NOT checked in because
+# git silently refuses to add files named ".git" — recreate it on every run.
+# -----------------------------------------------------------------------------
+WORKTREE_FIXTURE="$REPO_ROOT/test/plugins/elixir/precommit-worktree-fixture"
+echo "gitdir: /tmp/fake-main-gitdir/worktrees/precommit-worktree-fixture" > "$WORKTREE_FIXTURE/.git"
+
+# Test 12: Pre-commit runs inside a git worktree (HOOK_CWD is a worktree).
+# Previously skipped via is_worktree_path; the fix removes that skip and
+# the resolver walks up to the worktree's own mix.exs. Format check fails
+# on the fixture's unformatted.ex → deny.
+test_hook_json \
+  "Pre-commit: Runs inside a git worktree (HOOK_CWD = worktree path)" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$WORKTREE_FIXTURE\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny"'
+
+# Test 13: `cd <worktree> && git commit` from a non-Elixir CWD routes
+# project-root resolution to the worktree, not the calling shell's CWD.
+test_hook_json \
+  "Pre-commit: Routes via cd-prefix when commit is issued from another directory" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
+  "{\"tool_input\":{\"command\":\"cd $WORKTREE_FIXTURE && git commit -m 'test'\"},\"cwd\":\"/tmp\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecision == "deny"'
 
 # =============================================================================
 # Docs Recommendation Tests (recommend-docs-lookup.sh)

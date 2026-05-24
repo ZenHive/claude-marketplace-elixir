@@ -29,42 +29,25 @@ parse_precommit_input || { emit_suppress_json; exit 0; }
 is_git_commit_command "$HOOK_COMMAND" || { emit_suppress_json; exit 0; }
 
 GIT_DIR=$(extract_git_dir "$HOOK_COMMAND" "$HOOK_CWD")
-PROJECT_ROOT=$(find_mix_project_root_from_dir "$GIT_DIR") || { emit_suppress_json; exit 0; }
 
-# Worktree skip: when the commit targets a git worktree (its .git is a FILE
-# pointing at <main>/.git/worktrees/<id>/ instead of a directory),
-# find_mix_project_root walks from the worktree's gitdir into the MAIN
-# checkout and runs validation against the wrong source tree — producing
-# false positives from main's state (e.g. corpus drift, unrelated test
-# failures). Skip in that case; rely on PostToolUse format/test for
-# in-worktree feedback and CI for the final gate.
+# Determine effective working directory for project-root resolution.
+# Order: explicit `-C <path>` in command (already in GIT_DIR) → leading
+# `cd <path> && ...` in command → HOOK_CWD. The CD_PATH parser handles
+# the `cd <worktree> && git commit` pattern from a main-checkout session
+# so the hook runs against the worktree's source tree, not main's.
 #
-# Detection covers two paths:
-#  1. HOOK_CWD is itself the worktree (Claude session started in worktree)
-#  2. HOOK_COMMAND is `cd <worktree> && git commit ...` from main checkout
-#     (Claude session in main, commit redirected to worktree)
-is_worktree_path() {
-  [ -n "$1" ] && [ -f "$1/.git" ]
-}
+# Conservative regex: matches `cd ` followed by an unquoted
+# non-whitespace path. Won't match `cd ..`, `cd -`, quoted paths with
+# spaces, or `bash -c "..."`. Failure mode is "fall through to GIT_DIR".
+EFFECTIVE_CWD="$GIT_DIR"
 
-if is_worktree_path "$HOOK_CWD"; then
-  emit_suppress_json
-  exit 0
-fi
-
-# Parse `cd <path>` from HOOK_COMMAND. Conservative regex: matches `cd `
-# followed by an unquoted non-whitespace path. Won't match `cd ..`,
-# `cd -`, quoted paths with spaces, or `bash -c "..."`. Good enough for
-# the common worktree-commit shape; failure mode is "no skip" (existing
-# behavior), not "wrong skip".
 CD_PATH=$(echo "$HOOK_COMMAND" | sed -n 's|.*[[:space:];&|]cd[[:space:]]\{1,\}\([^[:space:];&|]\{1,\}\).*|\1|p; s|^cd[[:space:]]\{1,\}\([^[:space:];&|]\{1,\}\).*|\1|p' | head -1)
-# Expand leading ~/ since sed output is literal
 [ -n "$CD_PATH" ] && CD_PATH="${CD_PATH/#\~\//$HOME/}"
-if is_worktree_path "$CD_PATH"; then
-  emit_suppress_json
-  exit 0
+if [ -n "$CD_PATH" ] && [ -d "$CD_PATH" ]; then
+  EFFECTIVE_CWD="$CD_PATH"
 fi
 
+PROJECT_ROOT=$(find_mix_project_root_from_dir "$EFFECTIVE_CWD") || { emit_suppress_json; exit 0; }
 cd "$PROJECT_ROOT"
 
 # =============================================================================

@@ -6,6 +6,12 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Fixed
 
+**`elixir` v1.29.1 → v1.29.2 — pre-commit-unified now runs the full quality gate on git worktree commits**
+
+- Previously, `pre-commit-unified.sh` short-circuited to `suppressOutput` whenever `HOOK_CWD/.git` was a file (any git worktree) or when the command was `cd <worktree-path> && git commit ...`. The cited justification was that `find_mix_project_root_from_dir` "walks from the worktree's gitdir into the MAIN checkout" — but the resolver in `lib.sh` is a pure `mix.exs` upward-walk that never inspects `.git`. The skip was over-broad. Since `worktree-workflow.md` made worktrees the default for branch-worthy work, almost every commit Claude makes was bypassing the local gate (credo, dialyzer, test, doctor, sobelow, mix_audit, ash codegen, ex_doc).
+- Fix: remove the `is_worktree_path` helper and both early-exits. The `cd <path>` parser is repurposed from "skip if `cd` target is a worktree" to "use `cd` target as the effective CWD for project-root resolution." Net effect: a Claude session inside `~/_DATA/worktrees/<repo>/<id>/` now gets the same `mix format/credo/test/dialyzer/...` gate as a session in the main checkout.
+- Regression tests added (Tests 12 and 13 in `test/plugins/elixir/test-elixir-hooks.sh`) — one fixture-based test for `HOOK_CWD = worktree path` and one for `cd <worktree> && git commit` from a non-Elixir cwd. New fixture `test/plugins/elixir/precommit-worktree-fixture/` simulates a worktree; its `.git` pointer-file is created at test runtime (git silently refuses to add files named `.git` to the index).
+
 **`marketplace-hygiene` v0.1.1 — block-skill-edits.sh now works from the installed-plugin location**
 
 - The v0.1.0 hook derived `REPO_ROOT` from `SCRIPT_DIR` via `git rev-parse --show-toplevel`. That works in local development (script inside the marketplace repo) but silently fails at runtime: Claude Code installs the plugin under `~/.claude/plugins/cache/<marketplace>/<plugin>/<ver>/` — outside any git repo — so `git rev-parse` returned non-zero, `REPO_ROOT` was empty, and the hook fell through to `suppressOutput` instead of denying. Net effect: SKILL.md edits were not blocked in any session that installed the plugin from GitHub.
