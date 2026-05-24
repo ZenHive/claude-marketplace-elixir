@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Builds PDG/SDG from Elixir, Erlang, Gleam, or compiled BEAM. Backward/forward slicing, taint analysis, independence checks, dead-code detection, OTP state-machine analysis, `mix reach` HTML viz.
 
-**Min version: `{:reach, "~> 2.4"}`.** Requires `ex_ast ~> 0.11.2` at the dep level. Optional `:boxart, "~> 0.3.3"` for terminal `--graph` rendering.
+**Min version: `{:reach, "~> 2.5"}`.** Requires `ex_ast ~> 0.12.0` at the dep level. Optional `:boxart, "~> 0.3.3"` for terminal `--graph` rendering.
 
 **Canonical CLI — five commands:** `mix reach.map` (project view), `reach.inspect TARGET` (target-local), `reach.trace` (taint + slicing), `reach.check` (CI gates), `reach.otp` (process / state-machine analysis). `TARGET` accepts `Module.function/arity` or `file:line`.
 
@@ -138,7 +138,7 @@ for node <- Reach.dead_code(graph) do
 end
 ```
 
-False positives are kept low via fixed-point alive expansion, branch-tail return tracing, guard exclusion, comprehension generator/filter exclusion, an impure-module blocklist (Process, :code, :ets, Node, System, …), typespec exclusion, and impure-call descendant marking. Still a hint source — verify before deleting.
+False positives are kept low via fixed-point alive expansion, branch-tail return tracing, guard exclusion, comprehension generator/filter exclusion, an impure-module blocklist (Process, :code, :ets, Node, System, …), typespec exclusion, compile-time DSL-macro exclusion (Phoenix `Component.attr/3`/`slot/3`, router macros, Ecto schema fields, migration `table`/`column` declarations — 2.5.0), and impure-call descendant marking. Still a hint source — verify before deleting.
 
 ### Canonical CLI (`mix reach.*`)
 
@@ -280,7 +280,7 @@ Start from `examples/reach.exs` in the Reach repo. Reach itself ships a root `.r
 - **Identity callbacks** — `Enum.uniq_by(coll, fn x -> x end)` → `Enum.uniq/1`; `Enum.sort_by(coll, fn x -> x end)` → `Enum.sort/1`
 - **Map contracts** — same-variable atom/string fallback (`metadata["id"] || metadata[:id]`); repeated atom-key map literals with same shape (struct/contract candidate); fixed-shape map detection
 - **Structural drift (clone-backed)** — return-contract drift, side-effect ordering drift, validation drift across similar code
-- **Other** — redundant negated guards (`when x != y` after `when x == y`); destructure-then-reconstruct (`[a, b, c]` rebuilt as same list); behaviour-candidate detection (modules exposing the same public callback set); compile-time vs runtime config (`Application.get_env`/`fetch_env` in module attrs, `compile_env` inside runtime fns)
+- **Other** — redundant negated guards (`when x != y` after `when x == y`); destructure-then-reconstruct (`[a, b, c]` rebuilt as same list); behaviour-candidate detection (modules exposing the same public callback set); compile-time vs runtime config (`Application.get_env`/`fetch_env` in module attrs, `compile_env` inside runtime fns); trivial delegate (pass-through `defdelegate` / hand-written forwarding, excluding documented facades + behaviour adapters); identity float arithmetic (`x * 1.0`, `x + 0.0`)
 
 **False-positive scope.** `++`-in-reduce checks verify an operand references the reduce accumulator before flagging. IR-based checks (repeated traversal, multiple `Enum.at`) scope per-clause to avoid multi-clause-function FPs. `Code.string_to_quoted` calls pass `emit_warnings: false` so reparsing dep source emits no tokenizer noise. Corpus-tested against the top 200 Hex packages: 0 crashes, 0 false positives.
 
@@ -446,8 +446,8 @@ Limitation: cross-language edges only form when the JS source is a **literal** a
 ### Dependencies
 
 ```elixir
-{:reach, "~> 2.4", only: [:dev, :test], runtime: false},
+{:reach, "~> 2.5", only: [:dev, :test], runtime: false},
 {:boxart, "~> 0.3.3", only: [:dev, :test], runtime: false}   # terminal --graph rendering
 ```
 
-Requires `ex_ast ~> 0.11.2` at the dep level. Pulls in `libgraph`. Optional companion deps: `jason`, `makeup`, `makeup_elixir`, `makeup_js` (HTML viz), `boxart` (terminal). For the JS frontend + cross-language plugin, add `{:quickbeam, "~> 0.10.13"}` — the plugin activates automatically when QuickBEAM is in the dep tree.
+Requires `ex_ast ~> 0.12.0` at the dep level. Pulls in `libgraph`. Optional companion deps: `jason`, `makeup`, `makeup_elixir`, `makeup_js` (HTML viz), `boxart` (terminal). For the JS frontend + cross-language plugin, add `{:quickbeam, "~> 0.10.14"}` — the plugin activates automatically when QuickBEAM is in the dep tree.

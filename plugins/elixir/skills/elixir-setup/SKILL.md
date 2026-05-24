@@ -51,11 +51,11 @@ defp deps do
     {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
     {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
     {:ex_doc, "~> 0.40", only: :dev, runtime: false},
-    {:doctor, "~> 0.22", only: [:dev, :test], runtime: false},
+    {:doctor, "~> 0.23", only: [:dev, :test], runtime: false},
     {:tidewave, "~> 0.5", only: :dev},
     {:bandit, "~> 1.10", only: :dev},      # non-Phoenix only
     {:ex_dna, "~> 1.3", only: [:dev, :test], runtime: false},
-    {:ex_ast, "~> 0.11", only: [:dev, :test], runtime: false},
+    {:ex_ast, "~> 0.12", only: [:dev, :test], runtime: false},
     {:descripex, "~> 0.6"},                # full dep — macros expand at compile time
     {:api_toolkit, "~> 0.1"}               # API services only
   ]
