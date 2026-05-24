@@ -31,7 +31,7 @@ Walk a commit range. Audit each commit. Auto-apply hygiene fixes. Write a `.audi
 |---|---|---|
 | Input | `git diff --staged` | `git show <sha>` per commit in range |
 | Plan mode | Yes — exit-to-approve before fixes apply | **No** — auto-apply directly. Audit commit is the artifact |
-| `discuss-design` resolution | Claude+Codex dialogue, escalate to user on divergence | Claude+Codex dialogue, **drop + file as ROADMAP candidate** on divergence (no user escalation) |
+| `discuss-design` resolution | Claude+Codex dialogue, escalate to user on divergence | Claude+Codex dialogue, **divergence: reversible → pick one with rationale in `.audit/<sha>.md`; irreversible → STOP and ask user** (no silent rmap filing) |
 | Codex second-opinion | Mandatory (single-judge failure mode) | Mandatory (same reasoning) |
 | Final action | Edits stay unstaged for committer | Auto-commit one `audit(...)` covering the batch |
 
@@ -42,10 +42,10 @@ WHAT THIS SKILL DOES:
   - Per commit, **resolve source PR** (squashed `(#NNN)` in subject OR `gh search prs --merge-commit <sha>`) and fetch PR + Linear comments (Step 4.5)
   - Per commit, apply the 5 review categories + Category 6 (doc gaps), **with bot review comments (CodeRabbit / Copilot / Codex GH bot) treated as third-reasoner inputs to Cat 1 + Cat 6**
   - Dispatch `codex:codex-rescue` in parallel for second-opinion findings
-  - **3-reasoner merge** (Claude + Codex + bots) with corroboration-count = confidence; ≥2-reasoner agreement auto-applies, single-bot bugs file as rmap follow-ups (Step 5d)
+  - **3-reasoner merge** (Claude + Codex + bots) with corroboration-count = confidence; ≥2-reasoner agreement auto-applies, single-bot bugs verified in-session per Step 5d (fix or drop with rationale — never silently deferred)
   - Auto-apply rated 3-10 + actionable + `discuss-trivial` findings
-  - **Cross-reference Linear acceptance criteria** for each PR; unmet criteria file as rmap follow-ups (Step 9 extension)
-  - Auto-resolve `discuss-design` via Claude+Codex dialogue: convergence applies, divergence drops the finding from auto-apply and files it as a ROADMAP candidate
+  - **Cross-reference Linear acceptance criteria** for each PR; unmet criteria verified in-session per Step 9 (fix per the stake-gated ladder, refine via `rmap status done --implemented "..."`, or STOP and ask user)
+  - Auto-resolve `discuss-design` via Claude+Codex dialogue: convergence applies per the Step 9 stake-gated ladder; divergence — reversible → pick one position with rationale in `.audit/<sha>.md`, irreversible → STOP and ask user
   - Write `.audit/<short-sha>-<slug>.md` per audited commit
   - Auto-commit one `audit(...)` covering the batch
   - **Linear close-out** at batch tail (Step 12.5): verify Done state for each Linear-linked PR, post ONE closing comment per issue
@@ -55,9 +55,9 @@ WHAT THIS SKILL DOES NOT DO:
   - Review staged or in-flight code (use `code-review`)
   - **Pre-merge review** — pre-merge phase is GH-native auto-merge only (`gh pr merge --auto`); audit-review runs post-merge exclusively. Manual hold via `[BLOCK-MERGE]` label on the PR
   - Ask the user for per-finding approval (the audit commit IS the approval surface — revert to disagree)
-  - Escalate `discuss-design` divergence to the user mid-run (drop + file as ROADMAP follow-up, surface in summary)
+  - Silently drop or queue `discuss-design` divergence — the skill picks reversible divergences with rationale and DOES STOP for irreversible ones (genuine forks the user must own)
   - Push the audit commit (the user pushes when ready, same as any other commit)
-  - Push back to the cloud agent (no live channel post-merge; correctness gaps file as rmap follow-ups for the next iteration)
+  - Push back to the cloud agent (no live channel post-merge; correctness gaps are verified and fixed in-session per Step 5d / Step 9, never deferred)
 
 **The audit commit is the inspectable artifact.** Every fix, every doc edit, every `.audit/` report lands in one commit. `git show <audit-sha>` shows exactly what the audit changed. `git revert <audit-sha>` undoes the whole batch in one step. This is the load-bearing reason there's no plan-mode gate — the user audits *after* the fact, with full diff + report context, instead of reviewing edit-by-edit before they apply.
 
@@ -75,16 +75,16 @@ digraph audit_review {
   pr_ctx    [label="4.5. Per commit, resolve source PR\n+ fetch PR + Linear comments\n(bot reviews → Step 5a inputs;\nacceptance criteria → Step 9 extension)"];
   cats      [label="5a. Apply Categories 1-6\n(bots as 3rd reasoner for Cat 1 + Cat 6)"];
   codex     [label="5b. Dispatch codex:codex-rescue\nin parallel for each non-tiny commit"];
-  triage    [label="5d. Bot-finding triage\n(uncorroborated bot findings →\napply / rmap follow-up / drop)"];
+  triage    [label="5d. Bot-finding triage\n(uncorroborated bot findings →\nverify in-session: apply / drop)"];
   merge     [label="6. 3-reasoner merge\nClaude + Codex + bots\n(corroboration-count = confidence)"];
   rate      [label="7. Rate findings\n1-10 / discuss-trivial / discuss-design"];
   table     [label="8. Present per-commit findings\n(informational, no plan mode)"];
-  apply     [label="9. Auto-apply\nrated 3-10 + actionable + discuss-trivial\n+ acceptance-criteria check\n(unmet → rmap follow-up)"];
-  dialogue  [label="10. Auto-resolve discuss-design\nClaude+Codex dialogue\nConvergence → apply\nDivergence → drop + file ROADMAP"];
+  apply     [label="9. Auto-apply (stake-gated)\nrated 3-10 + actionable + discuss-trivial\n+ acceptance-criteria check\n(unmet → verify in-session: fix or refine)"];
+  dialogue  [label="10. Auto-resolve discuss-design\nClaude+Codex dialogue\nConvergence → apply\nDivergence: reversible → pick / irreversible → STOP"];
   report    [label="11. Write .audit/<sha>.md per commit\n(per-PR bot triage + Linear context recorded)"];
   commit    [label="12. Auto-commit `audit(...)`\nbatch of fixes + reports"];
   closeout  [label="12.5. Linear close-out\nverify Done, post 1 closing comment\nper Linear-linked PR"];
-  summary   [label="13. Summary\nper-commit verdict\n+ ROADMAP-filed divergence findings\n+ Linear close-out result"];
+  summary   [label="13. Summary\nper-commit verdict\n+ divergence resolutions (picked or stopped)\n+ Linear close-out result"];
 
   resolve -> classify -> diff -> roadmap -> pr_ctx -> cats -> merge;
   roadmap -> codex -> merge;
@@ -273,7 +273,7 @@ For each non-tiny commit, walk the 5+1 categories from `code-review` Step 3a. Id
 
 **Cite-and-skip dedupe** (same shape as `code-review` Step 5 cite-and-skip): when Claude's own audit and a bot agree on a finding, surface ONE row with attribution `also flagged by <bot>`. Don't double-count. When Claude disagrees with a bot, mark `discuss-trivial` and record both positions in `.audit/<sha>.md`. Bot findings without Claude OR Codex corroboration drop through to **Step 5d** for triage (don't auto-apply, don't drop silently).
 
-**Forbidden:** silently dropping a bot-flagged bug because Claude's confidence filter didn't trigger on the same input. The whole reason bots are reasoners here is that they catch what Claude's confidence filter under-flags. If a bot flagged it as a bug and Claude can't reproduce, Step 5d files it as an rmap follow-up — never drop.
+**Forbidden:** silently dropping a bot-flagged bug because Claude's confidence filter didn't trigger on the same input. The whole reason bots are reasoners here is that they catch what Claude's confidence filter under-flags. If a bot flagged it as a bug and Claude can't reproduce, Step 5d verifies the claim in-session (open the file, run the relevant check) — fix per the Step 9 stake-gated ladder if real, drop with rationale in `.audit/<sha>.md` if confirmed false positive. Never silently defer.
 
 ### Step 5b: Dispatch Codex Second-Opinion (Required, Parallel with 5a)
 
@@ -342,35 +342,17 @@ After Steps 5a + 5b complete, partition `bot_reviews[]` + `bot_inline_comments[]
 |---|---|---|
 | Bug / correctness flagged by **≥2 bots** | bot+bot | **Auto-apply** (rated 7; high-confidence corroboration is structurally identical to Claude+Codex agreement) |
 | Bug / correctness flagged by **1 bot**, Claude+Codex agree it's real on verification | post-dispatch | **Auto-apply** (rate by severity per Step 7 scale) |
-| Bug / correctness flagged by **1 bot**, Claude+Codex disagree | single | **File as rmap follow-up** — could be false positive; next iteration cycle picks up. NEVER drop silently |
+| Bug / correctness flagged by **1 bot**, Claude+Codex disagree | single | **Verify in-session** — open the file, run the relevant check (test / credo / dialyzer / grep). Real bug → apply per Step 9's stake-gated ladder. Confirmed false positive → drop with rationale in `.audit/<sha>.md`. NEVER silently defer to a future session's queue |
 | Hygiene / doc gap flagged by **any bot** | any | **Auto-apply** (rated 3-5; low risk, mechanical fix) |
 | Cosmetic / nit flagged by **1 bot** (style, wording, formatting) | single | **Drop** with one-line rationale in `.audit/<sha>.md` |
 | Bot finding on a file outside the commit diff | n/a | **Drop** — not this audit's scope |
 
 **Corroboration count = confidence.** Two bots agreeing is the same shape as Claude+Codex agreement; the merge pipeline (Step 6) treats them uniformly. The two principles:
 
-1. **Bugs are never silently dropped.** Single-bot bug → rmap follow-up. Always.
+1. **Bugs are never silently dropped.** Single-bot bug → verify in-session → fix per the Step 9 stake-gated ladder, or drop with rationale in `.audit/<sha>.md`. Never deferred to a future session's queue (per `feedback_no_rmap_followups_from_audit`: the audit session has every artifact already loaded — re-reading it cold in a future session is pure overhead).
 2. **Cosmetic single-bot findings drop.** Bots over-flag nits; auto-applying every bot suggestion bloats the audit commit.
 
-**rmap follow-up filing.** When this step files a follow-up:
-
-```
-rmap new --from-stdin <<TOML
-[[task]]
-phase = <project's audit_followups phase or current phase>
-bundle = <audit_followups bundle>
-status = "pending"
-title = "Audit-surfaced: <bot finding title>"
-scores = { d = ?, b = ?, u = ? }   # leave for user's next prioritization pass
-body = """
-<bot name> flagged in PR #<N>: <verbatim quote of bot comment>.
-Claude+Codex did not corroborate; filed as rmap follow-up pending verification.
-Filed by audit-review against commit <short-sha> on <YYYY-MM-DD>; see .audit/<short-sha>-<slug>.md.
-"""
-TOML
-```
-
-The follow-up filing happens inside the same audit commit (Step 12) — `roadmap/tasks.toml`, `ROADMAP.md`, `roadmap/data.json` all land together. Same shape as `discuss-design` divergence filing.
+**In-session resolution is the default.** Audit-review does **not** open new `rmap` tasks for findings it can verify in-session. The single allowed rmap surface from audit-review is `rmap status <id> done --delivered-by audit-<agent> --verified --implemented "..."` on tasks the audit refined or corrected — a *record* of what shipped, not future work. See the "Stake-Gated Fix Verification" subsection under Step 9 for the tier ladder this hands fixes off to, and the rewritten "rmap Status Updates" section near the end of this skill for the explicit-user-ask exception (the one branch where `rmap new` is still legitimate).
 
 ### Step 6: Merge Claude + Codex Findings (Now 3-Reasoner)
 
@@ -383,7 +365,7 @@ Per commit, combine findings from **three reasoners** — Claude (5a), Codex (5b
 | Corroborated by **≥2 reasoners** (any two of Claude / Codex / ≥1 bot) | Collapse to one row. Highest confidence. Pick the most specific description. Tag attribution: `also flagged by <other reasoners>` |
 | **Claude-only** | Keep with Claude's rating |
 | **Codex-only** | Tag `(codex)`. Default priority to `discuss` until verified against actual code (open file, confirm claimed symbol/invariant exists). Per `critical-rules.md`: Codex frequently cites nonexistent functions / wrong imports — treat as suggestions, never facts |
-| **Single-bot bug, no Claude/Codex agreement** | Routed through Step 5d triage — file as rmap follow-up (don't auto-apply, don't drop) |
+| **Single-bot bug, no Claude/Codex agreement** | Routed through Step 5d triage — verify in-session, then apply per Step 9's stake-gated ladder or drop with rationale (never silently defer) |
 | **Single-bot hygiene** | Routed through Step 5d triage — auto-apply (low risk) |
 | **Single-bot cosmetic** | Routed through Step 5d triage — drop with one-line rationale |
 | **Bot + Claude/Codex agreement** | Treated as corroborated (≥2 reasoners); collapse |
@@ -404,7 +386,7 @@ Rating scale identical to `code-review` Step 5:
 | 3-4 | low | Auto-apply |
 | 1-2 | cosmetic | List only; skip unless trivial |
 | — | `discuss-trivial` | **Auto-apply** (cognitively reversible — single coherent change, no new public surface, auditable in one read) |
-| — | `discuss-design` | Step 10 Claude+Codex dialogue. **Convergence applies; divergence drops + files as ROADMAP candidate.** No user escalation |
+| — | `discuss-design` | Step 10 Claude+Codex dialogue. **Convergence applies (per Step 9 ladder); divergence: reversible → pick one with rationale in `.audit/<sha>.md`; irreversible → STOP and ask user.** No silent rmap filing |
 
 **The `discuss` split is the same as in `code-review`** — the gate is *ripple*, not line count. A 5-line `@spec` tightening that breaks N callers is `discuss-design`; a 40-line clean extraction inside one module is `discuss-trivial`. Re-read `code-review` Step 5 if classification is unclear.
 
@@ -449,39 +431,37 @@ Applies in this order, deterministic across runs:
 4. TODO marker additions
 5. Cosmetic (only if priority ≥ 3)
 
+**Stake-gated fix verification.** Auto-apply is *tier-gated*, not unconditional. The audit session is both implementer and grader of its own fixes — exactly the evaluator-separation failure mode `~/.claude/includes/workflow-philosophy.md` § Evaluator Separation calls out. Don't close that gap by grading every fix with a second model (would 2x every audit including doc tweaks); close it stake-gated:
+
+| Tier   | Examples                                                                                              | Grader                                                                                          |
+|--------|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| Low    | Doc drift, formatting, comments, dead-code removal, TODO additions, renames in non-critical modules    | Mechanical verification stack only (credo + dialyzer + tests + sobelow + doctor + ex_dna green → commit) |
+| Medium | Refactors in non-load-bearing application code, bug fixes outside core lib paths                       | Mechanical stack + audit session re-reads its own fix with explicit "would I approve this in code-review?" pass before commit |
+| High   | Fixes inside core runtime / evaluator-grader code (verification, audit-review itself, security/auth-shaped code) | Mechanical stack + **dispatch a second-grader read with a different agent** (Codex if audit ran on Claude, vice versa) — single output: `approve` / `reject with rationale`. Reject → revert the fix, flag in `.audit/<sha>.md`, surface to user STOP. Approve → fix lands in the `audit(...)` commit |
+
+**Three load-bearing constraints — violate any and the treadmill restarts:**
+
+- **HIGH-tier grader output lands in `.audit/<sha>.md` only.** No separate commit, no separate branch, no second `audit(...)` commit. The grader is a *read*, not an implementer.
+- **The grader produces text, not commits or branches.** Any branch or commit the grader emits re-enters the next sweep's unaudited-commit count and restarts the loop. The grader is a *read*, not an implementer — its output lives in `.audit/<sha>.md`.
+- **Reject from the second grader is a hard stop.** Revert the fix immediately, write the rejection rationale into `.audit/<sha>.md`, and surface the finding to the user in the Step 13 summary. Don't argue with the grader inline.
+
+**Tier classification.** Default — anything under `lib/<app>/` is MEDIUM, with HIGH promotion for the project's core / evaluator / security-shaped paths. Projects can configure HIGH-tier paths per-repo via `.audit-review.toml` `production_paths` (same config surface as the Tiny-Commit Fast Path below). LOW covers docs, READMEs, CHANGELOG, ROADMAP, in-code `@doc` / `@spec`, formatting, comments, dead-code removal, TODO marker additions, renames in non-critical modules.
+
+**HIGH-tier dispatch — how.** Today the second-grader dispatch is hand-picked: "Claude implemented → Codex grades", "Codex implemented → Claude grades". For harness-using projects, the dispatch is one `Harness.Run` (target=grader-agent, prompt=focused-code-review-of-fix, expecting `approve` / `reject`); for non-harness projects, it's a direct CLI invocation (`codex exec` / `claude -p`) with the grader prompt. Once **rmap Task 54 (cost-tier capability)** lands, the dispatch becomes mechanical (pick the cheapest grader-capable model for the tier) — until then, the obvious-but-manual pairing covers the typical case.
+
 Skip priority 1-2 cosmetic findings unless the fix is a single-line trivial edit (typo in a doc string, wrong word in an error message). Cosmetic noise dilutes the audit corpus.
 
-ROADMAP status flips go through `rmap status <id> done --implemented "<one-line summary of what shipped>"` (rmap re-renders `ROADMAP.md` + `roadmap/data.json`) — never a hand-edit to `ROADMAP.md`. The `--implemented` flag is required for `done` transitions; for trivial flips where the diff matches the task spec verbatim, `--implemented "as specified in body"` is the honest default. Delegation markers (`cx` / `csr`) live on the `[[task]]` entry in `roadmap/tasks.toml` and persist across the status change automatically; the rendered `[CX]` / `[CSR]` notation is preserved by construction. See `rmap.md`.
+ROADMAP status flips go through `rmap status <id> done` (rmap re-renders `ROADMAP.md` + `roadmap/data.json`) — never a hand-edit to `ROADMAP.md`. Delegation markers (`cx` / `csr`) live on the `[[task]]` entry in `roadmap/tasks.toml` and persist across the status change automatically; the rendered `[CX]` / `[CSR]` notation is preserved by construction. See `rmap.md`.
 
 **Acceptance-criteria cross-reference** (per commit with a Linear-linked PR from Step 4.5). For each criterion in `linear_acceptance[]`:
 
 | Result | Action |
 |---|---|
 | ✅ Met by the merged code | Record in `.audit/<sha>.md` (Findings table — category `acceptance`, no fix needed) |
-| ❌ Not met (verifiable gap) | **File as rmap follow-up** — task title `Audit-surfaced: PR #<N> — unmet criterion <N>`, body quotes the criterion verbatim + the gap + filed-by line. No auto-fix attempt — the next iteration cycle picks it up |
+| ❌ Not met (verifiable gap) | **Verify in-session** — run the test or inspect the behavior the criterion targets. Real gap → fix per Step 9's stake-gated ladder and add a Findings row. Criterion was wrong (scope drift since the spec was written) → refine via `rmap status <id> done --implemented "criterion adjusted: <new>; original criterion did not match shipped behavior"` on the delivering task; record reasoning in `.audit/<sha>.md`. Genuine fork (fix is non-trivial AND criterion-wrong is also plausible) → STOP and ask user. Never silently defer |
 | ❓ Ambiguous criterion (wording unclear or scope drift) | Record in `.audit/<sha>.md` only. No rmap task — avoid speculation |
 
-**rmap filing shape** (same envelope as Step 5d's filings):
-
-```
-rmap new --from-stdin <<TOML
-[[task]]
-phase = <project's audit_followups phase>
-bundle = <audit_followups bundle>
-status = "pending"
-title = "Audit-surfaced: PR #<N> — unmet criterion <short summary>"
-scores = { d = ?, b = ?, u = ? }   # leave for user
-body = """
-PR #<N> (<title>) merged with this acceptance criterion unmet:
-
-> <verbatim criterion>
-
-Gap: <one sentence on what's missing or wrong>.
-
-Filed by audit-review against commit <short-sha> on <YYYY-MM-DD>; see .audit/<short-sha>-<slug>.md.
-"""
-TOML
-```
+**In-session verification is the mechanism.** No `rmap new` for unmet criteria the audit can resolve — the in-session fix path (the ❌ row above) + `rmap status done --implemented "..."` refinement for wrong criteria together cover the cases this skill is qualified to handle. The genuine-fork case STOPs and asks the user inline. See "rmap Status Updates" near the end of this skill for the one explicit-user-ask exception where `rmap new` is still legitimate.
 
 Skip the entire acceptance-criteria check for commits without `linear_issue_id` (no Linear link) or without parseable `linear_acceptance[]` (issue body had no criteria section).
 
@@ -493,19 +473,19 @@ Otherwise, for each `discuss-design` finding:
 
 1. **Claude position.** Write a short paragraph: proposed resolution + reasoning, factoring in the roadmap (already read in Step 4), codebase conventions, and the specific trade-off. Keep it ~3 sentences.
 
-2. **Codex position.** Dispatch `codex:codex-rescue` with the four-section payload (Task = "resolve this `discuss-design` finding"; Context = the finding + Claude's position + ROADMAP excerpts; Tool inventory = same as Step 5b; Verification instruction = "verify before asserting"). Ask for an independent resolution and reasoning. **Same dispatch model as Step 5b: `run_in_background: false` on the Agent call + `--background` in the dispatch prompt, then poll `codex-companion status --wait --timeout-ms 600000 <jobId>` via direct Bash and fetch `result <jobId>` when complete.** A dialogue dispatch should not be foregrounded — it hits the Bash 10-min cap on the same reasoning-step hang as the per-commit second opinion. If the dialogue job stalls 30+ min, append the jobId to the checkpoint and stop; resume per Step 5c. Do NOT treat a stalled dialogue as "Codex unreachable" and drop the finding to ROADMAP — that loses Codex's resolution to a timing artifact.
+2. **Codex position.** Dispatch `codex:codex-rescue` with the four-section payload (Task = "resolve this `discuss-design` finding"; Context = the finding + Claude's position + ROADMAP excerpts; Tool inventory = same as Step 5b; Verification instruction = "verify before asserting"). Ask for an independent resolution and reasoning. **Same dispatch model as Step 5b: `run_in_background: false` on the Agent call + `--background` in the dispatch prompt, then poll `codex-companion status --wait --timeout-ms 600000 <jobId>` via direct Bash and fetch `result <jobId>` when complete.** A dialogue dispatch should not be foregrounded — it hits the Bash 10-min cap on the same reasoning-step hang as the per-commit second opinion. If the dialogue job stalls 30+ min, append the jobId to the checkpoint and stop; resume per Step 5c. Do NOT treat a stalled dialogue as "Codex unreachable" and force the single-reviewer fallback prematurely — that loses Codex's resolution to a timing artifact.
 
 3. **Compare and decide:**
    - **Convergence** — same resolution, or resolutions that differ only in minor wording → **apply the fix.** Record both reasoners' justifications in `.audit/<sha>.md`.
-   - **Divergence** — different resolutions → **drop the finding from auto-apply.** File it as a ROADMAP candidate row (low priority; user reviews on the next roadmap pass) with both positions captured in the row's description and in `.audit/<sha>.md`. **No user escalation mid-run.** The summary (Step 13) lists divergence-dropped findings so the user knows what landed in ROADMAP.
+   - **Divergence** — different resolutions. Classify reversibility: **reversible** (refactor cost low, no migration / public-API change / schema change / deprecation downstream consumers must track) → **pick one position, apply per the Step 9 stake-gated ladder, record both positions + rationale-for-choice in `.audit/<sha>.md`**. **Irreversible** → **STOP and ask user** — this is a genuine design fork, not a queueable item. The summary (Step 13) lists each divergence and how it was resolved (which position won, or "stopped for user").
 
-**Why divergence drops instead of escalating** (the autonomy-first lens, per project memory `feedback_autonomy_first.md`):
+**Why the reversibility split** (the autonomy-first lens applied with judgment):
 
 - Convergent findings already represent the consensus path — applying them is safe.
-- Divergent findings are genuine design judgment calls. Bouncing every divergence to the user mid-run defeats the autonomous workflow's point and trains the user to interrupt for low-information decisions.
-- The user can review divergence-dropped findings asynchronously when they next read ROADMAP.md — same cognitive surface as any other prioritization pass.
+- Reversible divergence is exactly the case the audit session is qualified to resolve: both reasoners loaded the same context and produced different defensible positions. Picking the more defensible one with rationale recorded is strictly better than deferring to a future session that will re-read everything cold. The user can still read `.audit/<sha>.md` post-facto and re-open if the chosen position was wrong; the cost of "wrong reversible call" is one follow-up commit, not a corrupted system.
+- Irreversible divergence is a real fork the user must own — migration, public-API change, schema change, deprecation. Stopping mid-run for these is the correct cost; "queue silently to ROADMAP" trains the user that audit divergences are low-information and they will never come back to them. Per `feedback_no_rmap_followups_from_audit`: the queue is the wrong place for genuine forks.
 
-**If Codex is unreachable for a `discuss-design` finding,** fall back to single-reviewer: drop the finding from auto-apply and file it as a ROADMAP candidate with Claude's position and an explicit "Codex unreachable — single-reviewer pass" note. Don't apply unilaterally just because Codex didn't respond.
+**If Codex is unreachable for a `discuss-design` finding,** fall back to single-reviewer with the same reversibility split as above. **Reversible** → apply Claude's position per the Step 9 stake-gated ladder with `"Codex unreachable — single-reviewer pass"` recorded in `.audit/<sha>.md`. **Irreversible** → STOP and ask user. Don't drop the finding silently — single-reviewer-with-rationale is a stronger position than a queue entry the user will never come back to.
 
 ### Step 11: Write `.audit/<sha>.md` Per Commit
 
@@ -596,7 +576,7 @@ Commit message shape:
 **Single-commit batch** (one commit audited):
 - Clean fast-path: `audit(abc1234): clean — fast-path`
 - Findings applied: `audit(abc1234): 3 fixes — dual-reviewer pass`
-- Discuss-design divergence dropped: `audit(abc1234): 2 fixes, 1 dropped to ROADMAP — dual-reviewer pass`
+- Discuss-design divergence picked: `audit(abc1234): 2 fixes, 1 divergence reversible-picked — dual-reviewer pass`
 
 **Multi-commit batch** (range with multiple non-tiny commits):
 ```
@@ -613,8 +593,8 @@ Auto-applied:
 - ROADMAP.md: Task 7, 9 → ✅
 - lib/parser.ex:88: missing TODO(Task 12) marker
 
-Dropped to ROADMAP (discuss-design divergence):
-- lib/cache.ex TTL — see ROADMAP follow-up entry
+Divergence resolutions (discuss-design):
+- lib/cache.ex TTL — reversible; picked 60s (Claude's position) with both reasoners' rationale in .audit/<sha>.md
 ```
 
 **Commit, don't push.** The skill never `git push`es. The user pushes when ready, same as any other commit. This keeps the audit commit subject to the same `critical-rules.md` § GIT COMMIT / PUSH scoping — auto-allowed inside a tracked worktree, ask first elsewhere — without the skill having to know which scope it's in.
@@ -649,8 +629,8 @@ Branch on current state:
 Audit complete — PR #<N> merged.
 
 audit(<short-sha>) landed; reports: .audit/<short-sha>-<slug>.md.
-Acceptance criteria: <N>/<M> met. <if gaps:> Filed as rmap follow-ups: <list of new task IDs>.
-Bot findings triaged: <K> auto-applied, <J> filed as rmap follow-ups, <I> dropped.
+Acceptance criteria: <N>/<M> met. <if gaps:> fixed in-session (<list> per Step 9 ladder) / criterion refined (<list> via `rmap status done --implemented "..."`) / stopped for user (<list>).
+Bot findings triaged: <K> auto-applied (corroborated), <J> verified + fixed in-session, <L> verified + dropped (false positive), <I> cosmetic dropped.
 
 This issue is now Done.
 ```
@@ -670,11 +650,11 @@ After the audit commit, output a summary block. Honest verdict per commit, no em
 |---------|---------|-------|
 | abc1234 | clean — fast-path | n/a |
 | def5678 | 3 fixes applied | dual-reviewer |
-| 9abc123 | 1 fix applied, 1 discuss-design dropped to ROADMAP | dual-reviewer |
+| 9abc123 | 1 fix applied, 1 discuss-design reversible-picked | dual-reviewer |
 | 7def890 | clean — fast-path | n/a |
 
 **Audit commit:** <audit-sha-here>
-**ROADMAP follow-ups filed:** 1 row (cache TTL — see ROADMAP entry under "Audit-surfaced follow-ups")
+**Divergence resolutions:** 1 reversible-picked (lib/cache.ex TTL = 60s, Claude's position; both reasoners' rationale in .audit/9abc123-update-spec.md)
 **Reports:** .audit/abc1234-add-foo.md, .audit/def5678-fix-bar.md, .audit/9abc123-update-spec.md, .audit/7def890-readme-tweak.md
 ```
 
@@ -685,19 +665,43 @@ Closing line — pick one:
 
 Don't silently drop the Codex outcome — mark it.
 
-## rmap Task Filing
+## rmap Status Updates (the only rmap surface from audit-review)
 
-When `discuss-design` divergence drops a finding, file it as an `rmap` task inside the audit commit (so it lands with the rest of the audit batch). Use `rmap new --from-stdin` with a `[[task]]` block — see `task-writing.md` for the schema:
+Audit-review's only allowed rmap surface is `rmap status <id> done` on tasks the audit refined or corrected — a *record* of what shipped, not future work. Every queueable behavior that previously lived in Steps 5d / 9 / 10 has been redirected to in-session verification (Steps 5d, 9-acceptance) or to the Step 9 stake-gated fix ladder (Step 10 divergence). The audit does **not** open new `rmap` tasks.
 
-- `title`: `Audit-surfaced: <one-line title>`
-- `body`: both positions in 2-3 sentences — Claude's resolution, Codex's resolution, the trade-off — plus `Filed by audit-review on <YYYY-MM-DD> against commit <short-sha>; see .audit/<short-sha>-<slug>.md for full context.`
-- `status = "pending"`; leave scoring for the user's next prioritization pass — the audit can't speculate on user-side cost/value.
+**Allowed shape — recording refinement on a delivered task:**
 
-`rmap new` re-renders `ROADMAP.md` + `roadmap/data.json`; stage all three (`roadmap/tasks.toml`, `ROADMAP.md`, `roadmap/data.json`) into the audit commit alongside the `.audit/` reports.
+```
+rmap status <id> done \
+  --delivered-by audit-<agent> \
+  --verified \
+  --implemented "Shipped in commit <sha> (audit-review pass on <range>). <one-line description>. Verified in-session via <file read | test run | grep>."
+```
 
-**Don't open new `rmap` tasks for findings the audit auto-applied.** Filing should only happen on `discuss-design` divergence — the case where neither reasoner won and the decision genuinely belongs to the user. Auto-applied findings are already represented in the audit commit and `.audit/<sha>.md`.
+`rmap status` re-renders `ROADMAP.md` + `roadmap/data.json`; stage all three (`roadmap/tasks.toml`, `ROADMAP.md`, `roadmap/data.json`) into the audit commit alongside the `.audit/` reports.
 
-For projects still on a hand-edited `ROADMAP.md` (pre-rmap migration), fall back to appending a row under a `## Audit-Surfaced Follow-Ups` section.
+**Exception — the one branch where `rmap new` is still legitimate.** Only when the user explicitly asks for a follow-up task during the audit (e.g. "file that as rmap"). Never on the auto-apply happy path. The template, for that branch only:
+
+```
+# Only if the user explicitly asks for a follow-up task during the audit.
+# Never on the auto-apply happy path.
+rmap new --from-stdin <<TOML
+[[task]]
+phase = <project's audit_followups phase or current phase>
+bundle = <audit_followups bundle>
+status = "pending"
+title = "Audit-surfaced: <one-line title>"
+scores = { d = ?, b = ?, u = ? }   # leave for user's next prioritization pass
+body = """
+<context — what the audit found, why it's tracked instead of fixed inline>.
+Filed by audit-review against commit <short-sha> on <YYYY-MM-DD>; see .audit/<short-sha>-<slug>.md.
+"""
+TOML
+```
+
+**Don't open new `rmap` tasks for findings the audit could verify or fix in-session.** The audit session has every artifact already loaded — re-reading it cold in a future session is pure overhead, and a `pending` task is an interruption the user has to triage later. Per `feedback_no_rmap_followups_from_audit`: the roadmap should stay the source of intent for *new* scope, not the spillover bucket from audits.
+
+For projects still on a hand-edited `ROADMAP.md` (pre-rmap migration), fall back to appending a row under a `## Audit-Surfaced Follow-Ups` section — same explicit-user-ask gating; never on the auto-apply happy path.
 
 ## Tiny-Commit Fast Path
 
@@ -729,23 +733,23 @@ The skill runs deferred — it is NOT chained synchronously off any merge or PR-
 |---------|-----|
 | Re-auditing commits already covered by an existing `.audit/<sha>.md` | Step 1 skips them. Wastes Codex dispatch and pollutes the corpus |
 | Entering plan mode before applying fixes | Audit-review is post-commit — there's no implementer to gate. The audit commit IS the inspectable artifact. Auto-apply directly |
-| Escalating `discuss-design` divergence to the user mid-run | Divergence drops the finding and files it as a ROADMAP candidate. User reviews async. Mid-run escalation defeats the autonomous workflow |
+| Silently dropping or queueing `discuss-design` divergence | Reversible → pick the more defensible position, apply per the Step 9 stake-gated ladder, record both reasoners' rationale in `.audit/<sha>.md`. Irreversible → STOP and ask user — this is a genuine design fork, not a queueable item |
 | Auto-applying every Codex-only finding without verification | Codex over-flags. Codex-only items default to `discuss` until verified against the actual code. Same calibration rule as `code-review` Step 4 |
 | Dispatching Codex without the project tool inventory | Every dispatch sends MCP servers + mix tasks + hex-docs URLs + verify-before-asserting instruction. Without it, Codex reasons from training alone and over-flags |
 | Skipping Codex dispatch on tiny-fast-path commits "to save tokens" | Tiny-path commits already skip Codex by design (LOC + scope criteria). Don't extend the skip to non-tiny commits |
 | Running `git push` after the audit commit | Skill never pushes. User pushes when ready. Same posture as `code-review` Step 8 (reviewer leaves edits unstaged for the committer) |
 | Bypassing pre-commit hooks with `--no-verify` | Per `critical-rules.md` § "🚨 FIX HOOK-FLAGGED ISSUES ON FILES YOU TOUCH". Fix the issue, recommit (NEW commit, not `--amend`) |
-| Filing auto-applied findings as `rmap` tasks | Only `discuss-design` divergences become `rmap` tasks (`rmap new --from-stdin`). Auto-applied findings already live in the audit commit + `.audit/<sha>.md` |
+| Filing audit-resolvable findings as `rmap` tasks | Audit-review opens NO new `rmap` tasks on the auto-apply path. Every finding is verified in-session and fixed per the Step 9 stake-gated ladder, refined via `rmap status done --implemented "..."`, or STOPs the audit for user input. Exception: explicit user ask. See the `rmap Status Updates` section |
 | Using `git add -A` to stage audit files | Always stage explicitly: `git add .audit/` + named touched files |
 | Inventing `.audit/` entries when the commit doesn't actually need them | Every commit in the range gets a `.audit/<sha>.md` (full or fast-path stub). Don't skip "boring" commits to keep the corpus clean — completeness is the corpus's value |
 | Forgetting the closing line on Codex unreachability | Always close with `dual-reviewer pass` or `Codex unreachable — single-reviewer pass [for N of M commits]`. Silent dropping looks like success |
 | Confirming the user before applying findings | The only confirmation gate in this skill is range-too-wide (>50 commits). Per-finding gates contradict the autonomy-first lens — the audit commit is the surface |
-| Treating a single-bot finding as auto-apply candidate | Apply Step 5d triage. Auto-apply requires ≥2-reasoner corroboration (bot+bot, or bot+Claude, or bot+Codex). Single-bot bug → rmap follow-up. Single-bot cosmetic → drop |
-| Silently dropping a bot-flagged bug when Claude's confidence filter didn't trigger | Bugs are never silently dropped. Step 5d routes uncorroborated bot bugs to rmap follow-up. Drop is only for cosmetic single-bot findings |
+| Treating a single-bot finding as auto-apply candidate | Apply Step 5d triage. Auto-apply requires ≥2-reasoner corroboration (bot+bot, or bot+Claude, or bot+Codex). Single-bot bug → verify in-session, then apply per the Step 9 stake-gated ladder or drop with rationale. Single-bot cosmetic → drop |
+| Silently dropping a bot-flagged bug when Claude's confidence filter didn't trigger | Bugs are never silently dropped. Step 5d routes uncorroborated bot bugs to in-session verification → fix per the Step 9 ladder or drop with explicit rationale. Drop is only for confirmed false positives and cosmetic single-bot findings |
 | Skipping Linear close-out (Step 12.5) when PRs in batch had Linear issues | Step 12.5 is mandatory whenever Step 4.5 resolved ≥1 `linear_issue_id`. Skip only when no Linear MCP OR no Linear-linked PR in batch |
 | Re-fetching PR comments per commit when batch has multiple commits per PR | Step 4.5 caches by PR number. Rebase-merge can produce multiple commits per PR; squash-merge is 1:1 (no caching needed for squash) |
 | Re-litigating bot findings in Step 5a output | Cite-and-skip dedupe: when Claude agrees with a bot, surface ONE row with `also flagged by <bot>` attribution. Don't double-count |
-| Filing an rmap follow-up for an unmet acceptance criterion AND auto-applying a partial fix in the same audit | Acceptance-criteria gaps are NEVER auto-fixed in audit-review (avoids speculation on user intent). File the follow-up; let the next iteration cycle pick it up |
+| Silently filing an unmet acceptance criterion without verifying first | Step 9's acceptance-criteria triage requires in-session verification. Real gap → fix per the Step 9 stake-gated ladder. Criterion was wrong (scope drift) → refine via `rmap status <id> done --implemented "criterion adjusted: ..."` on the delivering task. Genuine fork → STOP and ask user. Never silently file |
 | Pre-merge invocation of audit-review | Audit-review is post-merge only. Pre-merge phase is GH-native `gh pr merge --auto` + `[BLOCK-MERGE]` label for manual hold. See `plugins/staged-review/templates/auto-merge.md` |
 
 ## Cross-References
@@ -759,6 +763,6 @@ Closely related includes and skills:
 - `~/.claude/includes/worktree-workflow.md` § "After PR Merge — `audit-review` Is Deferred" — the deferred trigger model
 - `~/.claude/includes/delegation-rules.md` § "DON'T AUTO-MERGE PRS" — auto-merge tail ends at branch cleanup; audit runs deferred
 - `plugins/staged-review/scripts/check-unaudited-commits.sh` — SessionStart hook that surfaces the unaudited tail (≥3 threshold)
-- `~/.claude/includes/task-prioritization.md` § "Ceremony Floor" — applied implicitly via the rating scale and the discuss-design dialogue. Bug findings always surface; small cosmetic findings auto-apply or skip; `rmap` task filing is reserved for cross-session coordination cost (which is exactly what discuss-design divergence represents)
-- `~/.claude/includes/rmap.md` — the roadmap substrate; status flips go through `rmap status` and divergence-dropped findings are filed via `rmap new --from-stdin` (both re-render `ROADMAP.md`, never hand-edited)
+- `~/.claude/includes/task-prioritization.md` § "Ceremony Floor" — applied inline by audit-review (no `rmap new` follow-ups from the auto-apply path). Bug findings always surface and are verified + fixed in-session per the Step 9 stake-gated ladder; small cosmetic findings auto-apply or drop; new `rmap` tasks only on explicit user ask — see this skill's `rmap Status Updates` section
+- `~/.claude/includes/rmap.md` — the roadmap substrate; audit-review's only allowed rmap surface is `rmap status <id> done --delivered-by audit-<agent> --verified --implemented "..."` on tasks the audit refined (re-renders `ROADMAP.md`, never hand-edited). `rmap new` is reserved for the explicit-user-ask exception — see this skill's `rmap Status Updates` section
 - `feedback_autonomy_first.md` (memory) — the design lens: workflows default to less human-in-the-loop. This skill is the post-commit / post-merge half of the three-tier autonomous review architecture
