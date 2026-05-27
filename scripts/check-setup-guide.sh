@@ -27,15 +27,25 @@ if [[ ! -d "$INCLUDES_DIR" ]]; then
   exit 1
 fi
 
-# Extract include filenames referenced in setup-guide.md
-# Excludes generic example "filename.md" from prose
-documented=$(grep -oE 'includes/[a-zA-Z0-9_-]+\.md' "$SETUP_GUIDE" \
-  | sed 's|includes/||' \
-  | grep -v '^filename\.md$' \
-  | sort -u)
-
 # List actual files on disk
 on_disk=$(ls "$INCLUDES_DIR"/*.md 2>/dev/null | xargs -n1 basename | sort -u)
+
+# Extract include filenames referenced in setup-guide.md
+# Two forms count as documented:
+#   1. Path form: `includes/foo.md` or includes/foo.md
+#   2. Bare backtick form: `foo.md` — but only when foo.md actually exists in
+#      includes/ on disk (filters out incidental mentions like `ROADMAP.md`)
+# Excludes generic example "filename.md" from prose.
+documented_paths=$(grep -oE 'includes/[a-zA-Z0-9_-]+\.md' "$SETUP_GUIDE" \
+  | sed 's|includes/||')
+documented_bare=$(grep -oE '`[a-zA-Z0-9_-]+\.md`' "$SETUP_GUIDE" \
+  | tr -d '`' \
+  | sort -u)
+documented_bare_valid=$(comm -12 <(echo "$documented_bare") <(echo "$on_disk"))
+documented=$(printf '%s\n%s\n' "$documented_paths" "$documented_bare_valid" \
+  | grep -v '^filename\.md$' \
+  | grep -v '^$' \
+  | sort -u)
 
 # Find undocumented (on disk but not in setup-guide)
 undocumented=$(comm -23 <(echo "$on_disk") <(echo "$documented"))
