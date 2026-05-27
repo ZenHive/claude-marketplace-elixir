@@ -92,24 +92,29 @@ Findings during code review or PR review have a ceremony floor below which they 
 
 **Cross-references (delegation flows only — applies if `delegation.md` is imported):** push-back-vs-fix-locally calculus is in `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Hard rule against pushing to cloud-agent branches is in `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
 
-### Refine, Don't Duplicate — Before `rmap new`
+### Refine, Merge, Don't Duplicate — Before `rmap new`
 
-When new information arrives about work that's already on the roadmap (clearer requirements, refined acceptance criteria, additional edge cases, a discovered constraint), **update the existing pending task** — do not open a new one. `rmap new` is for **new scope**, not for **spec refinement** of pending work.
+Two `rmap new` failure modes: (1) new task when existing pending task should absorb the new info; (2) two adjacent tasks when one covers both because they ship in one session.
 
-**Required check before every `rmap new`:** scan pending tasks in the same bundle/topic (`rmap list --status pending`, or grep `roadmap/tasks.toml`). If one covers the same surface area, edit its `body` / `acceptance_criteria` / `out_of_scope` / `scores` in place. New task ONLY when the work could ship as an independent PR alongside the existing one. Duplicates fragment context, leave the original stale, and break the "queue, not log" invariant that makes `rmap next` trustworthy.
+**Required check before every `rmap new`:** scan pending tasks in same bundle (`rmap list --status pending`, or grep `roadmap/tasks.toml`). Same-surface match → edit existing (`body` / `acceptance_criteria` / `out_of_scope` / `scores`). One-session match → merge into one task. New task ONLY when work ships as independent PR alongside the existing one.
 
-**Heuristic — refinement vs new scope:**
+**Heuristic:**
 
-| Signal                                                          | Action                       |
-|-----------------------------------------------------------------|------------------------------|
-| Same bundle, same user-visible outcome, sharper requirements    | Edit existing                |
-| Same bundle, same outcome, adds an edge case or constraint      | Edit existing (`acceptance_criteria`) |
-| Same bundle, but ships as a separable follow-up PR              | New task, link with `depends_on` |
-| Different bundle or different user-visible outcome              | New task                     |
-| Bug against a **pending** task's surface (unclaimed)            | Edit existing (add to `acceptance_criteria`) — not a new bug task |
-| Bug against a **claimed/in-flight** task's surface              | Don't mutate the spec mid-flight — push back to the agent (see `agent-pr-review`) or file a follow-up task |
+| Signal                                                                            | Action                       |
+|-----------------------------------------------------------------------------------|------------------------------|
+| Same bundle, same outcome, sharper requirements                                   | Edit existing                |
+| Same bundle, same outcome, adds edge case / constraint                            | Edit existing (`acceptance_criteria`) |
+| Same bundle, ships as separable follow-up PR                                      | New task, `depends_on`       |
+| Different bundle or different user-visible outcome                                | New task                     |
+| Bug against **pending** task's surface (unclaimed)                                | Edit existing (`acceptance_criteria`) — not a new bug task |
+| Bug against **claimed / in-flight** task's surface                                | Push back to agent (`agent-pr-review`) or follow-up task |
+| Two adjacent pending tasks ship in **one Claude session / one PR / one branch**   | Merge into one task          |
 
-When in doubt: edit. A spec that grew is easier to read than a roadmap that doubled.
+In doubt → edit or merge.
+
+**One-session test (merge rule).** Before writing the second task in a sequence, ask: predicted PR count for this + adjacent task = 1? Yes → one task with combined `acceptance_criteria`. Each split doubles ceremony (status × 2, branch × 2, PR × 2, audit × 2) for zero work-isolation gain. Always-merge patterns: install-X + use-X; define-resource + CRUD-LiveView-for-resource; adjacent sibling features in same bundle with no dependency split.
+
+Full pre-creation gate (5 questions, this is #3): `task-writing.md` § Pre-Creation Gate.
 
 ### Task Descriptions as Prompts
 

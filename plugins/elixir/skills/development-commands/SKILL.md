@@ -33,7 +33,7 @@ Config: `.ex_dna.exs`. Suppress intentional dupes with `@no_clone true`.
 
 ### ExAST — AST Search & Replace
 
-**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.11"}`.
+**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.12"}`.
 
 ```bash
 mix ex_ast.search 'IO.inspect(_)'                              # find debug leftovers

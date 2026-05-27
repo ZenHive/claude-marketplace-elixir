@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Builds PDG/SDG from Elixir, Erlang, Gleam, or compiled BEAM. Backward/forward slicing, taint analysis, independence checks, dead-code detection, OTP state-machine analysis, `mix reach` HTML viz.
 
-**Min version: `{:reach, "~> 2.5"}`.** Requires `ex_ast ~> 0.12.0` at the dep level. Optional `:boxart, "~> 0.3.3"` for terminal `--graph` rendering.
+**Min version: `{:reach, "~> 2.7"}`.** Requires `ex_ast ~> 0.12.0` at the dep level. Optional `:boxart, "~> 0.3.3"` for terminal `--graph` rendering.
 
 **Canonical CLI — five commands:** `mix reach.map` (project view), `reach.inspect TARGET` (target-local), `reach.trace` (taint + slicing), `reach.check` (CI gates), `reach.otp` (process / state-machine analysis). `TARGET` accepts `Module.function/arity` or `file:line`.
 
@@ -126,7 +126,7 @@ Reach.Effects.conflicting?(a, b)
 
 Built-in classification covers Enum, Map, String, Process, :ets, :code, Node, System, Access, Calendar, Date, Time, `:atomics`/`:counters`/`:persistent_term`, and 30+ more. `Enum.each` → `:io`, `Application.get_env` → `:read`, term-store ops → `:read`/`:write`. Effects of local functions are inferred via fixed-point iteration. On Elixir 1.19+ the classifier reads the `ExCk` BEAM chunk for compiler-inferred type signatures (gracefully disabled on older Elixir).
 
-**Plugin `classify_effect/1` callback.** Plugins teach the classifier about framework calls. All built-ins implement it — Phoenix assigns/route helpers → `:pure`, Ecto queries → `:pure`, Repo reads → `:read`, writes → `:write`, Oban `insert` → `:write`, GenStage/Jido signal dispatch → `:send`, OpenTelemetry spans → `:io`, Jason → `:pure`.
+**Plugin `classify_effect/1` callback.** Plugins teach the classifier about framework calls. All built-ins implement it — Phoenix assigns/route helpers → `:pure`, Ecto queries → `:pure`, Repo reads → `:read`, writes → `:write`, Oban `insert` → `:write`, GenStage/Jido signal dispatch → `:send`, OpenTelemetry spans → `:io`, Jason → `:pure`, Poison → `:pure` (split out of the Jason plugin into `Reach.Plugins.Poison`).
 
 **Alias/import/field access.** `alias Plausible.Ingestion.Event; Event.build()` resolves correctly (incl. `:as`, multi-alias `{}`). `import Ecto.Query` then bare `from(...)` resolves to `Ecto.Query.from` (honours `:only`/`:except`). `socket.assigns`, `conn.params`, `state.count` are tagged `kind: :field_access` (pure), not fake remote calls. Compile-time noise (`@doc`, `use`, `::`, `__aliases__`) is classified `:pure`.
 
@@ -138,11 +138,13 @@ for node <- Reach.dead_code(graph) do
 end
 ```
 
-False positives are kept low via fixed-point alive expansion, branch-tail return tracing, guard exclusion, comprehension generator/filter exclusion, an impure-module blocklist (Process, :code, :ets, Node, System, …), typespec exclusion, compile-time DSL-macro exclusion (Phoenix `Component.attr/3`/`slot/3`, router macros, Ecto schema fields, migration `table`/`column` declarations — 2.5.0), and impure-call descendant marking. Still a hint source — verify before deleting.
+False positives are kept low via fixed-point alive expansion, branch-tail return tracing, guard exclusion, comprehension generator/filter exclusion, an impure-module blocklist (Process, :code, :ets, Node, System, …), typespec exclusion, macro-aware filtering (source-first macro/DSL facts via `Reach.MacroFact`, refined by plugins — Phoenix `Component.attr/3`/`slot/3`, router macros, Ecto schema fields, migration `table`/`column` declarations skip without hardcoded allowlists), and impure-call descendant marking. Still a hint source — verify before deleting.
 
 ### Canonical CLI (`mix reach.*`)
 
 Five commands replace the 16 legacy tasks. `--format text` (default, colored), `json`, or `oneline`. ANSI auto-disables when piped. Analysis commands accept a positional path filter where applicable (e.g. `mix reach.map lib/my_app/`).
+
+CLI option parsing is strict — unknown switches raise instead of being silently ignored, and the legacy Mix task shims are gone, so reach for the five canonical commands above.
 
 **`mix reach.map`** — project bird's-eye view.
 
@@ -267,6 +269,8 @@ Drives `mix reach.check --arch`/`--changed`/`--candidates`/`--smells`. The file 
 
 Start from `examples/reach.exs` in the Reach repo. Reach itself ships a root `.reach.exs` and gates CI on `mix reach.check --arch`.
 
+`--arch` validates layer references (typos in `deps[:forbidden]` against missing layer names raise instead of silently passing), supports allowlist-style dependency policy alongside the forbidden list, and reports layer cycles. Architecture checks use source-only loading; changed-code checks return immediately when the diff is empty.
+
 ### Smell Checks
 
 `mix reach.check --smells` covers (non-exhaustive):
@@ -280,7 +284,10 @@ Start from `examples/reach.exs` in the Reach repo. Reach itself ships a root `.r
 - **Identity callbacks** — `Enum.uniq_by(coll, fn x -> x end)` → `Enum.uniq/1`; `Enum.sort_by(coll, fn x -> x end)` → `Enum.sort/1`
 - **Map contracts** — same-variable atom/string fallback (`metadata["id"] || metadata[:id]`); repeated atom-key map literals with same shape (struct/contract candidate); fixed-shape map detection
 - **Structural drift (clone-backed)** — return-contract drift, side-effect ordering drift, validation drift across similar code
-- **Other** — redundant negated guards (`when x != y` after `when x == y`); destructure-then-reconstruct (`[a, b, c]` rebuilt as same list); behaviour-candidate detection (modules exposing the same public callback set); compile-time vs runtime config (`Application.get_env`/`fetch_env` in module attrs, `compile_env` inside runtime fns); trivial delegate (pass-through `defdelegate` / hand-written forwarding, excluding documented facades + behaviour adapters); identity float arithmetic (`x * 1.0`, `x + 0.0`)
+- **Error handling** — bare rescue clauses (`rescue _ ->` / `rescue error ->`) requiring exception-set narrowing; false-success error handling (functions silently converting `{:error, _}` into success-shaped returns)
+- **Concurrency** — ETS partial-key match (wildcard matches over tuple keys); ExUnit `async: true` modules that mutate global state
+- **Stdlib bypass** — hand-written basename / extension / URL splitting / order-safe patterns where a stdlib call covers the case
+- **Other** — redundant negated guards (`when x != y` after `when x == y`); destructure-then-reconstruct (`[a, b, c]` rebuilt as same list); behaviour-candidate detection (modules exposing the same public callback set; macro-aware — Phoenix `use ..., :live_view` and similar callback surfaces don't false-positive); compile-time vs runtime config (`Application.get_env`/`fetch_env` in module attrs, `compile_env` inside runtime fns); trivial delegate (pass-through `defdelegate` / hand-written forwarding, excluding documented facades + behaviour adapters); identity float arithmetic (`x * 1.0`, `x + 0.0`)
 
 **False-positive scope.** `++`-in-reduce checks verify an operand references the reduce accumulator before flagging. IR-based checks (repeated traversal, multiple `Enum.at`) scope per-clause to avoid multi-clause-function FPs. `Code.string_to_quoted` calls pass `emit_warnings: false` so reparsing dep source emits no tokenizer noise. Corpus-tested against the top 200 Hex packages: 0 crashes, 0 false positives.
 
@@ -288,13 +295,27 @@ Start from `examples/reach.exs` in the Reach repo. Reach itself ships a root `.r
 
 Custom pattern checks via the ExAST-backed DSL: `use Reach.Smell.PatternCheck`, `smell ~p[<source pattern>]`. Guarded patterns: `from(~p[...]) |> where(...)`. Pipes, operators, function calls, and module attributes all work with the `~p` sigil; pattern checks share a zipper cache across modules. The `piped()` selector predicate distinguishes form — `where(piped())` matches only `|>` calls, `where(not piped())` matches only direct calls. Useful when a pattern means different things in pipe vs direct form (e.g. `Regex.replace` where the piped subject is the regex argument vs the source string).
 
+### Suppressing Smells
+
+Two layers, used together:
+
+- **Config-level** — `.reach.exs` `smells: [ignore: [paths: ["lib/legacy/**"], modules: ["MyApp.Legacy.*"]]]` skips checks across whole paths or module patterns.
+- **Inline** — Credo-style comments at the call site:
+  - `# reach:disable-next-line <check>` — suppress the named check on the following line
+  - `# reach:disable-for-next-line <check>` — alternate phrasing accepted
+  - File-, previous-line-, and range-scoped variants also recognized
+
+Inline suppressions carry source text alongside the AST so they survive Credo's cached-AST integration. Non-Elixir source files from plugin frontends (e.g. JS via `Reach.Frontend.JavaScript`) are skipped during smell analysis rather than parsed as Elixir.
+
 ### Framework Smell Plugins
 
 `mix reach.check --smells` runs framework-specific checks contributed by plugins. Auto-activate when the host package is in the dep tree (same `Code.ensure_loaded?/1` gate as the other plugin built-ins):
 
-- **Phoenix** — LiveView lifecycle mistakes (e.g. `assign_new` misuse, raw HTML interpolation), socket-assigns shape drift.
+- **Phoenix** — LiveView lifecycle mistakes (e.g. `assign_new` misuse, raw HTML interpolation), socket-assigns shape drift, direct `Repo.*` calls in `mount/3` without connection guards.
+- **Phoenix LiveView (HEEx lowering)** — recognizes `~H` templates and `.heex` files, lowering control flow into Reach IR. Adds semantic edges connecting `JS.push`/`push_event` calls to their handlers, assign writes to subsequent assign reads, and stream writes to stream consumers.
 - **Ecto** — query pitfalls (cross-join surfaces, missing pinning), unsafe SQL interpolation in `fragment/1`, money-like `:float` field declarations.
 - **Oban** — `args` shape pitfalls (mixed atom/string keys, non-JSON-encodable values).
+- **Jason** — hand-rolled JSON sanitizers detected against the Jason protocol surface (use `defimpl Jason.Encoder` instead).
 - **Security / source** — unsafe dynamic atom creation (`String.to_atom/1` on untrusted input), unsafe `:erlang.binary_to_term/1`, missing `@external_resource` declarations on macros that read files, conservative Ecto cross-join detection.
 
 Real-world false positives in these checks have been narrowed against open-source Elixir corpora — Phoenix raw HTML, LiveView `assign_new`, and Oban `args` checks are intentionally conservative.
@@ -324,6 +345,7 @@ Both live in the Reach repo (not shipped as `mix` tasks) — clone Reach to use 
 - **`isolate_effects`** — group side-effecting calls
 - **`extract_pure_region`** — move a pure subexpression out of an effectful function
 - **`break_cycle`** — suggest where to cut a module dependency cycle, with `representative_calls` evidence
+- **`map_contract`** — maps created with a fixed shape and returned from local functions (struct or contract candidate); evidence carried by `Reach.Evidence.MapContract` and refined by plugin `evidence_refinement` hooks
 
 Each candidate carries `confidence`, `actionability`, `proof`, and (for cycles) `representative_calls` — agents should treat them as suggestions, not automatic edits.
 
@@ -446,8 +468,8 @@ Limitation: cross-language edges only form when the JS source is a **literal** a
 ### Dependencies
 
 ```elixir
-{:reach, "~> 2.5", only: [:dev, :test], runtime: false},
+{:reach, "~> 2.7", only: [:dev, :test], runtime: false},
 {:boxart, "~> 0.3.3", only: [:dev, :test], runtime: false}   # terminal --graph rendering
 ```
 
-Requires `ex_ast ~> 0.12.0` at the dep level. Pulls in `libgraph`. Optional companion deps: `jason`, `makeup`, `makeup_elixir`, `makeup_js` (HTML viz), `boxart` (terminal). For the JS frontend + cross-language plugin, add `{:quickbeam, "~> 0.10.14"}` — the plugin activates automatically when QuickBEAM is in the dep tree.
+Requires `ex_ast ~> 0.12.0` at the dep level. Pulls in `libgraph`. Optional companion deps: `jason`, `makeup`, `makeup_elixir`, `makeup_js` (HTML viz), `boxart` (terminal). For the JS frontend + cross-language plugin, add `{:quickbeam, "~> 0.10.15"}` — the plugin activates automatically when QuickBEAM is in the dep tree.

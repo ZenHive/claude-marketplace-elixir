@@ -10,7 +10,7 @@ allowed-tools: Read, Bash, Grep, Glob
 
 Rust NIF bindings for the [OXC](https://oxc.rs) toolchain. Parses, transforms, minifies, and bundles JS/TS on the BEAM — no Node.js.
 
-**Min version: `{:oxc, "~> 0.13"}`.** The atom-keyed AST contract: `:type`/`:kind` values are snake_case atoms (`:import_declaration`, not `"ImportDeclaration"`); error tuples are `{:error, [%{message: String.t()}]}`; bang functions raise `OXC.Error`. Surface includes `OXC.codegen/1,!`, `OXC.bind/2`/`splice/3` (placeholder templating), `OXC.transform_many/2` (parallel via rayon), `OXC.Format` (oxfmt as a separate Rust NIF — Prettier-compatible, ~30× faster, ships `:sort_imports` and `:sort_tailwindcss` plugins), `OXC.Lint` (oxlint's 650+ rules plus custom Elixir rules via `OXC.Lint.Rule`), and the full Rolldown bundle option surface (`:external`, `:exports`, `:preserve_entry_signatures`, `:conditions`, `:main_fields`, `:modules`, `:module_types`, `:cwd`). `OXC.bundle/2` accepts either a filesystem entry path (string) or a virtual `[{filename, source}]` project. The low-level `OXC.Native` NIF surface is public (rarely needed — use the `OXC` wrapper).
+**Min version: `{:oxc, "~> 0.15"}`.** The atom-keyed AST contract: `:type`/`:kind` values are snake_case atoms (`:import_declaration`, not `"ImportDeclaration"`); error tuples are `{:error, [%{message: String.t()}]}`; bang functions raise `OXC.Error`. Source-taking APIs accept `iodata()` across parse / transform / minify / collect_imports / lint / format / patch_string / virtual bundle inputs. Surface includes `OXC.codegen/1,!`, `OXC.bind/2`/`splice/3` (placeholder templating), `OXC.transform_many/2` (parallel via rayon), `OXC.Format` (oxfmt as a separate Rust NIF — Prettier-compatible, ~30× faster, ships `:sort_imports` and `:sort_tailwindcss` plugins), `OXC.Lint` (oxlint's 650+ rules, custom Elixir rules via `OXC.Lint.Rule`, and `tsgolint`-backed type-aware mode), and the full Rolldown bundle option surface (`:external`, `:exports`, `:preserve_entry_signatures`, `:conditions`, `:main_fields`, `:modules`, `:module_types`, `:cwd`). `OXC.bundle/2` accepts either a filesystem entry path (string) or a virtual `[{filename, source}]` project. The low-level `OXC.Native` NIF surface is public (rarely needed — use the `OXC` wrapper).
 
 **Does NOT cover:** runtime JS execution (→ QuickBEAM), installing npm packages (→ `mix npm.install`), frontend build + HMR (→ Volt).
 
@@ -362,6 +362,21 @@ diags = OXC.Lint.run!(source, "app.tsx", rules: %{"no-debugger" => :deny})
 Plugin atoms: `:react`, `:typescript`, `:unicorn`, `:import`, `:jsdoc`, `:jest`, `:vitest`, `:jsx_a11y`, `:nextjs`, `:react_perf`, `:promise`, `:node`, `:vue`, `:oxc`. Default is oxlint's correctness set (no plugin flag needed for rules like `no-debugger`).
 
 `:fix` option computes suggested fixes; `:settings` passes arbitrary context to custom rules.
+
+**Type-aware linting (`type_aware: true`)** — runs through `tsgolint` headless mode for rules that need TypeScript type information. Accepts a file list plus the project's tsconfig and emits normalized diagnostics with fixes and suggestions in the same shape as parse-only output.
+
+```elixir
+{:ok, diags} = OXC.Lint.run(file_list, "tsconfig.json",
+  type_aware: true,
+  type_check: true,           # run tsgolint's type-check phase
+  source_overrides: %{"src/x.ts" => override_source},
+  rules: %{"no-floating-promises" => :deny}
+)
+```
+
+Nonzero `tsgolint` exits — including panics from unsupported input files — surface as `{:error, ...}` with stderr captured. Empty or malformed `tsgolint` output is reported as an error rather than silently treated as a clean run.
+
+Category filters (e.g. `rules: %{"correctness" => :deny}`) honor the configured severity instead of always reporting `:warn`.
 
 ### Recipes
 

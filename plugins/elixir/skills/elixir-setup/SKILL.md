@@ -54,7 +54,7 @@ defp deps do
     {:doctor, "~> 0.23", only: [:dev, :test], runtime: false},
     {:tidewave, "~> 0.5", only: :dev},
     {:bandit, "~> 1.10", only: :dev},      # non-Phoenix only
-    {:ex_dna, "~> 1.3", only: [:dev, :test], runtime: false},
+    {:ex_dna, "~> 1.5", only: [:dev, :test], runtime: false},
     {:ex_ast, "~> 0.12", only: [:dev, :test], runtime: false},
     {:descripex, "~> 0.6"},                # full dep — macros expand at compile time
     {:api_toolkit, "~> 0.1"}               # API services only
@@ -72,9 +72,59 @@ def cli do
 end
 ```
 
+**Gotcha:** `preferred_envs` only fires for top-level Mix invocations. **Inside an alias step it's ignored** — the step inherits the parent alias's env (usually `:dev`). To run an alias step in `:test`, wrap with `cmd`: `"cmd MIX_ENV=test mix test.json ..."`. See § "Standard Aliases" below.
+
 ### Formatter
 
 Add `Styler` to `.formatter.exs` plugins: `plugins: [Styler]`.
+
+### Standard Aliases — `check.fast` + `precommit` + `precommit.full`
+
+Three tiers split by **inner-loop cost** and **hook-timeout fit**. The marketplace's `pre-commit-unified.sh` hook defers to `mix precommit` when the alias exists and has a **180s timeout**; dialyzer on a cold PLT routinely exceeds that and gets killed mid-run, denying the commit with no clean error. So `precommit` stays under the timeout; `precommit.full` adds dialyzer for CI / pre-handoff manual runs.
+
+```elixir
+defp aliases do
+  [
+    # TagTODO/TagFIXME stay on in .credo.exs for visibility (`mix credo` shows them);
+    # the gate excludes them so it fails only on real regressions, not tracked debt.
+    "check.fast": [
+      "format --check-formatted",
+      "compile --warnings-as-errors",
+      "credo --strict --ignore TagTODO,TagFIXME"
+    ],
+    # Hook-bound (180s). Drops dialyzer; keeps tests + sobelow + doctor.
+    precommit: [
+      "format --check-formatted",
+      "compile --warnings-as-errors",
+      "credo --strict --ignore TagTODO,TagFIXME",
+      "doctor --raise",
+      # `preferred_envs` (cli/0) is ignored for alias steps — set MIX_ENV explicitly.
+      "cmd MIX_ENV=test mix test.json --quiet --cover --cover-threshold 85 --summary-only --exclude integration",
+      "sobelow"                        # honors .sobelow-conf; drop on pure libs
+    ],
+    # CI mirror — adds dialyzer. Matches `elixir-ci-harness` `harness.yml`.
+    "precommit.full": ["precommit", "dialyzer.json --quiet"]
+  ]
+end
+```
+
+**Three tiers, by inner-loop cost:**
+
+- `mix check.fast` — format + compile-with-warnings + credo. Seconds. Run after every meaningful edit.
+- `mix precommit` — adds doctor, test+cover gate, sobelow. Tens of seconds. **The commit-hook gate** — `pre-commit-unified.sh` invokes this; stays well under its 180s timeout.
+- `mix precommit.full` — adds dialyzer. Minutes (mostly dialyzer). Run before handing off to a reviewer / matches CI; **not** for the hook path.
+
+**Flag rationale:**
+
+- **`credo --strict --ignore TagTODO,TagFIXME`.** TODO/FIXME are tracked-debt visibility (`development-philosophy.md` § "TODO Comment Requirements"), not regressions. Standalone `mix credo` still surfaces them so an agent can SEE the debt; the gate doesn't fail on them so PRs aren't blocked by accumulated tags.
+- **`doctor --raise`.** Overrides `.doctor.exs` `raise: false` to gate CI without changing local behavior. Redundant if the repo already sets `raise: true`, but harmless.
+- **`test.json --cover --cover-threshold 85 --summary-only --exclude integration`.** 85% is the project default (cartouche's empirical floor; meaningful bump from 80%, leaves headroom under typical ~87% project coverage). Critical-path repos (signing, money, crypto, wire-format encoders) raise to `95`. `--exclude integration` because local + CI lack credentials/network for live services; see `elixir-ci-harness` SKILL.md § "Integration Tag Exclusion" for the separate-workflow pattern if integration coverage is needed.
+- **`sobelow`.** Honors `.sobelow-conf` (exit threshold, skip file). Phoenix / Plug / web-facing apps only — drop on pure libraries.
+- **`dialyzer.json --quiet`** (in `precommit.full`). Agent-friendly JSON variant (`harness.yml` uses plain `mix dialyzer` because GH Actions consumes human-readable output; agents prefer JSON). For pipeline parsing: `dialyzer.json --quiet --output /tmp/dialyzer.json` then jq.
+
+**Why split, not one alias.** Single comprehensive `precommit` looks cleaner, but it forces a real trade-off the hook can't escape: 180s ceiling vs dialyzer's wall-clock. Splitting lets the hook stay strict (every commit gated) without surrendering the slow checks — CI runs `precommit.full` (or `harness.yml` steps directly) where no timeout applies, and a human can `mix precommit.full` before opening a PR.
+
+Why no `try/rescue` aggregator by default: an agent that wants "all failures in one pass" can override at the call site (`mix format --check-formatted; mix credo --strict --ignore TagTODO,TagFIXME; mix test.json ...` joined with `;` runs every step regardless of exit). The default alias stays fail-fast because the cheapest-fail-first ordering means the agent rarely needs the aggregate — fixing the first failure usually unblocks the rest.
 
 ### Tidewave (Non-Phoenix)
 

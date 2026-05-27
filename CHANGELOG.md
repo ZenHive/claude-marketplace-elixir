@@ -4,6 +4,25 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Changed
+
+**`elixir` v1.29.2 → v1.29.3 and `task-driver` v1.3.2 → v1.3.3 — skill bodies resynced from updated includes**
+
+- `elixir/skills/oxc` + `elixir/skills/elixir-volt`: oxc `~> 0.13` → `~> 0.15` (source-taking APIs now accept `iodata()`; new `type_aware: true` lint mode via `tsgolint`).
+- `elixir/skills/quickbeam` + `elixir/skills/elixir-volt`: quickbeam `~> 0.10.14` → `~> 0.10.15`.
+- `elixir/skills/reach`: reach `~> 2.5` → `~> 2.7` (strict CLI option parsing, source-first macro facts via `Reach.MacroFact`, new smell-checks for bare rescue / false-success error handling / ETS partial-key match / async-with-global-mutation / stdlib bypass, Credo-style `# reach:disable-next-line` inline suppression, HEEx lowering for Phoenix LiveView, Jason-impl smell, `map_contract` refactor candidate).
+- `elixir/skills/development-commands`: `{:ex_ast, "~> 0.11"}` → `~> 0.12`.
+- `elixir/skills/elixir-setup`: `{:ex_dna, "~> 1.3"}` → `~> 1.5`; new `preferred_envs`-inside-aliases gotcha note.
+- `elixir/skills/{dialyzer-json,ex-unit-json}`: clarify the `cli/0` cross-reference points at the include OR the `elixir:elixir-setup` skill if the include isn't `@`-imported.
+- `elixir/skills/roadmap-planning`: section renamed to "Refine, Merge, Don't Duplicate"; adds the one-session merge rule + always-merge patterns + pointer to `task-writing.md` § Pre-Creation Gate.
+- `task-driver/skills/rmap`: milestone `description` MUST state a hypothesis (one-sentence "what does this milestone test?" rather than a feature checklist) — without it, Pre-Creation Gate Q4 can't classify pinned tasks as "tests hypothesis" vs "builds on top".
+
+**`elixir-setup` skill — `precommit` alias split into `precommit` (hook-bound) + `precommit.full` (CI mirror)**
+
+- `pre-commit-unified.sh` defers to `mix precommit` when the alias exists, with a 180s hook timeout. The previous one-alias recipe included `dialyzer.json --quiet`, which on a cold PLT routinely exceeds 180s — the hook got killed mid-run and denied the commit with no clean error. The "mirror CI exactly" goal collided with the hook's wall-clock ceiling.
+- New three-tier model: `check.fast` (format + compile + credo — seconds, inner loop), `precommit` (adds doctor + test+cover + sobelow — tens of seconds, **hook-bound**), `precommit.full` (adds dialyzer — minutes, CI mirror / pre-handoff manual). CI still runs the full stack via `harness.yml` or `mix precommit.full`; the hook stays strict without surrendering slow checks.
+- `~/.claude/includes/elixir-setup.md` updated; synced into `plugins/elixir/skills/elixir-setup/SKILL.md` via `sync-skills-from-includes.sh`. Projects following the recipe should split their `precommit` alias accordingly — `harness/mix.exs` migrated as the first.
+
 ### Fixed
 
 **`elixir` v1.29.1 → v1.29.2 — pre-commit-unified now runs the full quality gate on git worktree commits**

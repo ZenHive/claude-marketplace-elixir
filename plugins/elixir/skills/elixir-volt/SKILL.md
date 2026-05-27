@@ -14,8 +14,8 @@ The [elixir-volt](https://github.com/elixir-volt) ecosystem — Node.js replacem
 
 | Package | Hex | Purpose | Detail |
 |---|---|---|---|
-| `oxc` | `~> 0.13` | Parse, transform, bundle, minify, format, lint JS/TS (Rust NIFs) | `oxc.md` |
-| `quickbeam` | `~> 0.10.14` | Run JS on the BEAM — browser APIs, DOM, fetch, crypto, WebSocket, WASM (Zig NIF) | `quickbeam.md` |
+| `oxc` | `~> 0.15` | Parse, transform, bundle, minify, format, lint JS/TS (Rust NIFs) | `oxc.md` |
+| `quickbeam` | `~> 0.10.15` | Run JS on the BEAM — browser APIs, DOM, fetch, crypto, WebSocket, WASM (Zig NIF) | `quickbeam.md` |
 | `npm` | `~> 0.7.4` | Install npm packages, resolve deps, verify integrity, supply-chain hardening (OSV checks, exotic-dep allowlist, registry policy, package-age warnings) | Pure Elixir — `npm-*.md` |
 | `npm_semver` | `~> 0.1` | npm-compatible semver | Pure Elixir |
 
@@ -51,8 +51,8 @@ Packages install to `node_modules/`. Browser bundles (`dist/*.browser.min.js`) l
 | Extract imports | `OXC.imports` / `OXC.collect_imports` |
 | Minify for production | `OXC.minify` |
 | Web3 signing (ethers.js, noble-curves, starknet.js) | QuickBEAM |
-| WebSocket from JS | QuickBEAM (Mint-backed, 0.9+) |
-| WebAssembly from JS | QuickBEAM (WAMR-backed, 0.9+) |
+| WebSocket from JS | QuickBEAM (Mint-backed) |
+| WebAssembly from JS | QuickBEAM (WAMR-backed) |
 | Frontend build + HMR | Volt |
 | Tailwind CSS | oxide_ex |
 | Vue SFC | vize_ex |

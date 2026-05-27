@@ -18,7 +18,7 @@ defp deps do
 end
 ```
 
-`cli/0` for `preferred_envs` is required — see `elixir-setup.md`.
+`cli/0` for `preferred_envs` is required — see `elixir-setup.md` (or invoke the `elixir:elixir-setup` skill if the include isn't `@`-imported in your project).
 
 ### Quick Reference
 
