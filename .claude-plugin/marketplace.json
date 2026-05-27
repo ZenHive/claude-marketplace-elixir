@@ -96,6 +96,14 @@
       "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
       "license": "MIT",
       "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
+    },
+    {
+      "name": "dev-discipline",
+      "source": "./plugins/dev-discipline",
+      "description": "Pause-and-pick PreToolUse reminders (non-blocking) at the moments Claude tends to choose ceremony over inline fix: about-to-`rmap new`, about-to-add-`[[task]]`-via-direct-edit, and about-to-`sleep N` / poll. Closes the close-2-open-2 task-churn pattern by firing at the trigger word, where memory entries don't.",
+      "repository": "https://github.com/ZenHive/claude-marketplace-elixir",
+      "license": "MIT",
+      "homepage": "https://github.com/ZenHive/claude-marketplace-elixir"
     }
   ]
 }
