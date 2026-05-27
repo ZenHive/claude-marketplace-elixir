@@ -702,3 +702,36 @@ implemented = "Deleted plugins/staged-review/skills/commit-review/ (901 LOC). Ex
 created_at = "2026-05-18"
 scored_at = "2026-05-18"
 done_at = "2026-05-18"
+
+[[task]]
+id = 60
+phase = 8
+bundle = "hook_scripts"
+status = "done"
+title = "dev-discipline plugin: pause-and-pick before rmap new / new-task TOML edits / long sleeps"
+scores = { d = 3, b = 7, u = 8 }
+acceptance_criteria = ["New plugin directory `plugins/dev-discipline/` with `hooks/hooks.json` and `scripts/*.sh`", "Three hooks wired and registered in the marketplace manifest", "Each script reads stdin JSON, returns exit 0 with a reminder (additionalContext or stderr), does NOT block", "rmap-new-pause fires on `rmap new` and `rmap new --from-stdin`, does NOT fire on `rmap list`, `rmap show`, etc.", "tasks-toml-new-task-pause fires when an Edit/Write/MultiEdit on `*/roadmap/tasks.toml` adds `[[task]]` to the diff; does NOT fire on status/marker edits or non-tasks.toml files", "polling-warn fires on `sleep 30`, `sleep 120`, `until ...; do sleep 2; done`; does NOT fire on `sleep 5` (short bridge sleeps are legitimate)", "README or moduledoc-equivalent in the plugin describing the philosophy (pause-and-pick, hookify rationale)"]
+out_of_scope = ["Hard blocks — all three are reminders only", "Migration of existing harness-side polling block (separate concern, lives there)", "Memory-system changes (this hook supersedes the need for sharper memory)"]
+body = '''
+Add a new plugin `dev-discipline` with three PreToolUse hooks that fire soft reminders (non-blocking) at the moments when Claude tends to choose ceremony over inline fix:
+
+1. **rmap-new-pause** — PreToolUse:Bash, matcher `^rmap\s+new(\s|$)`. Reminder text: "rmap new gate — is the finding fixable in this commit? In-scope → fix inline. Cross-session / blocks a different PR → file. Pause and pick."
+
+2. **tasks-toml-new-task-pause** — PreToolUse:Edit|Write|MultiEdit. Path filter: file ends in `roadmap/tasks.toml`. Content filter: the new/added content introduces a `[[task]]` block not present before. Same reminder text as #1. Closes the workaround corridor where Claude bypasses the Bash matcher by editing the TOML directly.
+
+3. **polling-warn** — PreToolUse:Bash. Matcher `\bsleep\s+([2-9]\d|\d{3,})\b` OR `until\s+.*;\s*do\s+sleep`. Reminder text: "No polling. Long-running dispatch → return to the user. Use a Monitor for an event, not a sleep." Soft warn — the harness-side rule is the hard wall; this is the cross-repo cousin.
+
+All three are reminders, not blocks (exitCode 0, output via `additionalContext` JSON or stderr — non-blocking). Modeled on the existing `marketplace-hygiene/scripts/block-skill-edits.sh` shape but emitting `additionalContext`, not `deny`.
+
+Source of the recommendation: hookify:conversation-analyzer run against transcript `/Users/efries/.claude/projects/-Users-efries--DATA-code-harness/aa46fc79-eaf4-4bd8-a826-8bbd94667770.jsonl` (Task 53/54 closeout session in harness). User explicitly flagged the close-2-open-2 pattern as cross-session, not just this-session.
+
+Why memory wasn't enough: `feedback_dogfood-task-spawn-rate` names the *outcome* ("ratio must stay positive") but doesn't fire at the trigger word. Hooks fire deterministically at the moment of action; memory is fuzzy recall.
+
+Sister-plugin reference: see `plugins/marketplace-hygiene/scripts/block-skill-edits.sh` for the `INPUT=$(cat) | jq -r` pattern and the `emit_*` helpers.'''
+implemented = "Shipped plugins/dev-discipline (3 PreToolUse hooks: rmap-new-pause, tasks-toml-new-task-pause, polling-warn) + marketplace.json registration. PR #9 squash-merged on main."
+delivered_by = "claude-opus-4-7"
+verified = true
+created_at = "2026-05-27"
+started_at = "2026-05-27"
+scored_at = "2026-05-27"
+done_at = "2026-05-27"

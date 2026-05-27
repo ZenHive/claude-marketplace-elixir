@@ -5,9 +5,9 @@ Remaining tasks to personalize the Claude Code plugin marketplace. **This file i
 ## Current Focus
 
 <!-- FOCUS:BEGIN -->
-**Focus phase:** 8 — Hook Scripts (4 of 4 done · 0 in progress)
+**Focus phase:** 8 — Hook Scripts (5 of 5 done · 0 in progress)
 
-**Last shipped:** no recent shipments
+**Last shipped:** Task 60 — dev-discipline plugin: pause-and-pick before rmap new / new-task TOML edits / long sleeps on 2026-05-27
 
 **Up next:** Task 49 — Propagate the rmap mandate across repos [D:4/B:8/U:8 → Eff:2.0] 🎯
 <!-- FOCUS:END -->
@@ -50,6 +50,7 @@ Remaining tasks to personalize the Claude Code plugin marketplace. **This file i
 | Task 30 | ✅ | 🎁 **hook_scripts** · Warn on tooling-flag omissions [D:2/B:6/U:6 → Eff:3.0] 🎯 |
 | Task 31 | ✅ | 🎁 **hook_scripts** · Warn on doctest IO and untagged temporary code [D:4/B:6/U:4 → Eff:1.25] 📋 |
 | Task 32 | ✅ | 🎁 **hook_scripts** · Warn on shell-eval Elixir, prefer Tidewave [D:2/B:7/U:7 → Eff:3.5] 🎯 |
+| Task 60 | ✅ | 🎁 **hook_scripts** · dev-discipline plugin: pause-and-pick before rmap new / new-task TOML edits / long sleeps [D:3/B:7/U:8 → Eff:2.5] 🎯 |
 <!-- TASKS:END -->
 
 ## Phase 9 — Codex Delegation Workflow (done)
