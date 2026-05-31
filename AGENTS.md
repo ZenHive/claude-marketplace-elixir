@@ -372,7 +372,7 @@ Once the user explicitly authorizes a force-push (or any push) to a specific `cu
 
 ## Shell Safety
 
-Never use `rm` (including `rm -rf`) in docs, scripts, or commands. Prefer `git rm` for tracked files, or provide non-destructive instructions (manual delete via file explorer, move to temp folder).
+`rm` (including `rm -rf`) is permitted — the hook allows it; the old blanket ban caused more friction than it prevented. One habit, not a gate: before an irreversible delete, glance at the target — confirm the path is what you intend (no unexpanded `$VAR`, no wildcard catching more than you mean, not a path you didn't create or weren't asked to remove). `git rm` for tracked files keeps the removal in the diff. (Destructive *dependency / build* commands — `mix deps.clean`, `rm -rf _build` — stay consent-gated below, for slow-recovery reasons, not safety.)
 
 ## 🚨 NEVER RUN DESTRUCTIVE DEPENDENCY COMMANDS
 
@@ -1686,7 +1686,7 @@ Add `Styler` to `.formatter.exs` plugins: `plugins: [Styler]`.
 
 ### Standard Aliases — `check.fast` + `precommit` + `precommit.full`
 
-Three tiers split by **inner-loop cost** and **hook-timeout fit**. The marketplace's `pre-commit-unified.sh` hook defers to `mix precommit` when the alias exists and has a **180s timeout**; dialyzer on a cold PLT routinely exceeds that and gets killed mid-run, denying the commit with no clean error. So `precommit` stays under the timeout; `precommit.full` adds dialyzer for CI / pre-handoff manual runs.
+Three tiers split by **inner-loop cost**. The marketplace's `pre-commit-unified.sh` hook runs its **own** inline gate at commit time (format · compile · credo · doctor · sobelow · mix_audit · ash · ex_doc — **no tests, no dialyzer**); it does **not** invoke these aliases. The aliases are for manual / CI runs: `precommit` adds the test+cover gate, `precommit.full` adds dialyzer.
 
 ```elixir
 defp aliases do
@@ -1698,7 +1698,7 @@ defp aliases do
       "compile --warnings-as-errors",
       "credo --strict --ignore TagTODO,TagFIXME"
     ],
-    # Hook-bound (180s). Drops dialyzer; keeps tests + sobelow + doctor.
+    # Manual / CI gate (NOT run by the commit hook). Drops dialyzer; keeps tests + sobelow + doctor.
     precommit: [
       "format --check-formatted",
       "compile --warnings-as-errors",
@@ -1717,7 +1717,7 @@ end
 **Three tiers, by inner-loop cost:**
 
 - `mix check.fast` — format + compile-with-warnings + credo. Seconds. Run after every meaningful edit.
-- `mix precommit` — adds doctor, test+cover gate, sobelow. Tens of seconds. **The commit-hook gate** — `pre-commit-unified.sh` invokes this; stays well under its 180s timeout.
+- `mix precommit` — adds doctor, test+cover gate, sobelow. Tens of seconds. **Manual / pre-handoff gate** — the commit hook does *not* run this; use it before handing work off when you want the test+cover gate locally.
 - `mix precommit.full` — adds dialyzer. Minutes (mostly dialyzer). Run before handing off to a reviewer / matches CI; **not** for the hook path.
 
 **Flag rationale:**
@@ -1728,7 +1728,7 @@ end
 - **`sobelow`.** Honors `.sobelow-conf` (exit threshold, skip file). Phoenix / Plug / web-facing apps only — drop on pure libraries.
 - **`dialyzer.json --quiet`** (in `precommit.full`). Agent-friendly JSON variant (`harness.yml` uses plain `mix dialyzer` because GH Actions consumes human-readable output; agents prefer JSON). For pipeline parsing: `dialyzer.json --quiet --output /tmp/dialyzer.json` then jq.
 
-**Why split, not one alias.** Single comprehensive `precommit` looks cleaner, but it forces a real trade-off the hook can't escape: 180s ceiling vs dialyzer's wall-clock. Splitting lets the hook stay strict (every commit gated) without surrendering the slow checks — CI runs `precommit.full` (or `harness.yml` steps directly) where no timeout applies, and a human can `mix precommit.full` before opening a PR.
+**Why split, not one alias.** The commit hook enforces a fast inline gate (no tests, no dialyzer) so the inner loop stays cheap and deterministic. The aliases layer the slower checks back on for deliberate runs: `precommit` adds the test+cover gate for pre-handoff, `precommit.full` adds dialyzer to match CI (`harness.yml`). Keeping them separate means the slow steps run where no inner-loop tax applies — CI, or a human before opening a PR — never blocking every commit.
 
 Why no `try/rescue` aggregator by default: an agent that wants "all failures in one pass" can override at the call site (`mix format --check-formatted; mix credo --strict --ignore TagTODO,TagFIXME; mix test.json ...` joined with `;` runs every step regardless of exit). The default alias stays fail-fast because the cheapest-fail-first ordering means the agent rarely needs the aggregate — fixing the first failure usually unblocks the rest.
 
@@ -2261,7 +2261,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 1. **post-edit-check.sh** (non-blocking, PostToolUse): After editing `.ex`/`.exs` files, runs format, compile, credo, sobelow, doctor, struct hints, hidden failure detection
 2. **ash-codegen-check.sh** (non-blocking, PostToolUse): Runs `mix ash.codegen --check` if Ash dependency exists
 3. **warn-doctest-io-and-untagged-todos.sh** (non-blocking, PostToolUse): Warns on `IO.puts` / `IO.inspect` inside `@doc` / `@moduledoc` heredocs (development-philosophy.md § "No IO in @doc examples"), and on `#` comments starting with deferred-work phrases ("For now,", "Currently,", "Temporarily,", "In production,", "This is a workaround,") that aren't prefixed with `TODO:` (development-philosophy.md § "TODO Comment Requirements"). False-positive guards: only matches `^[[:space:]]*#` so `#` mid-string doesn't fire; IO check tracks `@doc """ ... """` heredoc range via awk state.
-4. **pre-commit-unified.sh** (blocking, PreToolUse): Before `git commit`, runs all quality checks (format, compile, credo, test, doctor, sobelow, dialyzer, mix_audit, ash.codegen, ex_doc). Defers to `mix precommit` if alias exists. Uses 180s timeout.
+4. **pre-commit-unified.sh** (blocking, PreToolUse): Before `git commit`, runs an authoritative inline quality gate (format, compile, credo, doctor, sobelow, mix_audit, ash.codegen, ex_doc). **No tests, no dialyzer** — tests run per-edit via `post-edit-check.sh`; both are too slow/flaky for the inner loop and belong in CI / manual `mix precommit` / `mix precommit.full`. Does **not** defer to a project `mix precommit` alias (the alias is for manual/CI use). Each failing check's full untruncated output is saved to `/tmp/elixir-precommit/<sha256(project_root)>/<check>.log` and the paths are named in the deny message so the agent reads them instead of re-running. Uses 180s timeout.
 5. **block-destructive-bash.sh** (blocking, PreToolUse): Denies two command shapes: `mix phx.server` (critical-rules.md § NEVER START THE PHOENIX SERVER) and destructive deps/build (`mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps` — critical-rules.md § NEVER RUN DESTRUCTIVE DEPENDENCY COMMANDS). Allows `mix deps.unlock --check-unused`, `mix deps.compile <dep> --force`. Bare `rm` (ordinary file deletion) is **not** blocked — only the `rm -rf _build` / `rm -rf deps` targets.
 6. **warn-shell-eval-elixir.sh** (non-blocking, PreToolUse): Warns when Claude is about to run Elixir code through the shell (`mix run -e`, `elixir -e`, `iex -e`, `mix run X.exs`) — suggests `mcp__tidewave__project_eval` / `mcp__tidewave__get_logs` for same-BEAM evaluation without fresh-VM startup. Warn-only; the warning footer names `priv/repo/seeds.exs` and one-shot CI scripts as legitimate exceptions. Pattern + warning ported from hieroglyph's hookify rule.
 7. **warn-missing-tool-flags.sh** (non-blocking, PreToolUse): Warns when `mix credo` is invoked without both `--strict` and `--format json` (per `development-commands.md`), or when `mix compile` runs without a `time` prefix. Skips non-analysis credo subcommands (`--version`, `gen.*`, `help`).

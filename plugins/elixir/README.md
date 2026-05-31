@@ -182,11 +182,10 @@ mix deps.unlock --check-unused
 ```
 - Runs before any `git commit` command (including `git add && git commit`)
 - Blocks commit if any check fails
-- Three checks:
-  1. All files are formatted
-  2. Code compiles without warnings
-  3. No unused dependencies
-- **Note**: Skips if project has a `precommit` alias (defers to precommit plugin)
+- Inline gate (each optional check gated on the dep being present): format, compile (warnings-as-errors), unused deps, credo, doctor, sobelow, mix_audit, ash.codegen, ex_doc
+- **No tests, no dialyzer** — tests run per-edit via `post-edit-check.sh`; both belong in CI / manual `mix precommit` / `mix precommit.full`. This keeps the commit gate fast and free of flaky-test denials.
+- **Authoritative** — the hook runs its own checks and does **not** defer to a project `mix precommit` alias (that alias is for manual / CI use).
+- **Saved output**: each failing check's full untruncated output is written to `/tmp/elixir-precommit/<sha256(project_root)>/<check>.log` and the paths are listed in the deny message — read those instead of re-running the check.
 
 ### Suggest --failed for Repeated Tests (Non-blocking)
 - Runs before `mix test` commands (without `--failed`)

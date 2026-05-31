@@ -6,6 +6,15 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**`elixir` v1.30.0 → v1.31.0 — commit hook is authoritative, drops tests + dialyzer, saves output to `/tmp`**
+
+- `pre-commit-unified.sh` no longer **defers** to a project `mix precommit` alias. It always runs its own inline gate: format, compile (warnings-as-errors), unused-deps, credo, doctor, sobelow, mix_audit, ash.codegen, ex_doc. The gate is now identical across every repo regardless of each project's alias contents; the alias is reserved for deliberate manual / CI runs.
+- **Tests removed from the commit gate.** The redundant `mix test.json --stale` run is gone — `post-edit-check.sh` already runs the matching test file after every edit, and the full suite belongs in CI / manual `mix test.json`. Large codebases with flaky tests no longer have commits denied by a flaky-test failure, and the per-commit token/time cost drops.
+- **Dialyzer removed from the commit gate.** The inline fallback path previously ran dialyzer; with deferral gone it would have run on *every* commit — the single slowest step, the one that blew the 180s timeout. Dialyzer stays in CI / manual `mix precommit.full`.
+- **Failing-check output saved to `/tmp`.** Each failing check's full untruncated output is written to `/tmp/elixir-precommit/<sha256(project_root)>/<check>.log` and the paths are listed in the deny message, so the agent reads the failure from disk instead of re-running the check (per the "read to the answer, don't re-run as an oracle" rule).
+- Supersedes the earlier unreleased "`precommit` alias split (hook-bound)" framing: the `check.fast` / `precommit` / `precommit.full` tiers still exist, but `precommit` is **no longer hook-bound** — the commit hook runs its own checks and never invokes the alias. `~/.claude/includes/elixir-setup.md` prose updated and re-synced to `plugins/elixir/skills/elixir-setup/SKILL.md`.
+- All 93 hook tests pass; the existing precommit deny tests still fire (fail-fast on format) and now reference the saved `/tmp` log path.
+
 **`elixir` v1.29.3 → v1.30.0 — `block-destructive-bash.sh` no longer blocks bare `rm`**
 
 - Category 3 (bare `rm` outside an allow-listed `<tool> rm` wrapper) removed. The blanket deny prevented Claude from deleting temp files, scratch fragments, and other untracked files — friction that outweighed the guard.

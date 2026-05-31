@@ -80,7 +80,7 @@ Add `Styler` to `.formatter.exs` plugins: `plugins: [Styler]`.
 
 ### Standard Aliases — `check.fast` + `precommit` + `precommit.full`
 
-Three tiers split by **inner-loop cost** and **hook-timeout fit**. The marketplace's `pre-commit-unified.sh` hook defers to `mix precommit` when the alias exists and has a **180s timeout**; dialyzer on a cold PLT routinely exceeds that and gets killed mid-run, denying the commit with no clean error. So `precommit` stays under the timeout; `precommit.full` adds dialyzer for CI / pre-handoff manual runs.
+Three tiers split by **inner-loop cost**. The marketplace's `pre-commit-unified.sh` hook runs its **own** inline gate at commit time (format · compile · credo · doctor · sobelow · mix_audit · ash · ex_doc — **no tests, no dialyzer**); it does **not** invoke these aliases. The aliases are for manual / CI runs: `precommit` adds the test+cover gate, `precommit.full` adds dialyzer.
 
 ```elixir
 defp aliases do
@@ -92,7 +92,7 @@ defp aliases do
       "compile --warnings-as-errors",
       "credo --strict --ignore TagTODO,TagFIXME"
     ],
-    # Hook-bound (180s). Drops dialyzer; keeps tests + sobelow + doctor.
+    # Manual / CI gate (NOT run by the commit hook). Drops dialyzer; keeps tests + sobelow + doctor.
     precommit: [
       "format --check-formatted",
       "compile --warnings-as-errors",
@@ -111,7 +111,7 @@ end
 **Three tiers, by inner-loop cost:**
 
 - `mix check.fast` — format + compile-with-warnings + credo. Seconds. Run after every meaningful edit.
-- `mix precommit` — adds doctor, test+cover gate, sobelow. Tens of seconds. **The commit-hook gate** — `pre-commit-unified.sh` invokes this; stays well under its 180s timeout.
+- `mix precommit` — adds doctor, test+cover gate, sobelow. Tens of seconds. **Manual / pre-handoff gate** — the commit hook does *not* run this; use it before handing work off when you want the test+cover gate locally.
 - `mix precommit.full` — adds dialyzer. Minutes (mostly dialyzer). Run before handing off to a reviewer / matches CI; **not** for the hook path.
 
 **Flag rationale:**
@@ -122,7 +122,7 @@ end
 - **`sobelow`.** Honors `.sobelow-conf` (exit threshold, skip file). Phoenix / Plug / web-facing apps only — drop on pure libraries.
 - **`dialyzer.json --quiet`** (in `precommit.full`). Agent-friendly JSON variant (`harness.yml` uses plain `mix dialyzer` because GH Actions consumes human-readable output; agents prefer JSON). For pipeline parsing: `dialyzer.json --quiet --output /tmp/dialyzer.json` then jq.
 
-**Why split, not one alias.** Single comprehensive `precommit` looks cleaner, but it forces a real trade-off the hook can't escape: 180s ceiling vs dialyzer's wall-clock. Splitting lets the hook stay strict (every commit gated) without surrendering the slow checks — CI runs `precommit.full` (or `harness.yml` steps directly) where no timeout applies, and a human can `mix precommit.full` before opening a PR.
+**Why split, not one alias.** The commit hook enforces a fast inline gate (no tests, no dialyzer) so the inner loop stays cheap and deterministic. The aliases layer the slower checks back on for deliberate runs: `precommit` adds the test+cover gate for pre-handoff, `precommit.full` adds dialyzer to match CI (`harness.yml`). Keeping them separate means the slow steps run where no inner-loop tax applies — CI, or a human before opening a PR — never blocking every commit.
 
 Why no `try/rescue` aggregator by default: an agent that wants "all failures in one pass" can override at the call site (`mix format --check-formatted; mix credo --strict --ignore TagTODO,TagFIXME; mix test.json ...` joined with `;` runs every step regardless of exit). The default alias stays fail-fast because the cheapest-fail-first ordering means the agent rarely needs the aggregate — fixing the first failure usually unblocks the rest.
 

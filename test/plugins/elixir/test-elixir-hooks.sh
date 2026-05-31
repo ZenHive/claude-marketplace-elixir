@@ -82,6 +82,15 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.permissionDecisionReason | contains("Format Check Failed")'
 
+# Test 7b: Pre-commit deny message references the saved /tmp output path
+# (full untruncated output is written so the agent reads it instead of re-running)
+test_hook_json \
+  "Pre-commit: Deny reason references saved /tmp/elixir-precommit log path" \
+  "plugins/elixir/scripts/pre-commit-unified.sh" \
+  "{\"tool_input\":{\"command\":\"git commit -m 'test'\"},\"cwd\":\"$REPO_ROOT/test/plugins/elixir/precommit-test\"}" \
+  0 \
+  '.hookSpecificOutput.permissionDecisionReason | contains("/tmp/elixir-precommit/")'
+
 # Test 8: Pre-commit requires credo dep
 test_hook_json \
   "Pre-commit: Requires credo dependency" \
