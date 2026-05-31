@@ -12,13 +12,15 @@ set -eo pipefail
 #
 # Checks (optional ones gated on the dep being present):
 #   - Always:     format, compile --warnings-as-errors, deps.unlock --check-unused, credo
-#   - If present: doctor, sobelow, mix_audit, ash.codegen, ex_doc
+#   - If present: doctor, sobelow, mix_audit, ash.codegen
 #
 # NOT run at commit time (deliberately — too slow / flaky for the inner loop):
 #   - tests     → post-edit-check.sh already runs the matching test file per edit;
 #                 the full suite belongs in CI / manual `mix test.json`.
 #   - dialyzer  → cold-PLT runs blow the hook timeout; belongs in CI /
 #                 manual `mix precommit.full`.
+#   - ex_doc    → `mix docs --warnings-as-errors` builds the full HTML doc site;
+#                 too slow for the inner loop. Run in CI or manually.
 #
 # Full (untruncated) output of every FAILING check is written to
 #   /tmp/elixir-precommit/<sha256(project_root)>/<check>.log
@@ -81,7 +83,6 @@ save_check_output() {
 # =============================================================================
 
 ERRORS=""
-WARNINGS=""
 
 # -----------------------------------------------------------------------------
 # Always Required: Format + Compile + Unused Deps
@@ -180,37 +181,6 @@ if has_mix_dependency "ash" "$PROJECT_ROOT"; then
   fi
 fi
 
-# -----------------------------------------------------------------------------
-# Optional: ExDoc (documentation warnings)
-# -----------------------------------------------------------------------------
-
-if has_mix_dependency "ex_doc" "$PROJECT_ROOT"; then
-  # Lock to prevent race conditions with parallel processes
-  LOCK_DIR="/tmp/mix_docs_$(echo "$PROJECT_ROOT" | shasum -a 256 | cut -d' ' -f1).lock"
-  LOCK_TIMEOUT=60
-  LOCK_WAIT=0
-
-  while ! mkdir "$LOCK_DIR" 2>/dev/null; do
-    if [ $LOCK_WAIT -ge $LOCK_TIMEOUT ]; then
-      WARNINGS="${WARNINGS}## ExDoc: Skipped (lock timeout)\n\n"
-      break
-    fi
-    sleep 1
-    LOCK_WAIT=$((LOCK_WAIT + 1))
-  done
-
-  if [ -d "$LOCK_DIR" ]; then
-    trap 'rmdir "$LOCK_DIR" 2>/dev/null' EXIT
-
-    DOCS_OUTPUT=$(mix docs --warnings-as-errors 2>&1)
-    if [ $? -ne 0 ]; then
-      DOCS_LOG=$(save_check_output "ex-doc" "$DOCS_OUTPUT")
-      DOCS_OUTPUT=$(truncate_output "$DOCS_OUTPUT" 20 "mix docs --warnings-as-errors")
-      ERRORS="${ERRORS}## Documentation Warnings\n${DOCS_OUTPUT}\n\nFull output: ${DOCS_LOG}\n\n"
-    fi
-  fi
-fi
-
 set -e
 
 # =============================================================================
@@ -219,11 +189,6 @@ set -e
 
 if [ -n "$ERRORS" ]; then
   ERROR_MSG="Pre-commit validation failed:\n\n${ERRORS}"
-
-  if [ -n "$WARNINGS" ]; then
-    ERROR_MSG="${ERROR_MSG}Warnings:\n${WARNINGS}"
-  fi
-
   ERROR_MSG="${ERROR_MSG}Fix these issues before committing.\n\nFull untruncated output of each failing check is saved under ${TMP_DIR}/ — read those files instead of re-running the checks."
   emit_deny_json "$ERROR_MSG" "Commit blocked: pre-commit validation failed"
   exit 0
