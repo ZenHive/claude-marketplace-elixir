@@ -31,8 +31,9 @@ This file is the **decision layer** — *which* command, *when*. The authoritati
 | Read one task / many | `rmap show <id> [--json]` · `rmap list --status\|--phase\|--marker\|--bundle\|--milestone\|--delivered-by [--json]` |
 | Pick the next task | `rmap next [--marker M] [--bundle B] [--milestone V] [--count N] [--json]` |
 | Pick a session-sized bundle | `rmap next-bundle [--json]` · `rmap bundles` to discover them |
+| Pick the parallel-safe dispatch set | `rmap ready [--bundle B] [--phase N] [--marker M] [--milestone V] [--count N] [--dispatchable] [--fields a,b,c] [--json]` |
 | List release lines / pin to a release | `rmap milestones [--has-next\|--status\|--json]` · `rmap milestone <id> <name\|none>` |
-| Change status | `rmap status <id> <pending\|in_progress\|blocked\|done\|superseded> [--implemented "..."] [--delivered-by <agent>] [--verified] [--shipped-in <sha>]` (bulk `1,2,3` atomic; `done` requires `implemented`; outcome flags settable only on `done`) |
+| Change status | `rmap status <id> <pending\|in_progress\|blocked\|done\|superseded> [--implemented "..."] [--delivered-by <agent>] [--verified] [--shipped-in <sha>] [--reason "..."]` (bulk `1,2,3` atomic; `done` requires `implemented`; outcome flags settable only on `done`; `--reason` settable only on `blocked`) |
 | Toggle a marker | `rmap mark <id> +parallel -cx` |
 | Add a dependency | `rmap depend <id> on <id>` |
 | Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch, full field set per `rmap schema`) — see `task-writing.md`. Interactive `rmap new` covers the common subset; reach for `--from-stdin` when interactive doesn't prompt for a field you need. |
@@ -45,9 +46,38 @@ This file is the **decision layer** — *which* command, *when*. The authoritati
 
 All mutators **validate-then-write**: an invalid mutation leaves `tasks.toml` byte-equal to its prior state. `--json` envelopes on the read commands are append-only stable surfaces.
 
+### rmap is cheap — set and complete inline; don't manufacture a session
+
+A task's *existence in rmap* is decoupled from *how it gets executed*. Creating one
+(`rmap new`) and completing it (`rmap status <id> done`) are lightweight ledger
+writes — seconds, a handful of tokens. Neither warrants a separate session, a
+dispatch, or a round of "should this even be a task?" deliberation.
+
+When a task is small and you're already in the relevant code, the cheapest correct
+path is: **do it inline now, then `rmap status <id> done --implemented "…"` in the same
+motion.** Reserve a separate dispatched/cloud-agent session for work that genuinely
+earns it — large, risky, parallelizable, or (under a dogfooding mandate) a change to
+the orchestrator's own surface. Capturing a discovery as a *pending* task is also fine
+and cheap — but **capture ≠ dispatch, and a task ≠ a session.** Hand-done inline tasks
+honestly leave `verified` unset (no independent grader ran).
+
+**Failure mode this kills:** treating every rmap entry as a dispatch-and-verify cycle,
+or looping in discussion over whether to file/dispatch, when setting + doing +
+marking-done inline costs less than the deliberation. Set it, do it (or defer it),
+mark it done — don't burn time, tokens, and circles on the ceremony around it.
+
 ### Batches are derived, not declared
 
 `rmap next-bundle` returns a session-sized **bundle** — a set of related pending tasks. A *batch* is a finer-grained slice of that bundle: the executor groups bundle tasks by `depends_on` into successive layers of disjoint work (per `workflow-philosophy.md` § "Batched Execution"). There is no `rmap batch` command — batch derivation is the executor's job, not the source-of-truth's. Hierarchy: phase ⊇ bundle ⊇ batch ⊇ task.
+
+### Parallel-dispatch surface (`rmap ready` + the orchestration fields)
+
+When you need *the set of tasks I can dispatch in parallel right now* — not "a session's worth" (`next-bundle`) and not "the single best" (`next`) — use **`rmap ready`**. It returns every `pending` task whose deps are all `done`, which is **mutually independent by construction** (a pending task with all deps done can't depend on another pending task), so the whole set is safe to fan out at once. `rmap ready --bundle <B>` is the dispatchable layer-0 of a bundle — the parallel batch `next-bundle`'s serial chain can't express. Four facts the orchestrator reads instead of re-parsing every task body:
+
+- **`dep_layer`** (computed, on every `--json`): longest-path depth over the in-repo dep graph. Within a result set the lowest `dep_layer` present is the current parallel wave; higher layers are later waves — makes `next-bundle`'s topo chain self-describing.
+- **`handbuild` marker + `--dispatchable`**: `--dispatchable` (on `ready` / `list`) drops `handbuild`-marked tasks (human-driven-browser work). Mark the minority exception; everything else is headless-dispatchable by default.
+- **`touches`** (creation-time field): the broader *involvement hint* — files a task may read or write, typically a superset of `files_to_modify` (the write target). Consumer collision rule (you dedupe; rmap doesn't enforce): two tasks conflict iff `(touches(A) ∪ files_to_modify(A)) ∩ (touches(B) ∪ files_to_modify(B)) ≠ ∅`. Unioning both fields keeps `files_to_modify` respected even when a task's `touches` isn't a perfect superset — `touches` is "typically," not guaranteed, a superset. Set it via `rmap new --from-stdin`.
+- **`--fields a,b,c`** (on `ready` / `list`): projects `--json` to a bare array of just the named keys per task — token-cheap for an orchestrator that only needs `id,status,eff,depends_on,dep_layer,touches`. Implies `--json`; unknown name exits 1.
 
 ### D/B/U mapping
 
@@ -61,8 +91,8 @@ Set scores in `tasks.toml` (via `rmap new` or editing the file); never hand-form
 
 ### Status & marker vocabulary
 
-- **status:** `pending | in_progress | blocked | done | superseded` — transitions go through `rmap status`. `blocked` requires a `blocked_reason`; `done` requires `implemented` (set inline via `--implemented "..."`, or pre-populated in `tasks.toml`; on a TTY without the flag, `rmap status` prompts). For bulk `rmap status 1,2,3 done`: the mutation is atomic — if any task is missing `implemented` AND no `--implemented` flag is given AND we're not on a TTY, the whole batch is rejected; `--implemented "..."` applies the same string to every task in the batch.
-- **markers:** `parallel | cx | csr | bug | security | docs` — `parallel` is the old `[P]`; `cx` / `csr` are the Codex / Cursor delegation markers.
+- **status:** `pending | in_progress | blocked | done | superseded` — transitions go through `rmap status`. `blocked` requires a `blocked_reason` (set inline via `--reason "..."`; free-text, blocked-only, overwrites, and **auto-cleared when the task leaves the blocked state** — it renders inline on the blocked row in `ROADMAP.md`); `done` requires `implemented` (set inline via `--implemented "..."`, or pre-populated in `tasks.toml`; on a TTY without the flag, `rmap status` prompts). For bulk `rmap status 1,2,3 done`: the mutation is atomic — if any task is missing `implemented` AND no `--implemented` flag is given AND we're not on a TTY, the whole batch is rejected; `--implemented "..."` applies the same string to every task in the batch.
+- **markers:** `parallel | cx | csr | bug | security | docs | handbuild` — `parallel` is the old `[P]`; `cx` / `csr` are the Codex / Cursor delegation markers; `handbuild` flags human-driven-browser work (LiveView/UI/DOM) that `rmap ready --dispatchable` / `rmap list --dispatchable` exclude.
 - **milestone status:** `pending | active | done` — distinct vocabulary from task status. Flip by hand-editing `[milestones.<name>].status` (no mutator yet); `active` milestones sort first in `rmap milestones` and are the load-bearing affordance for the "what release am I cutting next?" query.
 
 ### Milestones — first-class release lines
