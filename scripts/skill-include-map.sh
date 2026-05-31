@@ -39,4 +39,9 @@ MAPPINGS=(
   "plugins/elixir/skills/git-worktrees/SKILL.md:worktree-workflow.md"
   "plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md:dev-lifecycle.md"
   "plugins/task-driver/skills/rmap/SKILL.md:rmap.md"
+  "plugins/elixir/skills/code-style/SKILL.md:code-style.md"
+  "plugins/elixir/skills/development-philosophy/SKILL.md:development-philosophy.md"
+  "plugins/task-driver/skills/task-writing/SKILL.md:task-writing.md"
+  "plugins/dev-lifecycle/skills/workflow-philosophy/SKILL.md:workflow-philosophy.md"
+  "plugins/cloud-delegation/skills/delegation-rules/SKILL.md:delegation-rules.md"
 )

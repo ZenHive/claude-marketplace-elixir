@@ -4,6 +4,18 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ## [Unreleased]
 
+### Added
+
+**Opus 4.8 lean-context doctrine — 5 includes mirrored as skills so demotion from eager `@`-import stays lossless**
+
+- With Opus 4.8 the bet is that the model self-invokes the right skill on demand, so most `@`-imported includes are being demoted from eager context to skill-on-demand (the eager floor is now just `critical-rules`). Five methodology includes had **no skill mirror** — demoting them would have made the knowledge unreachable. This change creates the mirrors:
+  - **`elixir` v1.31.3 → v1.32.0** — adds `code-style` (complexity-based KPIs + universal standards) and `development-philosophy` (doc/internal-API conventions, mandatory `@spec`, doctests-vs-ExUnit, TODO tagging, tightening-validators, cite-precedents-before-crying-complexity). Elixir plugin: 24 → 26 skills.
+  - **`task-driver` v1.3.3 → v1.4.0** — adds `task-writing` (task-as-prompt, the 5-question pre-creation gate, `tasks.toml` field set). Task-driver plugin: 2 → 3 skills.
+  - **`dev-lifecycle` v1.1.0 → v1.2.0** — adds `workflow-philosophy` (session-per-phase, evaluator separation, staged-but-uncommitted handoff, batched execution with `/compact` checkpoints). Dev-lifecycle plugin: 1 → 2 skills.
+  - **`cloud-delegation` v1.12.2 → v1.13.0** — adds `delegation-rules` (the five hard rules: don't-steal-delegated-tasks, GH-native auto-merge, default-DO comments, never-push-to-`codex/*`, one-shot `cursor/*` force-push scope). Cloud-delegation plugin: 7 → 8 skills.
+- All five are auto-synced from `~/.claude/includes/` (rows added to `scripts/skill-include-map.sh`; `block-skill-edits.sh` now guards them). Marketplace total: 40 → 45 skills. `SKILLS.md`, `README.md`, and `CLAUDE.md` catalogs reconciled.
+- This repo's own `CLAUDE.md` import block cut from 16 includes to `critical-rules` only — eating the doctrine's own dog food (every include remains a local file readable directly; re-add an `@`-import only if Opus quality drops on a surface).
+
 ### Changed
 
 **`elixir` v1.31.2 → v1.31.3 — document sobelow skip/config flag semantics in `elixir-setup` (corrects a wrong claim)**

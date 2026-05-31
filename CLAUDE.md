@@ -2,37 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-@~/.claude/includes/across-instances.md
-
 @~/.claude/includes/critical-rules.md
 
-@~/.claude/includes/worktree-workflow.md
-
-@~/.claude/includes/delegation-rules.md
-
-@~/.claude/includes/task-prioritization.md
-
-@~/.claude/includes/task-writing.md
-
-@~/.claude/includes/rmap.md
-
-@~/.claude/includes/workflow-philosophy.md
-
-@~/.claude/includes/web-command.md
-
-@~/.claude/includes/code-style.md
-
-@~/.claude/includes/development-philosophy.md
-
-@~/.claude/includes/agent-economy.md
-
-@~/.claude/includes/elixir-setup.md
-
-@~/.claude/includes/development-commands.md
-
-@~/.claude/includes/ex-unit-json.md
-
-@~/.claude/includes/dialyzer-json.md
+<!-- Selective-load (Opus 4.8): only critical-rules is eager-imported — the irreducible
+guardrail floor. Everything this repo used to @-import (across-instances, worktree-workflow,
+delegation-rules, task-prioritization, task-writing, rmap, workflow-philosophy, web-command,
+code-style, development-philosophy, agent-economy, elixir-setup, development-commands,
+ex-unit-json, dialyzer-json) is now reachable as a skill on demand — and every one is a
+local file in this repo (~/.claude/includes/ mirror) you can Read directly. Re-add an
+@-import here only if Opus quality drops on that surface. See ~/.claude/setup-guide.md
+§ "Selective-Load Philosophy" for the rationale and the per-include skill mapping. -->
 
 ## Repository Purpose
 
@@ -183,11 +162,11 @@ Self-contained — no `_shared/lib.sh` sourcing, inline `jq` envelopes, follows 
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 
-### Skills (40 total)
+### Skills (45 total)
 
 Skills provide specialized capabilities for Claude to use on demand, complementing automated hooks with user-invoked research and guidance. The agent-facing catalog (what each does, when to invoke) lives in `SKILLS.md` at the repo root — keep it in sync when adding or removing skills.
 
-**Elixir plugin** (24 skills):
+**Elixir plugin** (26 skills):
 
 | Skill | Description |
 |-------|-------------|
@@ -215,6 +194,8 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 | api-toolkit | ApiToolkit — InboundLimiter, RateLimiter, Cache, Metrics, Provider DSL, Discovery |
 | upstream-pr-workflow | Contributing PRs to forked libraries without leaking personal tooling into the diff |
 | elixir-ci-harness | Copy-ready `harness.yml` GitHub Actions workflow — drift-free version sourcing from `.tool-versions`, format/compile/credo/doctor/sobelow/test+cover/dialyzer gate; default 85% coverage; closes the Codex-Cloud-no-hex.pm gap by making harness output a PR check |
+| code-style | Complexity-based code-quality KPIs — per-tier budgets (functions/module, lines/function, call/pattern-match depth) + universal standards (Dialyzer 0, Credo 8.0+, 80/95% coverage, 100% public-API docs) |
+| development-philosophy | Elixir doc + internal-API conventions — no-IO-in-@doc, defp/@doc-false/@moduledoc-false/underscore decision tree, mandatory @spec, doctests-vs-ExUnit, TODO tagging, tightening-validators, cite-precedents/check-hex-before-crying-complexity |
 
 **Phoenix plugin** (2 skills):
 
@@ -236,14 +217,15 @@ Skills provide specialized capabilities for Claude to use on demand, complementi
 | code-review | Pre-commit single-reviewer triage of `git diff --staged` — 5+1 categories, plan-mode-with-auto-apply (one user gate: exit-plan-to-apply). No Codex dispatch and no Claude+Codex dialogue at this layer — both moved to `audit-review` (deferred). `discuss-design` items escalate to user, who can defer to audit-review's dialogue pass |
 | audit-review | Post-commit / post-merge audit on committed code — full 5+1 categories, mandatory parallel Codex dispatch, absorbs bot-comment triage (Step 5d, 3-reasoner merge), Linear close-out (Step 12.5), acceptance-criteria verification (Step 9 extension); auto-applies hygiene fixes (ROADMAP/CHANGELOG/CLAUDE.md/README + in-code `@doc`/`@spec`), auto-resolves `discuss-design` via Claude+Codex dialogue (convergence applies, divergence drops to ROADMAP candidate), writes `.audit/<sha>.md` reports + commits as `audit(...)`. **Fully autonomous — zero user gates.** **Deferred/batched** — SessionStart hook (`check-unaudited-commits.sh`, ≥3 threshold) surfaces unaudited tail; manual `/staged-review:audit-status` for snapshot; manual `Skill(audit-review) <range>` to clear |
 
-**Task-driver plugin** (2 skills):
+**Task-driver plugin** (3 skills):
 
 | Skill | Description |
 |-------|-------------|
 | task-driver | Roadmap-driven task execution — select by efficiency, implement, update all docs |
 | rmap | The `rmap` roadmap substrate — `roadmap/tasks.toml` is canonical, `ROADMAP.md` is rendered output; command surface by intent, D/B/U mapping, status/marker vocabulary, migration procedure for hand-edited roadmaps |
+| task-writing | How to write a task's `body` as a prompt — the 5-question pre-creation gate (anchor, baseline-first, one-session=one-task, milestone-fit, no-hedging), over-specified-vs-prompt examples, `rmap new --from-stdin` field set |
 
-**Cloud-delegation plugin** (7 skills):
+**Cloud-delegation plugin** (8 skills):
 
 The Linear-as-queue + cloud-agent delegation workflow is split into four composable skills along a substrate/layer axis, plus a thin hub index. `linear-queue` is standalone — usable without cloud agents at all.
 
@@ -256,12 +238,14 @@ The Linear-as-queue + cloud-agent delegation workflow is split into four composa
 | linear-workflow | Hub index — points to the four skills above; use it to find which skill owns a concern |
 | cloud-agent-environments | Cloud-agent env reference — what each cloud agent can/can't reach (hex.pm, mix tasks, Tidewave, HTTP), runtime gotchas, AGENTS.md generation workflow |
 | sprite-claude-code | Operational reference for Fly Sprite-hosted Claude Code as a third cloud-delegation target |
+| delegation-rules | The five hard rules of delegation flows — don't-steal-`[CX]`/`[CSR]`-tasks, GH-native auto-merge (never synchronous `gh pr merge`), default-DO Linear/PR comments, never-push-to-`codex/*`, one-shot `cursor/*` force-push scope |
 
-**Dev-lifecycle plugin** (1 skill):
+**Dev-lifecycle plugin** (2 skills):
 
 | Skill | Description |
 |-------|-------------|
 | dev-lifecycle | Canonical five-phase chain reference — answers "which phase am I in?", "which skill owns this?", "what's the handoff?". Pure documentation |
+| workflow-philosophy | Language-agnostic multi-session workflow principles — session-per-phase, evaluator separation, staged-but-uncommitted implementer/reviewer handoff, batched execution with `/compact` STOP checkpoints, acceptance-criteria writing, verification-before-completion |
 
 **Portfolio-strategy plugin** (1 skill):
 

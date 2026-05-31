@@ -1,7 +1,7 @@
 {
   "name": "dev-lifecycle",
-  "version": "1.1.0",
-  "description": "Canonical marketplace-discoverable reference for the five-phase development lifecycle: task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5). Composes the already-language-agnostic task-driver, staged-review, and cloud-delegation plugins (plus the worktree-workflow include) into one named chain. Pre-merge (Phase 4) is GitHub-native auto-merge — see `plugins/staged-review/templates/auto-merge.md`. v1.1.0: commit-review skill deleted; chain collapses six-phase → five-phase. Pure documentation/orchestration — no new behavior, no Elixir coupling, standalone-extractable.",
+  "version": "1.2.0",
+  "description": "Canonical marketplace-discoverable reference for the five-phase development lifecycle: task-driver(1) → worktree(2) → bots(3) → merge(4: GH-native gh pr merge --auto) → audit-review(5). Composes the already-language-agnostic task-driver, staged-review, and cloud-delegation plugins (plus the worktree-workflow include) into one named chain. Pre-merge (Phase 4) is GitHub-native auto-merge — see `plugins/staged-review/templates/auto-merge.md`. v1.2.0: add `workflow-philosophy` skill — mirror of the workflow-philosophy include (session-per-phase, evaluator separation, staged-but-uncommitted implementer/reviewer handoff, batched execution with /compact checkpoints) so the principles are skill-reachable on Opus 4.8 without an eager @-import. v1.1.0: commit-review skill deleted; chain collapses six-phase → five-phase. Pure documentation/orchestration — no new behavior, no Elixir coupling, standalone-extractable.",
   "author": {
     "name": "DeltaHedge",
     "url": "https://github.com/ZenHive"

@@ -89,22 +89,22 @@ Implementer / reviewer separation is preserved across the chain: each layer is a
 
 | Plugin | Description |
 |--------|-------------|
-| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 24 skills |
+| [elixir](./plugins/elixir/README.md) | Main Elixir development - consolidated hooks (format, compile, credo, sobelow, dialyzer, etc.) + 26 skills |
 | [phoenix](./plugins/phoenix/README.md) | Phoenix framework patterns — setup and Nexus template |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | Workflow-command generator for other Elixir projects |
 
-## Skills (40)
+## Skills (45)
 
-40 skills across 8 plugins. For the full **agent-facing catalog** — what each skill does and when to invoke it — see **[SKILLS.md](SKILLS.md)**.
+45 skills across 8 plugins. For the full **agent-facing catalog** — what each skill does and when to invoke it — see **[SKILLS.md](SKILLS.md)**.
 
 | Plugin | Skills | Focus |
 |--------|--------|-------|
-| [elixir](./plugins/elixir/README.md) | 24 | Setup & tooling, research, testing, JS-on-BEAM, static analysis, API design |
-| [cloud-delegation](./plugins/cloud-delegation/README.md) | 7 | Linear-as-queue + cloud-agent (Codex/Cursor) delegation chain |
+| [elixir](./plugins/elixir/README.md) | 26 | Setup & tooling, research, testing, conventions, JS-on-BEAM, static analysis, API design |
+| [cloud-delegation](./plugins/cloud-delegation/README.md) | 8 | Linear-as-queue + cloud-agent (Codex/Cursor) delegation chain + hard rules |
 | [staged-review](./plugins/staged-review/README.md) | 2 | Pre-commit + post-merge review chain (pre-merge is GH-native) |
 | [phoenix](./plugins/phoenix/README.md) | 2 | Phoenix setup + Nexus admin template |
-| [task-driver](./plugins/task-driver/README.md) | 2 | Roadmap-driven task execution + the `rmap` roadmap substrate |
-| [dev-lifecycle](./plugins/dev-lifecycle/README.md) | 1 | Five-phase development lifecycle reference |
+| [task-driver](./plugins/task-driver/README.md) | 3 | Roadmap-driven task execution + the `rmap` substrate + task-writing |
+| [dev-lifecycle](./plugins/dev-lifecycle/README.md) | 2 | Five-phase lifecycle reference + workflow-philosophy principles |
 | [elixir-workflows](./plugins/elixir-workflows/README.md) | 1 | Workflow-command generator |
 | [portfolio-strategy](./plugins/portfolio-strategy) | 1 | Cross-repo power-law portfolio rule |
 

@@ -4,7 +4,7 @@
 > Humans setting up the marketplace: see [README.md](README.md).
 
 This is the agent-facing catalog of every skill: **what it gives you** and **when to invoke it**.
-40 skills across 8 plugins.
+45 skills across 8 plugins.
 
 ## How skills work
 
@@ -26,9 +26,13 @@ This is the agent-facing catalog of every skill: **what it gives you** and **whe
 | Running Dialyzer | `dialyzer-json` (`mix dialyzer.json`) |
 | Looking up a mix command or quality-check flag | `development-commands` |
 | Adding CI to a repo that's a cloud-agent delegation target | `elixir-ci-harness` |
+| Structuring a module/function or judging whether code is too complex | `code-style` |
+| Writing @doc/@spec, hiding internals, choosing doctests vs tests, tagging TODOs | `development-philosophy` |
 | Planning a multi-task backlog | `roadmap-planning` |
 | Working with the roadmap substrate — picking work, scoring, status changes, rendering `ROADMAP.md`, migrating a hand-edited roadmap | `rmap` |
+| Authoring a roadmap task (`rmap new`) or justifying its score | `task-writing` |
 | Picking up + implementing a roadmap task | `task-driver` |
+| Structuring multi-session / multi-phase work (handoffs, evaluator separation, batches) | `workflow-philosophy` |
 | Orienting around the dev lifecycle ("which phase am I in?") | `dev-lifecycle` |
 | Reviewing staged changes before commit | `code-review` |
 | Gating a PR before merge | GitHub-native `gh pr merge <N> --auto --squash --delete-branch` + `[BLOCK-MERGE]` label (no skill — see `plugins/staged-review/templates/auto-merge.md`) |
@@ -36,6 +40,7 @@ This is the agent-facing catalog of every skill: **what it gives you** and **whe
 | Delegating a task to Codex/Cursor | `agent-dispatch` (start at `linear-workflow` if unsure) |
 | Reviewing a cloud-agent's open PR | `agent-pr-review` |
 | Managing 2+ open cloud-agent PRs as a merge train | `flow-review` |
+| Recalling the hard rules of cloud-agent delegation (don't-steal, auto-merge, push-back) | `delegation-rules` |
 | Running parallel Claude sessions on one repo | `git-worktrees` |
 | Contributing a PR to a forked upstream library | `upstream-pr-workflow` |
 | Working with JS/TS on the BEAM (choosing a tool) | `elixir-volt` (decision map) |
@@ -54,6 +59,8 @@ This is the agent-facing catalog of every skill: **what it gives you** and **whe
 | [`ex-unit-json`](plugins/elixir/skills/ex-unit-json/SKILL.md) | `mix test.json` — AI-friendly test output, `--failed` iteration, `--cover` gate, `--group-by-error`, jq patterns | Running tests, iterating on failures |
 | [`dialyzer-json`](plugins/elixir/skills/dialyzer-json/SKILL.md) | `mix dialyzer.json` — AI-friendly type warnings, `fix_hint` prioritization (code/spec/pattern) | Running Dialyzer, triaging type warnings |
 | [`elixir-ci-harness`](plugins/elixir/skills/elixir-ci-harness/SKILL.md) | Copy-ready `harness.yml` GitHub Actions workflow — format/compile/credo/doctor/sobelow/test+cover/dialyzer gate, drift-free version sourcing | Adding deterministic CI, esp. for repos that are Codex/Cursor delegation targets |
+| [`code-style`](plugins/elixir/skills/code-style/SKILL.md) | Complexity-based code-quality KPIs — per-tier budgets (functions/module, lines/function, call depth, pattern-match depth for simple/standard/complex) + universal standards (Dialyzer 0, Credo 8.0+, 80/95% coverage, 100% public-API docs) | Structuring a module/function, judging whether code is too complex |
+| [`development-philosophy`](plugins/elixir/skills/development-philosophy/SKILL.md) | Elixir doc + internal-API conventions — no-IO-in-@doc, defp/@doc-false/@moduledoc-false/underscore decision tree, mandatory @spec, doctests-vs-ExUnit, TODO tagging, tightening-validators, cite-precedents/check-hex-before-crying-complexity | Writing @doc/@spec, hiding internals, choosing doctests vs tests, tagging deferred work, before objecting a macro is "complex" |
 
 ### Research before coding
 
@@ -72,7 +79,9 @@ This is the agent-facing catalog of every skill: **what it gives you** and **whe
 |---|---|---|
 | [`roadmap-planning`](plugins/elixir/skills/roadmap-planning/SKILL.md) | D/B/U (Difficulty/Benefit/Usefulness) scoring, ROI-based ordering, phase organization, status/marker vocabulary — the framework `rmap` executes | Planning features, organizing refactors, structuring multi-task work |
 | [`rmap`](plugins/task-driver/skills/rmap/SKILL.md) | The roadmap substrate — `roadmap/tasks.toml` is canonical, `ROADMAP.md` + `roadmap/data.json` are rendered. Command surface by intent, D/B/U → `scores` mapping, status/marker vocabulary, migration procedure for hand-edited roadmaps | Picking work (`rmap next`), scoring, changing status/markers, creating tasks (`rmap new`), rendering, or migrating a legacy `ROADMAP.md` |
+| [`task-writing`](plugins/task-driver/skills/task-writing/SKILL.md) | How to write a task's `body` as a prompt (not a spec) — the 5-question pre-creation gate (anchor, baseline-first, one-session=one-task, milestone-fit, no-hedging), over-specified-vs-prompt examples, `rmap new --from-stdin` field set | Authoring a `roadmap/tasks.toml` task, writing a cross-instance handoff doc, justifying a score |
 | [`task-driver`](plugins/task-driver/skills/task-driver/SKILL.md) | Reads roadmap state via `rmap` (`list` / `next` / `show`), selects by efficiency, implements with TodoWrite tracking, updates all project docs. Two modes: Pickup and Plan-and-File | Starting a work session, picking/implementing roadmap items |
+| [`workflow-philosophy`](plugins/dev-lifecycle/skills/workflow-philosophy/SKILL.md) | Language-agnostic multi-session workflow principles — session-per-phase, evaluator separation, the staged-but-uncommitted implementer/reviewer handoff, batched execution with `/compact` STOP checkpoints, acceptance-criteria writing, verification-before-completion | Structuring multi-phase work, deciding handoff shape, writing acceptance criteria |
 | [`dev-lifecycle`](plugins/dev-lifecycle/skills/dev-lifecycle/SKILL.md) | Canonical five-phase chain reference (task-driver → worktree → bots → merge → audit-review) — answers "which phase?", "which skill owns this?" | Orienting around the lifecycle, explaining phase handoffs |
 | [`portfolio-strategy`](plugins/portfolio-strategy/skills/portfolio-strategy/SKILL.md) | Power-law portfolio rule for **cross-repo** decisions — start/continue/kill a project, where to spend attention | Evaluating portfolio health, deciding the next bet. NOT for within-project prioritization (use `roadmap-planning`) |
 | [`workflow-generator`](plugins/elixir-workflows/skills/workflow-generator/SKILL.md) | Generates customized workflow slash commands (research, plan, implement, qa) for an Elixir project | Setting up a new project's development workflow |
@@ -99,6 +108,7 @@ Linear-as-queue + cloud-agent (Codex, Cursor) delegation, split along a substrat
 | [`flow-review`](plugins/cloud-delegation/skills/flow-review/SKILL.md) | **Merge-train mode** — dependency-sort by file overlap, rebase cascade between merges, per-PR auto-merge | 2+ delegated PRs queued and per-PR rebase round-trips exceed review time |
 | [`cloud-agent-environments`](plugins/cloud-delegation/skills/cloud-agent-environments/SKILL.md) | Operational reference — what each cloud agent can/can't reach (hex.pm, mix, Tidewave, HTTP), runtime gotchas, the AGENTS.md generation workflow | Deciding `[CX]` vs `[CSR]` eligibility, debugging a cloud-agent env failure |
 | [`sprite-claude-code`](plugins/cloud-delegation/skills/sprite-claude-code/SKILL.md) | Operational reference for Fly Sprite-hosted Claude Code as a third delegation target — CLI surface, auth threading, reachability, cost ceiling | Using Sprite-hosted Claude Code for delegation |
+| [`delegation-rules`](plugins/cloud-delegation/skills/delegation-rules/SKILL.md) | The five hard rules of delegation flows — don't-steal-`[CX]`/`[CSR]`-tasks, GH-native auto-merge (never synchronous `gh pr merge`), default-DO Linear/PR comments, never-push-to-`codex/*`, one-shot `cursor/*` force-push scope | Delegating to or reviewing cloud-agent work and need the guardrails (in repos that don't eager-import the include) |
 
 ### Git & contribution workflows
 
@@ -161,9 +171,9 @@ A few skills also have slash-command entry points (Claude Code only):
 
 ```bash
 /plugin marketplace add ZenHive/claude-marketplace-elixir
-/plugin install elixir@deltahedge          # 24 skills + hooks
-/plugin install cloud-delegation@deltahedge # 7 delegation skills
+/plugin install elixir@deltahedge          # 26 skills + hooks
+/plugin install cloud-delegation@deltahedge # 8 delegation skills
 /plugin install staged-review@deltahedge   # 2-skill review chain (pre-commit + post-merge; pre-merge is GH-native)
-/plugin install task-driver@deltahedge     # task-driver + rmap skills
+/plugin install task-driver@deltahedge     # task-driver + rmap + task-writing skills
 # …see README.md for the full plugin list
 ```
