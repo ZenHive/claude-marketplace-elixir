@@ -51,7 +51,7 @@ Each hook is tagged as **convention** (permanent quality gate) or **model-limita
 
 **PreToolUse - Before bash commands:**
 - ✅ **Pre-commit validation** `[convention]` - Ensures code is formatted, compiles, and has no unused deps before committing
-- ✅ **Block destructive bash** `[convention]` - Blocks `mix phx.server` (server is always already running), destructive deps/build (`mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps`), and bare `rm` (including `sudo rm`) in any command segment — `git rm a && rm b` is denied on the second segment. Allows `mix deps.unlock --check-unused`, `mix deps.compile <dep> --force`, and `<tool> rm` for tool ∈ {git, npm, pnpm, yarn, bundle, cargo, gem}
+- ✅ **Block destructive bash** `[convention]` - Blocks `mix phx.server` (server is always already running) and destructive deps/build (`mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps`). Allows `mix deps.unlock --check-unused` and `mix deps.compile <dep> --force`. Bare `rm` (ordinary file deletion) is **not** blocked — only the `rm -rf _build` / `rm -rf deps` targets above
 - ✅ **Warn shell-eval Elixir** `[model-limitation]` - Warns (non-blocking) when Claude is about to run `mix run -e`, `elixir -e`, `iex -e`, or `mix run X.exs` — suggests `mcp__tidewave__project_eval` for same-BEAM evaluation without fresh-VM startup. Legitimate exceptions named in the warning footer
 - ✅ **Warn missing tool flags** `[model-limitation]` - Warns when `mix credo` is invoked without `--strict --format json`, or when `mix compile` is run without a `time` prefix (per `development-commands.md`)
 

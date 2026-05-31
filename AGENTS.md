@@ -233,6 +233,33 @@ Applies to every hook-driven check (credo, format, dialyzer, doctor, sobelow, ex
 - Pre-existing flags in your touched file count too: alias ordering, unused vars, refactor opportunities, `TODO:` formatting.
 - Generated files → fix the generator, not the output.
 - Don't move the fix to ROADMAP or a follow-up task. It happens in this commit.
+- **Don't manually re-run a check the hook just ran on the same files.** Act on the hook output directly — re-running `mix test.json` / `mix credo` / `mix dialyzer.json` / `mix sobelow` / `mix precommit` on the file set the hook already graded is duplicated work. Full-suite re-runs earn their cost only before a PR/merge, after `mix deps.get` or a branch switch, or when the user asks. See `~/.claude/CLAUDE.md` § "Don't Re-Run Hook-Driven Checks on the Same Files" for the host-specific rule.
+
+## 🚨 READ TO THE ANSWER — DON'T USE THE RUNNER AS AN ORACLE
+
+**Reason to the fix by reading code; run once to CONFIRM — don't run to DISCOVER.**
+The recurring failure mode: change → run full suite → read one failure → fix one
+thing → run again, N times. Each cycle pays the suite-compile tax; N cycles for a
+problem one read would have surfaced whole.
+
+- **Read the code path before running the test that exercises it.** Front-load the
+  model; don't outsource it to the runner. A 10-line read of the function beats
+  learning its shape from a failing assertion three fixes later.
+- **Treat a failure as a SURVEY, not a single fix.** Enumerate every plausible
+  cause from the output + one read, fix them in a batch, then run once. Don't
+  fix-one-and-rerun.
+- **Verify handoffs/summaries against ground truth before building on them.** A
+  compaction summary or another session's claim ("X is already wired") is a
+  hypothesis. `grep` the load-bearing claim before you act on it.
+- **Trust the hooks** (pairs with FIX HOOK-FLAGGED + the host CLAUDE.md rerun rule):
+  per-edit checks already graded the file; re-running is wasted cycles.
+- **Under a flaky terminal, go sequential-and-simple by default** — one command →
+  write to a file → Read it. No parallel batches of *dependent* calls: one early
+  failure cancels the whole round.
+
+**Failure-mode tell — about to run the same test a 3rd time to find the *next*
+problem? STOP. Read the code path and the opts you're passing against a known-good
+sibling, list all the causes, fix them together, run once.**
 
 ## 🛑 MINIMALIST APPROACH FIRST
 
@@ -292,6 +319,8 @@ You don't have data either way. The honest framing is: *"I don't know if you'll 
 - Name the **actual technical risks** (e.g., "the macro might grow more knobs than the duplication it removes," "this couples us to an upstream that breaks every release," "the test surface explodes at N+1 cases"). Those are real costs you can reason about.
 - Cite **concrete precedents** when scoring complexity (see `development-philosophy.md` "Cite Ecosystem Precedents Before Crying Complexity"). Generic "this could grow" without naming a specific failure pattern is the same hedging by another name.
 - If the task genuinely scores low on benefit/usefulness, score it that way honestly — don't smuggle a demand-speculation into the U/B numbers and pretend it came from analysis.
+
+**Scope extends to task `body` fields and scoring justifications, not just live responses.** Same hedge phrases written into a task's `body` to justify B/U — "table-stakes", "increasingly expected", "now standard", "buyers expect", "competitors are starting to", "modern apps all do" — inflate the score the same way they inflate a response. Required instead: named consumer evidence (named partner asked, named competitor lever, measured conversion uplift) OR honest low score. Enforced at task-creation time by `task-writing.md` § Pre-Creation Gate (question 5).
 
 ## 🚨 GIT COMMIT / PUSH / PR-CREATE — SCOPED BY WORKTREE
 
@@ -634,7 +663,7 @@ When all four hold, GitHub merges automatically. Zero Claude / zero cloud-agent 
 - **Any human-reviewer `requested-changes` state** — reviewer must explicitly resolve first.
 - **Merging a PR whose head IS the default branch** — out of scope by definition (gh rejects).
 
-The five-phase chain (pre-commit `code-review` + bots + GH-native merge + deferred post-merge `audit-review`) covers what a synchronous merge gate previously caught. Self-authored worktree PRs and cloud-agent PRs follow the same rule. `.audit/<sha>.md` reports plus `audit(...)` commits are the durable post-merge inspection surface.
+The five-phase chain (`task-driver` → worktree implementer + pre-commit `code-review` → bots → GH-native merge → deferred post-merge `audit-review`) covers what a synchronous merge gate previously caught. Self-authored worktree PRs and cloud-agent PRs follow the same rule. `.audit/<sha>.md` reports plus `audit(...)` commits are the durable post-merge inspection surface.
 
 ### How to apply
 
@@ -826,24 +855,29 @@ Findings during code review or PR review have a ceremony floor below which they 
 
 **Cross-references (delegation flows only — applies if `delegation.md` is imported):** push-back-vs-fix-locally calculus is in `agent-pr-review.md` § "Push-Back-vs-Fix-Locally Matrix by Agent". Hard rule against pushing to cloud-agent branches is in `delegation-rules.md` § "NEVER PUSH TO A CLOUD-AGENT'S BRANCH".
 
-### Refine, Don't Duplicate — Before `rmap new`
+### Refine, Merge, Don't Duplicate — Before `rmap new`
 
-When new information arrives about work that's already on the roadmap (clearer requirements, refined acceptance criteria, additional edge cases, a discovered constraint), **update the existing pending task** — do not open a new one. `rmap new` is for **new scope**, not for **spec refinement** of pending work.
+Two `rmap new` failure modes: (1) new task when existing pending task should absorb the new info; (2) two adjacent tasks when one covers both because they ship in one session.
 
-**Required check before every `rmap new`:** scan pending tasks in the same bundle/topic (`rmap list --status pending`, or grep `roadmap/tasks.toml`). If one covers the same surface area, edit its `body` / `acceptance_criteria` / `out_of_scope` / `scores` in place. New task ONLY when the work could ship as an independent PR alongside the existing one. Duplicates fragment context, leave the original stale, and break the "queue, not log" invariant that makes `rmap next` trustworthy.
+**Required check before every `rmap new`:** scan pending tasks in same bundle (`rmap list --status pending`, or grep `roadmap/tasks.toml`). Same-surface match → edit existing (`body` / `acceptance_criteria` / `out_of_scope` / `scores`). One-session match → merge into one task. New task ONLY when work ships as independent PR alongside the existing one.
 
-**Heuristic — refinement vs new scope:**
+**Heuristic:**
 
-| Signal                                                          | Action                       |
-|-----------------------------------------------------------------|------------------------------|
-| Same bundle, same user-visible outcome, sharper requirements    | Edit existing                |
-| Same bundle, same outcome, adds an edge case or constraint      | Edit existing (`acceptance_criteria`) |
-| Same bundle, but ships as a separable follow-up PR              | New task, link with `depends_on` |
-| Different bundle or different user-visible outcome              | New task                     |
-| Bug against a **pending** task's surface (unclaimed)            | Edit existing (add to `acceptance_criteria`) — not a new bug task |
-| Bug against a **claimed/in-flight** task's surface              | Don't mutate the spec mid-flight — push back to the agent (see `agent-pr-review`) or file a follow-up task |
+| Signal                                                                            | Action                       |
+|-----------------------------------------------------------------------------------|------------------------------|
+| Same bundle, same outcome, sharper requirements                                   | Edit existing                |
+| Same bundle, same outcome, adds edge case / constraint                            | Edit existing (`acceptance_criteria`) |
+| Same bundle, ships as separable follow-up PR                                      | New task, `depends_on`       |
+| Different bundle or different user-visible outcome                                | New task                     |
+| Bug against **pending** task's surface (unclaimed)                                | Edit existing (`acceptance_criteria`) — not a new bug task |
+| Bug against **claimed / in-flight** task's surface                                | Push back to agent (`agent-pr-review`) or follow-up task |
+| Two adjacent pending tasks ship in **one Claude session / one PR / one branch**   | Merge into one task          |
 
-When in doubt: edit. A spec that grew is easier to read than a roadmap that doubled.
+In doubt → edit or merge.
+
+**One-session test (merge rule).** Before writing the second task in a sequence, ask: predicted PR count for this + adjacent task = 1? Yes → one task with combined `acceptance_criteria`. Each split doubles ceremony (status × 2, branch × 2, PR × 2, audit × 2) for zero work-isolation gain. Always-merge patterns: install-X + use-X; define-resource + CRUD-LiveView-for-resource; adjacent sibling features in same bundle with no dependency split.
+
+Full pre-creation gate (5 questions, this is #3): `task-writing.md` § Pre-Creation Gate.
 
 ### Task Descriptions as Prompts
 
@@ -904,6 +938,38 @@ Applies to **`roadmap/tasks.toml`, task lists, cross-instance docs**. Does NOT a
 ---
 
 Task descriptions in cross-instance documents are **prompts for Claude Code to implement**, not implementation specs. Claude adapts to current codebase state.
+
+### Pre-Creation Gate
+
+Run all 5 before `rmap new`. Any fail → defer / merge / rewrite. Do not create the task.
+
+**1. Anchor.** `body` MUST name the first consumer (sibling task in same bundle, user-visible feature, regulator inquiry, incident class).
+- Consumer ≤2 tasks away in same bundle → merge into consumer.
+- Consumer unscheduled or in later phase → do not create yet.
+- No named consumer → U = low; do not create.
+- Disallowed phrases: "for future use", "so we have it", "upfront because cheaper later".
+
+**2. Baseline before optimization.** Quality / normalization / fuzzy-match / ML / multi-variant / observability-depth tasks score U:low until BOTH:
+- (a) raw single-path version is shipped, AND
+- (b) ≥1 specific user has complained about the thing this task fixes.
+- "Cheaper to build now than retrofit" is not a valid score input.
+- Disallowed: branching/variants before users, seed taxonomies before raw data, embeddings before raw search.
+
+**3. One session = one task.** If implementing agent lands this task AND an adjacent task in one Claude session / one PR / one branch → merge. No exceptions for "logical separation".
+- Test: predicted PR count = 1 → write 1 task.
+- Always-merge patterns: install-X + use-X; define-resource + CRUD-LiveView-for-resource; adjacent sibling features in same bundle with no dependency split.
+- Full rule: `task-prioritization.md` § Refine, Merge, Don't Duplicate.
+
+**4. Milestone-fit.** Milestone `description` MUST state a hypothesis (`rmap.md` § Milestones). For each pinned task, classify:
+- Tests hypothesis → pin.
+- Assumes hypothesis true, builds on top → unpin; move to next milestone.
+- No classification possible → milestone description is broken; fix it first.
+
+**5. No hedging in justification** (`critical-rules.md` § NO PSEUDO-RIGOROUS HEDGING). Disallowed phrases in `body` as load-bearing reason for B/U: "table-stakes", "increasingly expected", "now standard", "buyers expect", "competitors are starting to", "modern apps all do".
+- Required instead: named partner asked, named competitor lever, measured conversion uplift, OR honest low score.
+- Test: remove the hedge phrase. If `body` no longer justifies the score → demote.
+
+Pass all 5 → write body (next section).
 
 ### Bad: Over-Specified
 
@@ -985,14 +1051,14 @@ This file is the **decision layer** — *which* command, *when*. The authoritati
 
 | Intent | Command |
 |---|---|
-| Read one task / many | `rmap show <id> [--json]` · `rmap list --status\|--phase\|--marker\|--bundle\|--milestone [--json]` |
+| Read one task / many | `rmap show <id> [--json]` · `rmap list --status\|--phase\|--marker\|--bundle\|--milestone\|--delivered-by [--json]` |
 | Pick the next task | `rmap next [--marker M] [--bundle B] [--milestone V] [--count N] [--json]` |
 | Pick a session-sized bundle | `rmap next-bundle [--json]` · `rmap bundles` to discover them |
 | List release lines / pin to a release | `rmap milestones [--has-next\|--status\|--json]` · `rmap milestone <id> <name\|none>` |
-| Change status | `rmap status <id> <pending\|in_progress\|blocked\|done\|superseded> [--implemented "..."]` (bulk `1,2,3` atomic; `done` requires `implemented`) |
+| Change status | `rmap status <id> <pending\|in_progress\|blocked\|done\|superseded> [--implemented "..."] [--delivered-by <agent>] [--verified] [--shipped-in <sha>] [--reason "..."]` (bulk `1,2,3` atomic; `done` requires `implemented`; outcome flags settable only on `done`; `--reason` settable only on `blocked`) |
 | Toggle a marker | `rmap mark <id> +parallel -cx` |
 | Add a dependency | `rmap depend <id> on <id>` |
-| Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch) — see `task-writing.md` |
+| Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch, full field set per `rmap schema`) — see `task-writing.md`. Interactive `rmap new` covers the common subset; reach for `--from-stdin` when interactive doesn't prompt for a field you need. |
 | Format a task as a cloud-agent prompt | `rmap delegate <id> --to claude\|codex\|cursor` |
 | Migrate a hand-edited ROADMAP.md | `rmap import` |
 | See what changed vs a git ref | `rmap diff [--verbose] [--json]` |
@@ -1018,7 +1084,7 @@ Set scores in `tasks.toml` (via `rmap new` or editing the file); never hand-form
 
 ### Status & marker vocabulary
 
-- **status:** `pending | in_progress | blocked | done | superseded` — transitions go through `rmap status`. `blocked` requires a `blocked_reason`; `done` requires `implemented` (set inline via `--implemented "..."`, or pre-populated in `tasks.toml`; on a TTY without the flag, `rmap status` prompts). For bulk `rmap status 1,2,3 done`: the mutation is atomic — if any task is missing `implemented` AND no `--implemented` flag is given AND we're not on a TTY, the whole batch is rejected; `--implemented "..."` applies the same string to every task in the batch.
+- **status:** `pending | in_progress | blocked | done | superseded` — transitions go through `rmap status`. `blocked` requires a `blocked_reason` (set inline via `--reason "..."`; free-text, blocked-only, overwrites, and **auto-cleared when the task leaves the blocked state** — it renders inline on the blocked row in `ROADMAP.md`); `done` requires `implemented` (set inline via `--implemented "..."`, or pre-populated in `tasks.toml`; on a TTY without the flag, `rmap status` prompts). For bulk `rmap status 1,2,3 done`: the mutation is atomic — if any task is missing `implemented` AND no `--implemented` flag is given AND we're not on a TTY, the whole batch is rejected; `--implemented "..."` applies the same string to every task in the batch.
 - **markers:** `parallel | cx | csr | bug | security | docs` — `parallel` is the old `[P]`; `cx` / `csr` are the Codex / Cursor delegation markers.
 - **milestone status:** `pending | active | done` — distinct vocabulary from task status. Flip by hand-editing `[milestones.<name>].status` (no mutator yet); `active` milestones sort first in `rmap milestones` and are the load-bearing affordance for the "what release am I cutting next?" query.
 
@@ -1026,10 +1092,14 @@ Set scores in `tasks.toml` (via `rmap new` or editing the file); never hand-form
 
 `[milestones.<name>]` is a fourth top-level concept alongside phases / bundles / markers. **Phase** orders work, **bundle** groups topically, **markers** modify execution, **milestone** pins a task to a release line. Milestones cross phases by design: a `v1.0` cut typically pulls from several phases.
 
+**Milestone `description` MUST state a hypothesis.** One sentence naming what the milestone tests (e.g., *"proves Bali professionals will pay for a Bali-specific material-price tool"*, not *"data platform complete"*). Feature-checklist descriptions break the Pre-Creation Gate's milestone-fit check (`task-writing.md` § 4): without a hypothesis, no pinned task can be classified as "tests hypothesis" vs "assumes hypothesis, builds on top", and heavy moat-building drifts onto early validation milestones.
+
+**Default at session start: pick the next task via the active milestone.** Keep exactly one milestone at `status = "active"` (the MVP/release you're cutting); plain `rmap next` then auto-biases to it — no `--milestone` flag needed. Reach for `rmap next --milestone <name>` only to override to a different release line.
+
 - Author the table in `tasks.toml`: `[milestones.v0_1] name = "..." order = N status = "active" target_version = "0.1.0"`. `target_version` is optional free-text.
 - Pin a task: `rmap milestone <id> v0_1` (or set `milestone = "v0_1"` directly). Unpin: `rmap milestone <id> none`. One milestone per task.
 - Discovery: `rmap milestones` (table view with done/total counts + next-task glyph + active-first sort); `rmap milestones --json` for the agent envelope.
-- Drive a release line: `rmap next --milestone v0_1` returns the next pending task in that release; composes with `--bundle`, `--phase`, `--marker`.
+- Drive a release line: `rmap next --milestone v0_1` returns the next pending task in that release; composes with `--bundle`, `--phase`, `--marker`. Without an explicit `--milestone`, `rmap next` automatically biases toward tasks pinned to any `active` milestone — analogous to the existing focus-phase bias. **Focus phase dominates** milestone when the two diverge (4-tier lexicographic: focus-only > active-milestone-only); pass `--milestone <name>` to override the auto-bias to a different release.
 - `rmap delegate` surfaces the milestone in `## Context` as `- Milestone: v0_1 (target=0.1.0)` so the target agent knows which release ships their work.
 - `rmap render` adds a conditional `🚀 **<milestone>** ·` segment to the task row in `ROADMAP.md` — rows without a milestone render byte-identically to before.
 
@@ -1037,6 +1107,16 @@ Set scores in `tasks.toml` (via `rmap new` or editing the file); never hand-form
 
 - `body` = original task definition / intent (never mutated after creation — the spec at scoping time).
 - `implemented` = what was actually built and why (required when `status = "done"`; `rmap show` renders both side-by-side as `body (original intent):` / `implemented (what shipped):` when present together). For trivial tasks where delivery matched the spec, `implemented = "as specified in body"` is honest and durable.
+
+### Outcome layer: `delivered_by` + `verified` + `shipped_in`
+
+Three optional transition-time fields next to `implemented`, all set by `rmap status <id> done`. The triple answers who built it, whether a grader agreed, and where it landed:
+
+- `delivered_by = "<agent>"` — which agent or instance actually shipped the task (free-text, unvalidated, like `model`). Answers "who built this?" as a queryable fact without parsing prose. Settable via `--delivered-by <agent>` on `done` transitions; overwrites on re-set.
+- `verified = true` — independent evaluator confirmed the task. Two-state: `true` = a check separate from the implementer passed (verification stack green, code-review approved); absent = not yet graded (hand-built, bootstrap, merged directly). Settable via `--verified` presence flag on `done`; to clear, edit `tasks.toml` directly. Encodes evaluator-separation as a fact, not as a status — `done` means "an implementer said so", `verified` means "a grader agreed".
+- `shipped_in = "<sha>"` — where the work landed (commit SHA / PR ref, free-text, unvalidated). Settable via `--shipped-in <sha>` on `done` transitions; overwrites on re-set. No sha-shape validation, no git auto-derivation — the caller supplies it.
+
+All three surface in `rmap show`, `rmap list` JSON / `data.json` (via `ExportedTask`), and `rmap diff --verbose`. `rmap list --delivered-by <agent>` filters the roadmap into a per-agent delivery ledger (status-agnostic — matches the field, not just done tasks). `rmap doctor` emits a soft `ClaimedNotGraded` advisory for `done && verified.is_none()` ("claimed, not graded") — always exit 0, hand-built tasks are legitimate. All three stay off `StdinTask` / `NewTaskFields` on purpose; they are outcome facts, not creation-time intent.
 
 ### Pinning an LLM model per task
 
@@ -1370,6 +1450,45 @@ end
 
 The schema **is** the macro's public contract. Adding a knob requires changing the schema, which makes drift visible at code-review time. This is the pattern Bandit, Plug, Broadway, and Oban all use — proven, mechanical, surfaces complexity instead of hiding it.
 
+## Recommend Libraries Before Crying Friction
+
+**When you're about to characterize some cost as a real trade-off (case-conversion friction, validation boilerplate, encoding wire-format edge cases, parity-maintenance overhead), first check hex.pm.** The default failure mode is treating a solved problem as a cost when a ~5-line dependency reduces it to near-zero. Friction cited without a hex check is hedging dressed up as analysis — and it can flip a real decision (e.g. "stick with the inferior format" / "build it ourselves" / "skip this integration") on the back of a non-existent cost.
+
+**Failure-mode test — about to write any of these? STOP, search hex.pm first:**
+- "X feels foreign in idiomatic Elixir" / "X requires manual conversion at the boundary"
+- "You'd have to hand-write Y at every call site"
+- "Z requires custom encoding/parsing"
+- "Maintaining parity between A and B is error-prone"
+- "It'd be a lot of boilerplate to bridge that"
+
+**Common reaches (non-exhaustive — search the package, don't recite from this list):**
+
+| Friction the model might claim | Hex package that mostly eliminates it |
+|---|---|
+| snake_case ↔ camelCase / kebab-case key conversion at API boundaries | `recase` (`Recase.to_camel/1`, `Recase.Enumerable.convert_keys/2`) |
+| Hand-validating + defaulting keyword option lists | `nimble_options` |
+| Compile-time option/config parsing, doc generation from the schema | `nimble_options` (it generates `@moduledoc` fragments too) |
+| Hand-rolling enum values + Ecto type + DB constraint | `ecto_enum` |
+| HTTP client with retries, decompression, redirect-handling, JSON, multipart | `req` (almost always the right answer over `httpoison` / raw `:hackney`) |
+| JSON encode/decode | `jason` |
+| CSV reading with header handling, streaming, large files | `nimble_csv` |
+| Struct + types + dialyzer specs + validations from one declaration | `typed_struct` |
+| Schema-validated maps (incl. JSON Schema) | `nimble_options`, `peri`, `ex_json_schema` |
+| Parameter parsing for CLI tools | `optimus` |
+| Cron-like scheduling, recurring jobs | `oban` (also a generic background job runner — usually the right answer over custom GenServer pools) |
+
+**How to apply:**
+1. Notice the friction-claim trigger — you're about to write a sentence describing a "cost" or "downside."
+2. Search hex.pm for the obvious keywords (one short search; `WebFetch` against `https://hex.pm/packages?search=<term>&sort=downloads` works). Look for packages with > a few thousand downloads + recent commits.
+3. If a library handles it, **that's the recommendation** — surface it, show the ~5-line shape, and either drop the friction claim or reframe it honestly ("the boundary code is ~5 lines via `recase`").
+4. If you searched and found nothing serious, *say so explicitly* ("checked hex.pm for case-conversion libraries; the choices are recase, proper_case, and macro/ — recase is the right fit") so the cost characterization comes with a citation, not an assertion.
+
+**Sister rules:**
+- "Cite Ecosystem Precedents Before Crying Complexity" (above) — same instinct narrowed to macros / DSLs.
+- "Investigate Before Building" (`~/.claude/CLAUDE.md` § Working Wisdom) — same instinct for codebase dependencies.
+
+This rule is broader than both: it catches friction-citations in *any* trade-off analysis, not just architectural pushback.
+
 ## Tightening a Validator: Trace Inputs, Not Just Callsites
 
 **When narrowing what a function accepts at an API boundary, audit what types flow *into* it — not just who calls it.** Callsite lists are a local neighborhood; the upstream call graph is the actual contract surface.
@@ -1538,11 +1657,11 @@ defp deps do
     {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
     {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
     {:ex_doc, "~> 0.40", only: :dev, runtime: false},
-    {:doctor, "~> 0.22", only: [:dev, :test], runtime: false},
+    {:doctor, "~> 0.23", only: [:dev, :test], runtime: false},
     {:tidewave, "~> 0.5", only: :dev},
     {:bandit, "~> 1.10", only: :dev},      # non-Phoenix only
-    {:ex_dna, "~> 1.3", only: [:dev, :test], runtime: false},
-    {:ex_ast, "~> 0.11", only: [:dev, :test], runtime: false},
+    {:ex_dna, "~> 1.5", only: [:dev, :test], runtime: false},
+    {:ex_ast, "~> 0.12", only: [:dev, :test], runtime: false},
     {:descripex, "~> 0.6"},                # full dep — macros expand at compile time
     {:api_toolkit, "~> 0.1"}               # API services only
   ]
@@ -1559,9 +1678,59 @@ def cli do
 end
 ```
 
+**Gotcha:** `preferred_envs` only fires for top-level Mix invocations. **Inside an alias step it's ignored** — the step inherits the parent alias's env (usually `:dev`). To run an alias step in `:test`, wrap with `cmd`: `"cmd MIX_ENV=test mix test.json ..."`. See § "Standard Aliases" below.
+
 ### Formatter
 
 Add `Styler` to `.formatter.exs` plugins: `plugins: [Styler]`.
+
+### Standard Aliases — `check.fast` + `precommit` + `precommit.full`
+
+Three tiers split by **inner-loop cost** and **hook-timeout fit**. The marketplace's `pre-commit-unified.sh` hook defers to `mix precommit` when the alias exists and has a **180s timeout**; dialyzer on a cold PLT routinely exceeds that and gets killed mid-run, denying the commit with no clean error. So `precommit` stays under the timeout; `precommit.full` adds dialyzer for CI / pre-handoff manual runs.
+
+```elixir
+defp aliases do
+  [
+    # TagTODO/TagFIXME stay on in .credo.exs for visibility (`mix credo` shows them);
+    # the gate excludes them so it fails only on real regressions, not tracked debt.
+    "check.fast": [
+      "format --check-formatted",
+      "compile --warnings-as-errors",
+      "credo --strict --ignore TagTODO,TagFIXME"
+    ],
+    # Hook-bound (180s). Drops dialyzer; keeps tests + sobelow + doctor.
+    precommit: [
+      "format --check-formatted",
+      "compile --warnings-as-errors",
+      "credo --strict --ignore TagTODO,TagFIXME",
+      "doctor --raise",
+      # `preferred_envs` (cli/0) is ignored for alias steps — set MIX_ENV explicitly.
+      "cmd MIX_ENV=test mix test.json --quiet --cover --cover-threshold 85 --summary-only --exclude integration",
+      "sobelow"                        # honors .sobelow-conf; drop on pure libs
+    ],
+    # CI mirror — adds dialyzer. Matches `elixir-ci-harness` `harness.yml`.
+    "precommit.full": ["precommit", "dialyzer.json --quiet"]
+  ]
+end
+```
+
+**Three tiers, by inner-loop cost:**
+
+- `mix check.fast` — format + compile-with-warnings + credo. Seconds. Run after every meaningful edit.
+- `mix precommit` — adds doctor, test+cover gate, sobelow. Tens of seconds. **The commit-hook gate** — `pre-commit-unified.sh` invokes this; stays well under its 180s timeout.
+- `mix precommit.full` — adds dialyzer. Minutes (mostly dialyzer). Run before handing off to a reviewer / matches CI; **not** for the hook path.
+
+**Flag rationale:**
+
+- **`credo --strict --ignore TagTODO,TagFIXME`.** TODO/FIXME are tracked-debt visibility (`development-philosophy.md` § "TODO Comment Requirements"), not regressions. Standalone `mix credo` still surfaces them so an agent can SEE the debt; the gate doesn't fail on them so PRs aren't blocked by accumulated tags.
+- **`doctor --raise`.** Overrides `.doctor.exs` `raise: false` to gate CI without changing local behavior. Redundant if the repo already sets `raise: true`, but harmless.
+- **`test.json --cover --cover-threshold 85 --summary-only --exclude integration`.** 85% is the project default (cartouche's empirical floor; meaningful bump from 80%, leaves headroom under typical ~87% project coverage). Critical-path repos (signing, money, crypto, wire-format encoders) raise to `95`. `--exclude integration` because local + CI lack credentials/network for live services; see `elixir-ci-harness` SKILL.md § "Integration Tag Exclusion" for the separate-workflow pattern if integration coverage is needed.
+- **`sobelow`.** Honors `.sobelow-conf` (exit threshold, skip file). Phoenix / Plug / web-facing apps only — drop on pure libraries.
+- **`dialyzer.json --quiet`** (in `precommit.full`). Agent-friendly JSON variant (`harness.yml` uses plain `mix dialyzer` because GH Actions consumes human-readable output; agents prefer JSON). For pipeline parsing: `dialyzer.json --quiet --output /tmp/dialyzer.json` then jq.
+
+**Why split, not one alias.** Single comprehensive `precommit` looks cleaner, but it forces a real trade-off the hook can't escape: 180s ceiling vs dialyzer's wall-clock. Splitting lets the hook stay strict (every commit gated) without surrendering the slow checks — CI runs `precommit.full` (or `harness.yml` steps directly) where no timeout applies, and a human can `mix precommit.full` before opening a PR.
+
+Why no `try/rescue` aggregator by default: an agent that wants "all failures in one pass" can override at the call site (`mix format --check-formatted; mix credo --strict --ignore TagTODO,TagFIXME; mix test.json ...` joined with `;` runs every step regardless of exit). The default alias stays fail-fast because the cheapest-fail-first ordering means the agent rarely needs the aggregate — fixing the first failure usually unblocks the rest.
 
 ### Tidewave (Non-Phoenix)
 
@@ -1690,7 +1859,7 @@ Config: `.ex_dna.exs`. Suppress intentional dupes with `@no_clone true`.
 
 ### ExAST — AST Search & Replace
 
-**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.11"}`.
+**Prefer `ex_ast.search` over `grep` for Elixir patterns** — understands AST structure. Min version: `{:ex_ast, "~> 0.12"}`.
 
 ```bash
 mix ex_ast.search 'IO.inspect(_)'                              # find debug leftovers
@@ -1791,7 +1960,7 @@ defp deps do
 end
 ```
 
-`cli/0` for `preferred_envs` is required — see `elixir-setup.md`.
+`cli/0` for `preferred_envs` is required — see `elixir-setup.md` (or invoke the `elixir:elixir-setup` skill if the include isn't `@`-imported in your project).
 
 ### Quick Reference
 
@@ -1894,7 +2063,7 @@ defp deps do
 end
 ```
 
-`cli/0` for `preferred_envs` is required — see `elixir-setup.md`.
+`cli/0` for `preferred_envs` is required — see `elixir-setup.md` (or invoke the `elixir:elixir-setup` skill if the include isn't `@`-imported in your project).
 
 ### Quick Start
 
@@ -2062,10 +2231,16 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   └── skills/               # task-driver, rmap (roadmap substrate)
-└── cloud-delegation/         # Linear-as-queue + cloud-agent (Codex/Cursor) delegation
+├── cloud-delegation/         # Linear-as-queue + cloud-agent (Codex/Cursor) delegation
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   └── skills/               # linear-queue, agent-dispatch, agent-pr-review, flow-review, linear-workflow hub, cloud-agent-environments, sprite-claude-code
+└── marketplace-hygiene/      # Marketplace-integrity hooks (block SKILL.md edits, validate manifest JSON)
     ├── .claude-plugin/
     │   └── plugin.json
-    └── skills/               # linear-queue, agent-dispatch, agent-pr-review, flow-review, linear-workflow hub, cloud-agent-environments, sprite-claude-code
+    ├── hooks/
+    │   └── hooks.json
+    └── scripts/              # block-skill-edits.sh, validate-marketplace-json.sh
 ```
 
 ### Key Concepts
@@ -2087,7 +2262,7 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 2. **ash-codegen-check.sh** (non-blocking, PostToolUse): Runs `mix ash.codegen --check` if Ash dependency exists
 3. **warn-doctest-io-and-untagged-todos.sh** (non-blocking, PostToolUse): Warns on `IO.puts` / `IO.inspect` inside `@doc` / `@moduledoc` heredocs (development-philosophy.md § "No IO in @doc examples"), and on `#` comments starting with deferred-work phrases ("For now,", "Currently,", "Temporarily,", "In production,", "This is a workaround,") that aren't prefixed with `TODO:` (development-philosophy.md § "TODO Comment Requirements"). False-positive guards: only matches `^[[:space:]]*#` so `#` mid-string doesn't fire; IO check tracks `@doc """ ... """` heredoc range via awk state.
 4. **pre-commit-unified.sh** (blocking, PreToolUse): Before `git commit`, runs all quality checks (format, compile, credo, test, doctor, sobelow, dialyzer, mix_audit, ash.codegen, ex_doc). Defers to `mix precommit` if alias exists. Uses 180s timeout.
-5. **block-destructive-bash.sh** (blocking, PreToolUse): Denies three command shapes: `mix phx.server` (critical-rules.md § NEVER START THE PHOENIX SERVER), destructive deps/build (`mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps` — critical-rules.md § NEVER RUN DESTRUCTIVE DEPENDENCY COMMANDS), and bare `rm` outside `git rm` (critical-rules.md § Shell Safety). Allows `mix deps.unlock --check-unused`, `mix deps.compile <dep> --force`, and `git rm`.
+5. **block-destructive-bash.sh** (blocking, PreToolUse): Denies two command shapes: `mix phx.server` (critical-rules.md § NEVER START THE PHOENIX SERVER) and destructive deps/build (`mix deps.clean`, `mix clean`, `mix deps.unlock --all`, `rm -rf _build`, `rm -rf deps` — critical-rules.md § NEVER RUN DESTRUCTIVE DEPENDENCY COMMANDS). Allows `mix deps.unlock --check-unused`, `mix deps.compile <dep> --force`. Bare `rm` (ordinary file deletion) is **not** blocked — only the `rm -rf _build` / `rm -rf deps` targets.
 6. **warn-shell-eval-elixir.sh** (non-blocking, PreToolUse): Warns when Claude is about to run Elixir code through the shell (`mix run -e`, `elixir -e`, `iex -e`, `mix run X.exs`) — suggests `mcp__tidewave__project_eval` / `mcp__tidewave__get_logs` for same-BEAM evaluation without fresh-VM startup. Warn-only; the warning footer names `priv/repo/seeds.exs` and one-shot CI scripts as legitimate exceptions. Pattern + warning ported from hieroglyph's hookify rule.
 7. **warn-missing-tool-flags.sh** (non-blocking, PreToolUse): Warns when `mix credo` is invoked without both `--strict` and `--format json` (per `development-commands.md`), or when `mix compile` runs without a `time` prefix. Skips non-analysis credo subcommands (`--version`, `gen.*`, `help`).
 8. **suggest-test-include.sh** (non-blocking, PreToolUse): When `mix test.json` runs without `--include` flags, parses excluded tags from `test/test_helper.exs` and injects them into Claude's context. Prevents false "suite passes" claims when only the offline subset ran. Stays silent on focused runs (`--include`/`--only`/`--failed`/explicit test-file arg) and projects with no `exclude:` list.
@@ -2100,6 +2275,12 @@ The marketplace uses consolidated hooks for efficiency (12 post-edit hooks → 2
 
 **Staged-review plugin** - Audit-tail detection:
 1. **check-unaudited-commits.sh** (non-blocking, SessionStart): Walks `git log --grep '^audit('` to find the last audit ancestor; emits `additionalContext` recommending `/staged-review:audit-status` or `Skill(audit-review)` when ≥3 commits sit past it. Silent below threshold or outside any git repo. Shares `unaudited-commits.sh` helper with the `/audit-status` slash command (Tasks 38 + 39).
+
+**Marketplace-hygiene plugin** - Marketplace-integrity hooks for deltahedge plugin development:
+1. **block-skill-edits.sh** (blocking, PreToolUse): Before `Edit|Write|MultiEdit`, denies edits to any of the 30 auto-synced `plugins/*/skills/*/SKILL.md` paths registered in `scripts/skill-include-map.sh`. Deny message names the canonical `~/.claude/includes/<name>.md` and the sync command. Unmapped SKILL.md files (`workflow-generator`, `tidewave-guide`, etc.) pass through. Sources the shared mapping file at runtime via `git rev-parse --show-toplevel` so a single edit point covers both this hook and the sync script.
+2. **validate-marketplace-json.sh** (non-blocking, PostToolUse): After `Edit|Write|MultiEdit` on any file basenamed `marketplace.json`, `plugin.json`, or `hooks.json`, runs `jq -e . "$FILE" >/dev/null 2>&1` and surfaces parse errors as `additionalContext` (with the literal `jq:` error message). Silent on valid JSON and non-matching files. Replaces the manual `cat … | jq .` step documented earlier in this file as a one-shot Bash command.
+
+Self-contained — no `_shared/lib.sh` sourcing, inline `jq` envelopes, follows the `cloud-delegation/agents-md-sync.sh` precedent.
 
 Hooks use `jq` to extract tool parameters and bash conditionals to match file patterns or commands. Output is sent to Claude (the LLM) via JSON with either `additionalContext` (non-blocking) or `permissionDecision: "deny"` (blocking).
 

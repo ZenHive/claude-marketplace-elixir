@@ -616,7 +616,8 @@ test_hook_json \
 # =============================================================================
 # Block Destructive Bash (block-destructive-bash.sh) — Task #29
 # =============================================================================
-# PreToolUse:Bash blocker. Denies mix phx.server / destructive deps/build / bare rm.
+# PreToolUse:Bash blocker. Denies mix phx.server / destructive deps/build.
+# Bare rm is NOT blocked (only rm -rf _build / rm -rf deps via Category 2).
 
 echo ""
 echo "## Block Destructive Bash Hook (task #29)"
@@ -670,13 +671,13 @@ test_hook_json \
   0 \
   '.hookSpecificOutput.permissionDecision == "deny"'
 
-# Test 66: bare rm blocked
+# Test 66: bare rm allowed (no longer blocked)
 test_hook_json \
-  "block-destructive-bash: bare 'rm foo.txt' blocked with git rm suggestion" \
+  "block-destructive-bash: bare 'rm foo.txt' is allowed (file deletion not blocked)" \
   "plugins/elixir/scripts/block-destructive-bash.sh" \
   '{"tool_input":{"command":"rm foo.txt"},"cwd":"/tmp"}' \
   0 \
-  '.hookSpecificOutput.permissionDecision == "deny" and (.hookSpecificOutput.permissionDecisionReason | contains("git rm"))'
+  '.suppressOutput == true'
 
 # Test 67: git rm allowed (suppressOutput)
 test_hook_json \
@@ -718,29 +719,29 @@ test_hook_json \
   0 \
   '.suppressOutput == true'
 
-# Test 71a: compound `git rm a && rm b` denies the second segment
+# Test 71a: compound `git rm a && rm b` is now allowed (bare rm not blocked)
 test_hook_json \
-  "block-destructive-bash: 'git rm tracked.ex && rm scratch.txt' blocked (compound bypass)" \
+  "block-destructive-bash: 'git rm tracked.ex && rm scratch.txt' is allowed" \
   "plugins/elixir/scripts/block-destructive-bash.sh" \
   '{"tool_input":{"command":"git rm tracked.ex && rm scratch.txt"},"cwd":"/tmp"}' \
   0 \
-  '.hookSpecificOutput.permissionDecision == "deny" and (.hookSpecificOutput.permissionDecisionReason | contains("git rm"))'
+  '.suppressOutput == true'
 
-# Test 71b: compound with `;` separator also denies the bare rm
+# Test 71b: rm of a temp path is allowed
 test_hook_json \
-  "block-destructive-bash: 'git rm a.ex; rm b.txt' blocked (semicolon compound)" \
+  "block-destructive-bash: 'rm /tmp/frag.json' is allowed" \
   "plugins/elixir/scripts/block-destructive-bash.sh" \
-  '{"tool_input":{"command":"git rm a.ex; rm b.txt"},"cwd":"/tmp"}' \
+  '{"tool_input":{"command":"rm /tmp/frag.json"},"cwd":"/tmp"}' \
   0 \
-  '.hookSpecificOutput.permissionDecision == "deny"'
+  '.suppressOutput == true'
 
-# Test 71c: sudo rm is also blocked
+# Test 71c: sudo rm is allowed
 test_hook_json \
-  "block-destructive-bash: 'sudo rm foo.txt' blocked" \
+  "block-destructive-bash: 'sudo rm foo.txt' is allowed" \
   "plugins/elixir/scripts/block-destructive-bash.sh" \
   '{"tool_input":{"command":"sudo rm foo.txt"},"cwd":"/tmp"}' \
   0 \
-  '.hookSpecificOutput.permissionDecision == "deny"'
+  '.suppressOutput == true'
 
 # Test 71d: npm rm allowed (package-manager wrapper)
 test_hook_json \
@@ -790,19 +791,19 @@ test_hook_json \
   0 \
   '.suppressOutput == true'
 
-# Test 71j: env-var-prefixed bare rm still denied
+# Test 71j: env-var-prefixed bare rm is allowed
 test_hook_json \
-  "block-destructive-bash: 'MIX_ENV=test rm tmp.txt' blocked (env-prefix stripped)" \
+  "block-destructive-bash: 'MIX_ENV=test rm tmp.txt' is allowed" \
   "plugins/elixir/scripts/block-destructive-bash.sh" \
   '{"tool_input":{"command":"MIX_ENV=test rm tmp.txt"},"cwd":"/tmp"}' \
   0 \
-  '.hookSpecificOutput.permissionDecision == "deny"'
+  '.suppressOutput == true'
 
-# Test 71k: npm rm in compound with bare rm — bare rm still denied
+# Test 71k: rm -rf _build in a compound is STILL denied (Category 2 regression guard)
 test_hook_json \
-  "block-destructive-bash: 'npm rm foo && rm scratch.txt' blocked (compound — wrapper allowed, bare denied)" \
+  "block-destructive-bash: 'rm scratch.txt && rm -rf _build' blocked (Category 2 still fires in compound)" \
   "plugins/elixir/scripts/block-destructive-bash.sh" \
-  '{"tool_input":{"command":"npm rm foo && rm scratch.txt"},"cwd":"/tmp"}' \
+  '{"tool_input":{"command":"rm scratch.txt && rm -rf _build"},"cwd":"/tmp"}' \
   0 \
   '.hookSpecificOutput.permissionDecision == "deny"'
 

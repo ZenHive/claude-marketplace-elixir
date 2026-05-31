@@ -6,6 +6,12 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**`elixir` v1.29.3 → v1.30.0 — `block-destructive-bash.sh` no longer blocks bare `rm`**
+
+- Category 3 (bare `rm` outside an allow-listed `<tool> rm` wrapper) removed. The blanket deny prevented Claude from deleting temp files, scratch fragments, and other untracked files — friction that outweighed the guard.
+- Categories 1 (`mix phx.server`) and 2 (destructive deps/build: `rm -rf _build`, `rm -rf deps`, `mix clean`, `mix deps.clean`, `mix deps.unlock --all`) are unchanged — the genuinely destructive `rm -rf` targets stay denied, including inside a compound command.
+- Tests updated: the bare-rm / `sudo rm` / env-prefixed-rm / compound-bypass deny cases now assert *allow*; a new regression test confirms `rm scratch.txt && rm -rf _build` is still denied via Category 2.
+
 **`elixir` v1.29.2 → v1.29.3 and `task-driver` v1.3.2 → v1.3.3 — skill bodies resynced from updated includes**
 
 - `elixir/skills/oxc` + `elixir/skills/elixir-volt`: oxc `~> 0.13` → `~> 0.15` (source-taking APIs now accept `iodata()`; new `type_aware: true` lint mode via `tsgolint`).
