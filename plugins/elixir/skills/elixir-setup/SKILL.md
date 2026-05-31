@@ -100,7 +100,7 @@ defp aliases do
       "doctor --raise",
       # `preferred_envs` (cli/0) is ignored for alias steps — set MIX_ENV explicitly.
       "cmd MIX_ENV=test mix test.json --quiet --cover --cover-threshold 85 --summary-only --exclude integration",
-      "sobelow"                        # honors .sobelow-conf; drop on pure libs
+      "sobelow --skip"                 # --skip honors inline # sobelow_skip; drop on pure libs
     ],
     # CI mirror — adds dialyzer. Matches `elixir-ci-harness` `harness.yml`.
     "precommit.full": ["precommit", "dialyzer.json --quiet"]
@@ -119,8 +119,15 @@ end
 - **`credo --strict --ignore TagTODO,TagFIXME`.** TODO/FIXME are tracked-debt visibility (`development-philosophy.md` § "TODO Comment Requirements"), not regressions. Standalone `mix credo` still surfaces them so an agent can SEE the debt; the gate doesn't fail on them so PRs aren't blocked by accumulated tags.
 - **`doctor --raise`.** Overrides `.doctor.exs` `raise: false` to gate CI without changing local behavior. Redundant if the repo already sets `raise: true`, but harmless.
 - **`test.json --cover --cover-threshold 85 --summary-only --exclude integration`.** 85% is the project default (cartouche's empirical floor; meaningful bump from 80%, leaves headroom under typical ~87% project coverage). Critical-path repos (signing, money, crypto, wire-format encoders) raise to `95`. `--exclude integration` because local + CI lack credentials/network for live services; see `elixir-ci-harness` SKILL.md § "Integration Tag Exclusion" for the separate-workflow pattern if integration coverage is needed.
-- **`sobelow`.** Honors `.sobelow-conf` (exit threshold, skip file). Phoenix / Plug / web-facing apps only — drop on pure libraries.
+- **`sobelow --skip`.** `--skip` makes sobelow honor inline `# sobelow_skip` annotations (without it they're ignored — see "Sobelow skip/config semantics" below). Phoenix / Plug / web-facing apps only — drop on pure libraries. Pass `--config` instead if the project keeps its settings in `.sobelow-conf`.
 - **`dialyzer.json --quiet`** (in `precommit.full`). Agent-friendly JSON variant (`harness.yml` uses plain `mix dialyzer` because GH Actions consumes human-readable output; agents prefer JSON). For pipeline parsing: `dialyzer.json --quiet --output /tmp/dialyzer.json` then jq.
+
+**Sobelow skip/config semantics** (source-verified, `nccgroup/sobelow`; flag behavior drifts across versions — re-check before relying):
+
+- Inline `# sobelow_skip [...]` annotations are honored **only with `--skip`** — bare `mix sobelow` ignores them (`lib/sobelow.ex`: `if get_env(:skip), do: combine_skips(...), else: funs`).
+- The `.sobelow-skips` *fingerprint* file (written by `mix sobelow --mark-skip-all`) is read **unconditionally** — honored even without `--skip`. (So `--skip` and `.sobelow-skips` are two different mechanisms; the flag governs only the inline annotations.)
+- `.sobelow-conf` (written by `--save-config`) loads **only when `--config` is passed**, and the conf then **replaces** all CLI opts (`lib/mix/tasks/sobelow.ex`) — so `mix sobelow --config --format json` silently drops `--format json` unless the conf itself sets `format:`. **Bare `mix sobelow` does NOT auto-load `.sobelow-conf`.**
+- Therefore: to honor inline skips, pass `--skip`; to honor a `.sobelow-conf`, pass `--config` and put `format:` / `out:` inside the conf (not on the CLI). The marketplace pre-commit hook always passes `--skip` for this reason and does not pass `--config` (it would break its `--format json` JSON parse).
 
 **Why split, not one alias.** The commit hook enforces a fast inline gate (no tests, no dialyzer) so the inner loop stays cheap and deterministic. The aliases layer the slower checks back on for deliberate runs: `precommit` adds the test+cover gate for pre-handoff, `precommit.full` adds dialyzer to match CI (`harness.yml`). Keeping them separate means the slow steps run where no inner-loop tax applies — CI, or a human before opening a PR — never blocking every commit.
 

@@ -6,6 +6,12 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**`elixir` v1.31.2 → v1.31.3 — document sobelow skip/config flag semantics in `elixir-setup` (corrects a wrong claim)**
+
+- `~/.claude/includes/elixir-setup.md` previously stated, twice, that `mix sobelow` *"honors `.sobelow-conf`"*. Source-verified false: `.sobelow-conf` loads **only with `--config`** (`lib/mix/tasks/sobelow.ex`), and the conf then *replaces* all CLI opts. The recommended `"sobelow"` alias step (no `--config`) was silently ignoring `.sobelow-conf`.
+- Added a **"Sobelow skip/config semantics"** block (source-cited): inline `# sobelow_skip` honored only with `--skip`; `.sobelow-skips` fingerprint file read unconditionally; `.sobelow-conf` loads only with `--config` and replaces CLI opts. Corrected the alias step (`"sobelow"` → `"sobelow --skip"`) and the flag-rationale bullet.
+- Synced to `plugins/elixir/skills/elixir-setup/SKILL.md`; AGENTS.md regenerated. Knowledge the model doesn't carry reliably (had to read the sobelow source to confirm) — now durable across instances.
+
 **`elixir` v1.31.1 → v1.31.2 — pre-commit sobelow now always passes `--skip` (honors inline `# sobelow_skip`)**
 
 - The hook ran `mix sobelow --format json` and only added `--skip` when a `.sobelow-skips` file existed. But sobelow gates **inline `# sobelow_skip` annotations** on the `--skip` flag (`lib/sobelow.ex`: `if get_env(:skip), do: combine_skips(...), else: funs`), while the `.sobelow-skips` *fingerprint* file is read unconditionally regardless of the flag. So the gate was aimed at the wrong signal: a project that skips findings via inline annotations but has no `.sobelow-skips` file got `--skip` omitted → its annotated findings resurfaced → false commit denial, even though the project's own `mix sobelow --skip` tolerated them.
