@@ -6,6 +6,12 @@ All notable changes to the DeltaHedge Claude Code Plugin Marketplace.
 
 ### Changed
 
+**`elixir` v1.31.1 → v1.31.2 — pre-commit sobelow now always passes `--skip` (honors inline `# sobelow_skip`)**
+
+- The hook ran `mix sobelow --format json` and only added `--skip` when a `.sobelow-skips` file existed. But sobelow gates **inline `# sobelow_skip` annotations** on the `--skip` flag (`lib/sobelow.ex`: `if get_env(:skip), do: combine_skips(...), else: funs`), while the `.sobelow-skips` *fingerprint* file is read unconditionally regardless of the flag. So the gate was aimed at the wrong signal: a project that skips findings via inline annotations but has no `.sobelow-skips` file got `--skip` omitted → its annotated findings resurfaced → false commit denial, even though the project's own `mix sobelow --skip` tolerated them.
+- Fix: always pass `--skip` (drop the `[[ -f .sobelow-skips ]]` gate). Inline annotations are now honored exactly as the project's stack honors them; the fingerprint file is still auto-read. No-op when there are no skip markers.
+- Known remaining gap (not fixed here): the hook still ignores `.sobelow-conf` entirely (sobelow loads it only with `--config`, which replaces opts and would break `--format json` / the jq parse) and denies on `high + medium + low` findings regardless of any project exit-confidence threshold. Restoring full `.sobelow-conf` fidelity needs an exit-status-based rework.
+
 **`elixir` v1.30.0 → v1.31.1 — commit hook is authoritative, drops tests + dialyzer + ex_doc, saves output to `/tmp`**
 
 - `pre-commit-unified.sh` no longer **defers** to a project `mix precommit` alias. It always runs its own inline gate: format, compile (warnings-as-errors), unused-deps, credo, doctor, sobelow, mix_audit, ash.codegen. The gate is now identical across every repo regardless of each project's alias contents; the alias is reserved for deliberate manual / CI runs.

@@ -143,8 +143,13 @@ fi
 # -----------------------------------------------------------------------------
 
 if has_mix_dependency "sobelow" "$PROJECT_ROOT"; then
-  CMD="mix sobelow --format json"
-  [[ -f .sobelow-skips ]] && CMD="$CMD --skip"
+  # Always pass --skip so inline `# sobelow_skip` annotations are honored —
+  # sobelow gates inline skips on this flag (`if get_env(:skip) ...`), while the
+  # `.sobelow-skips` fingerprint file is read unconditionally regardless. Mirrors
+  # a project's own `mix sobelow --skip` so the hook doesn't surface findings the
+  # project's stack tolerates. (`.sobelow-conf` is NOT honored here — it loads
+  # only with --config, which would replace --format json and break JSON parsing.)
+  CMD="mix sobelow --format json --skip"
 
   SOBELOW_OUTPUT=$($CMD 2>&1)
   JSON_OUTPUT=$(echo "$SOBELOW_OUTPUT" | sed -n '/{/,$ p')
