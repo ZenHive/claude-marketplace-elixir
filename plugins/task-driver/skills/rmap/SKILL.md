@@ -36,15 +36,30 @@ This file is the **decision layer** — *which* command, *when*. The authoritati
 | Change status | `rmap status <id> <pending\|in_progress\|blocked\|done\|superseded> [--implemented "..."] [--delivered-by <agent>] [--verified] [--shipped-in <sha>] [--reason "..."]` (bulk `1,2,3` atomic; `done` requires `implemented`; outcome flags settable only on `done`; `--reason` settable only on `blocked`) |
 | Toggle a marker | `rmap mark <id> +parallel -cx` |
 | Add a dependency | `rmap depend <id> on <id>` |
-| Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch, full field set per `rmap schema`) — see `task-writing.md`. Interactive `rmap new` covers the common subset; reach for `--from-stdin` when interactive doesn't prompt for a field you need. |
-| Format a task as a cloud-agent prompt | `rmap delegate <id> --to claude\|codex\|cursor` |
+| Create task(s) | `rmap new --from-stdin` (TOML on stdin, atomic batch, full field set per `rmap schema`) — see `task-writing.md`. Interactive `rmap new` covers the common subset; reach for `--from-stdin` when interactive doesn't prompt for a field you need. **`new` rejects `status` and every transition/outcome field** (`status`, `implemented`, `delivered_by`, `verified`, `shipped_in`, `started_at`, `done_at`) with `unknown field` — a created task is *always* `pending`; flip it afterward via `rmap status`. Creation-time fields only: `id phase bundle milestone title scores markers depends_on linear_id assignee module model acceptance_criteria out_of_scope files_to_modify touches cross_repo branch body created_at scored_at`. |
+| Format a task as a cloud-agent prompt | `rmap delegate <id> [--to claude\|codex\|cursor\|grok\|antigravity\|pi\|droid]` — `--to` optional, defaults to the task's `assignee` |
 | Migrate a hand-edited ROADMAP.md | `rmap import` |
 | See what changed vs a git ref | `rmap diff [--verbose] [--json]` |
+| List stalled in-progress tasks | `rmap stale --over <dur>` (e.g. `30d`, `2w`; also folded into `doctor`) |
 | Health signals (soft, always exit 0) | `rmap doctor [--json]` |
 | Strict gates (pre-commit / CI) | `rmap validate` · `rmap validate --check-render` |
 | Render after editing tasks.toml directly | `rmap render` (or `rmap watch` for live re-render) |
+| Emit data.json to stdout (read-only) | `rmap export json` (`render` is what writes the file) |
 
 All mutators **validate-then-write**: an invalid mutation leaves `tasks.toml` byte-equal to its prior state. `--json` envelopes on the read commands are append-only stable surfaces.
+
+### Concurrent sessions write to rmap — verify task IDs before mutating
+
+`roadmap/tasks.toml` is a **shared, multi-writer file**: parallel Claude sessions, harness dispatches, and cloud agents all create and mutate tasks concurrently. A task ID or task state read earlier in your session is a *snapshot*, not a lock — another writer may have created tasks (shifting "the next ID"), completed the task you're about to mark, or changed the very task you're targeting.
+
+Before any mutation, re-verify against the current file:
+
+- **Before `rmap status <id> …` / `rmap mark` / `rmap milestone` / `rmap depend`:** run `rmap show <id>` first and confirm the title/body matches the task you mean. An ID memorized earlier (or quoted by another session) may now point at a different or already-mutated task.
+- **Before `rmap new`:** never assume what ID the new task will get; read it from the command's output after creation, not from "last ID I saw + 1".
+- **Before hand-editing `tasks.toml` directly:** re-read the file immediately before the edit — never write from a stale in-context copy. Prefer the `rmap` mutators over hand edits; they re-read and validate-then-write atomically.
+- **Referencing tasks across sessions / handoffs:** quote the task *title* alongside the ID so the receiver can detect drift (`rmap show <id>` title mismatch ⇒ stop and re-resolve).
+
+The validate-then-write guarantee protects against *invalid* writes, not *lost* ones — two valid writers can still silently overwrite each other's fields. The verification habit above is the consumer-side discipline that prevents it.
 
 ### rmap is cheap — set and complete inline; don't manufacture a session
 
@@ -72,8 +87,9 @@ mark it done — don't burn time, tokens, and circles on the ceremony around it.
 
 ### Parallel-dispatch surface (`rmap ready` + the orchestration fields)
 
-When you need *the set of tasks I can dispatch in parallel right now* — not "a session's worth" (`next-bundle`) and not "the single best" (`next`) — use **`rmap ready`**. It returns every `pending` task whose deps are all `done`, which is **mutually independent by construction** (a pending task with all deps done can't depend on another pending task), so the whole set is safe to fan out at once. `rmap ready --bundle <B>` is the dispatchable layer-0 of a bundle — the parallel batch `next-bundle`'s serial chain can't express. Four facts the orchestrator reads instead of re-parsing every task body:
+When you need *the set of tasks I can dispatch in parallel right now* — not "a session's worth" (`next-bundle`) and not "the single best" (`next`) — use **`rmap ready`**. It returns every `pending` task whose deps are all `done`, which is **mutually independent by construction** (a pending task with all deps done can't depend on another pending task), so the whole set is safe to fan out at once. `rmap ready --bundle <B>` is the dispatchable layer-0 of a bundle — the parallel batch `next-bundle`'s serial chain can't express. Five facts the orchestrator reads instead of re-parsing every task body:
 
+- **`assignee`** (creation-time field, validated against `human|claude|codex|cursor|grok|antigravity|pi|droid`): **THE agent-routing field** — which agent executes the task. Orchestrators route on it (`--fields id,assignee,markers`), and `rmap delegate` defaults `--to` from it. `assignee = "human"` means "not for autonomous dispatch" — consumers skip it. Don't overload `model` (a free-text LLM id) or the `cx`/`csr` markers (filter/discovery tags) for routing.
 - **`dep_layer`** (computed, on every `--json`): longest-path depth over the in-repo dep graph. Within a result set the lowest `dep_layer` present is the current parallel wave; higher layers are later waves — makes `next-bundle`'s topo chain self-describing.
 - **`handbuild` marker + `--dispatchable`**: `--dispatchable` (on `ready` / `list`) drops `handbuild`-marked tasks (human-driven-browser work). Mark the minority exception; everything else is headless-dispatchable by default.
 - **`touches`** (creation-time field): the broader *involvement hint* — files a task may read or write, typically a superset of `files_to_modify` (the write target). Consumer collision rule (you dedupe; rmap doesn't enforce): two tasks conflict iff `(touches(A) ∪ files_to_modify(A)) ∩ (touches(B) ∪ files_to_modify(B)) ≠ ∅`. Unioning both fields keeps `files_to_modify` respected even when a task's `touches` isn't a perfect superset — `touches` is "typically," not guaranteed, a superset. Set it via `rmap new --from-stdin`.
@@ -109,6 +125,7 @@ Set scores in `tasks.toml` (via `rmap new` or editing the file); never hand-form
 - Drive a release line: `rmap next --milestone v0_1` returns the next pending task in that release; composes with `--bundle`, `--phase`, `--marker`. Without an explicit `--milestone`, `rmap next` automatically biases toward tasks pinned to any `active` milestone — analogous to the existing focus-phase bias. **Focus phase dominates** milestone when the two diverge (4-tier lexicographic: focus-only > active-milestone-only); pass `--milestone <name>` to override the auto-bias to a different release.
 - `rmap delegate` surfaces the milestone in `## Context` as `- Milestone: v0_1 (target=0.1.0)` so the target agent knows which release ships their work.
 - `rmap render` adds a conditional `🚀 **<milestone>** ·` segment to the task row in `ROADMAP.md` — rows without a milestone render byte-identically to before.
+- `rmap render` also fills an optional `<!-- MILESTONES:BEGIN -->` / `<!-- MILESTONES:END -->` section when present. Body shape: one markdown block per declared milestone, sorted like `rmap milestones`; each block includes `### <key> — <name>`, `target_version` (`none` when absent), status glyph + status (`🔄 active`, `⬜ pending`, `✅ done`), the hypothesis from `milestone.description`, and `<done>/<total> done` pinned-task counts. Projects without the marker pair render byte-identically to before.
 
 ### `body` vs `implemented`
 
@@ -127,7 +144,15 @@ All three surface in `rmap show`, `rmap list` JSON / `data.json` (via `ExportedT
 
 ### Pinning an LLM model per task
 
-`model = "<model-id>"` on a `[[task]]` records which LLM should do the work — free-text, unvalidated (model IDs churn). `rmap delegate` surfaces it as a `- Model:` bullet in the prompt's `## Context` so the target agent knows which model to run. Settable at creation via `rmap new` (interactive + `--from-stdin`) or a direct edit. Distinct from `assignee` (who owns it) and `rmap delegate --to` (which agent *environment*).
+`model = "<model-id>"` on a `[[task]]` records which LLM should do the work — free-text, unvalidated (model IDs churn). `rmap delegate` surfaces it as a `- Model:` bullet in the prompt's `## Context` so the target agent knows which model to run. Settable at creation via `rmap new` (interactive + `--from-stdin`) or a direct edit.
+
+The three-way split — don't conflate them:
+
+- **`assignee`** = which *agent* executes the task (validated agent set; THE routing field consumers route on)
+- **`model`** = which *LLM* that agent runs (free-text pin; never an agent name)
+- **`delegate --to`** = explicit render-time override of `assignee` for one prompt (omit it to honor the stored routing intent)
+
+A fourth, advisory dimension sits alongside these: **`domains`** = a free-text list of capability tags on a `[[task]]` (e.g. `domains = ["otp", "ecto"]`), unvalidated and no closed enum — the *downstream consumer* owns the vocabulary (harness maps them to its `CapabilityDomain` for per-`{agent, domain}` capability scoring). Unlike `assignee`/`model`/`--to`, `domains` does not route a single dispatch — it labels the task so a consumer can group outcomes by domain and move dispatch from explore to exploit. Settable at creation via `rmap new` (interactive + `--from-stdin`) or a direct edit; surfaces on every `--json` payload, in `data.json`, and as a `- Domains:` bullet in `rmap delegate`'s `## Context`.
 
 ### Migrating a hand-edited ROADMAP.md
 
