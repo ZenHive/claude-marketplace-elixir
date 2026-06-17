@@ -1,5 +1,22 @@
 # Claude Code Plugins for Elixir
 
+> ## ⚠️ DEPRECATED — superseded by [ZenHive/claude-marketplace](https://github.com/ZenHive/claude-marketplace)
+>
+> This is the legacy **`deltahedge`** marketplace. It has been superseded by the
+> **`zenhive`** marketplace (`ZenHive/claude-marketplace`), which rebrands to the
+> org name and restructures the plugins so orchestration and per-language concerns
+> are distinct, per-repo-toggleable plugins. Plugins were also renamed during the
+> cutover (e.g. `staged-review` → `review`, `task-driver` → `tasks`,
+> `dev-lifecycle` → `workflow`).
+>
+> **Do not install from here.** This repository is archived and no longer
+> maintained — all `@deltahedge` / `<plugin>:<skill>` references below are
+> historical. Use the new marketplace instead:
+>
+> ```
+> /plugin marketplace add ZenHive/claude-marketplace
+> ```
+
 Unofficial Claude Code plugin marketplace for Elixir and BEAM ecosystem development.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
